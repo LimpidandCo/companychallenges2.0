@@ -1,462 +1,516 @@
 ## Product Requirements Document (PRD)
 
-### Company Challenges Platform — First Rebuild
+### Company Challenges Platform
 
-- **Document version**: v1.0 (restructured)
-- **Date**: 2026-01-05
-- **Project type**: Platform rebuild (existing functionality + structural improvements)
+- **Document version**: v2.0
+- **Date**: 2026-01-06
+- **Project type**: Platform rebuild with extended scope
 
 ---
 
 ### Executive summary
-The Company Challenges Platform is a web-based content delivery system that enables organizations to share structured learning trajectories (“challenges”) with employees. This PRD defines requirements for the first rebuild, focusing on operational independence, improved admin content management, and elimination of structural inefficiencies **without changing the participant experience**.
+
+Company Challenges is a web-based content delivery platform enabling organizations to run structured learning trajectories ("challenges") with employees. 
+
+The platform supports two participation modes:
+- **Collective Mode**: Anonymous URL access. No accounts, no personal data. Deploy in hours.
+- **Individual Mode**: Authenticated access via Clerk. Progress tracking, session persistence, personal dashboards.
+
+Both modes share the same foundation. Features toggle per client.
+
+---
 
 ### Goals
-- **Operational independence**: deploy, run, and maintain on client-controlled infrastructure.
-- **Admin productivity**: dramatically reduce repetitive work via reusable content and clearer relationships.
-- **Clean foundation**: clear entity boundaries and extensibility for future iterations.
 
-### Key constraint
-- **Participant experience is intentionally unchanged** in this rebuild (URLs, anonymous access, reading experience, navigation flow).
+- **Operational independence**: deploy, run, and maintain on client-controlled infrastructure.
+- **Admin productivity**: reduce repetitive work via reusable content and clear relationships.
+- **Clean foundation**: clear entity boundaries and extensibility.
+- **Mode flexibility**: support both anonymous collective and authenticated individual experiences.
+- **Engagement options**: optional gamification and collective enhancements without requiring individual tracking.
 
 ---
 
 ### Table of contents
+
 - Overview
-- Users & principles
+- Users & modes
 - Glossary & data model
-- Functional requirements
+- Base platform requirements
+- Extended scope: Individual Mode
+- Extended scope: Collective Enhancements
+- Extended scope: Gamification
 - Admin interface requirements
-- Analytics (privacy-light)
-- Non-functional requirements (security, accessibility, performance, browser support)
-- Out of scope (must not be blocked)
+- Analytics
+- Non-functional requirements
 - Success metrics
-- Delivery phases
 - Risks & mitigations
-- Open questions
-- Appendix: reference materials
+- Decisions made
+- Appendix
 
 ---
 
 ## Overview
 
 ### Problem statement
-The current platform works but has structural issues that increase admin overhead and limit maintainability:
-- **Content reuse is broken**: assignments cannot be reused across challenges without manual duplication.
-- **Variant management is manual**: language/difficulty variants require full duplication + manual hyperlink management.
-- **Administrative overhead is high**: repetitive operations are required for everyday challenge management.
+
+The current platform has structural issues:
+- **Content reuse is broken**: assignments cannot be reused across challenges without duplication.
+- **Variant management is manual**: language/difficulty variants require full duplication + hyperlink spaghetti.
+- **Admin overhead is high**: repetitive operations for everyday management.
 - **Visual quality is inconsistent**: layout/scaling issues produce unpredictable presentation.
-- **Operational dependency**: hosting/maintenance cannot be owned independently.
+- **No progress tracking option**: some clients want individual progress, but current platform is anonymous-only.
+- **Limited engagement mechanics**: no way to create momentum or collective experiences.
 
 ---
 
-## Users & principles
+## Users & modes
 
 ### Target users
-- **Primary**: Platform administrators
-  - **Responsibilities**: create, manage, distribute challenges; author assignments; manage reuse/variants.
-  - **Needs**: fast content management, reuse, visibility into relationships, safety, reliable preview.
-- **Secondary**: Participants (end users)
-  - **Responsibilities**: consume challenge content.
-  - **Needs**: anonymous URL access, calm reading experience, reliable media playback, self-paced navigation.
 
-### Core principles
-- **No participant accounts**
-  - No login required
-  - No personal data collection
-  - No participant uploads/submissions
-  - Anonymous, frictionless access
-- **URL-based access model**
-  - Every challenge has a unique public URL
-  - Every assignment has a unique public URL
-  - Direct access (no navigation barriers)
-- **Privacy-light architecture**
-  - Anonymous analytics only
-  - No individual tracking/profiling
-  - Shared access passwords (access gate, not authentication)
-- **Management over features**
-  - Reduce admin effort before adding participant features
-  - Content reuse and structural clarity are central goals
-  - Future extensibility must not be blocked by architecture decisions
+**Primary**: Platform administrators
+- Create, manage, distribute challenges
+- Author assignments
+- Manage reuse/variants
+- Configure mode and features per client
+
+**Secondary**: Participants
+- Consume challenge content
+- (Individual Mode) Track personal progress
+
+### Participation modes
+
+#### Collective Mode (default)
+- No login required
+- No personal data collection
+- Anonymous, frictionless URL access
+- Shared passwords for access gating (not authentication)
+- Anonymous analytics only
+
+#### Individual Mode (optional)
+- Clerk authentication (email, social, SSO)
+- Per-user identity stored in database
+- Personal progress tracking
+- Session persistence (resume where left off)
+- Private dashboard view
+
+**Key principle**: Clients can run Collective Mode only. Individual Mode is opt-in. Features can be enabled/disabled per client.
 
 ---
 
 ## Glossary & data model
 
-### Entities
+### Core entities
 
 #### Client
 - **Purpose**: an organization using the platform.
 - **Properties**
   - Name (string, required)
   - Logo (image, optional)
-- **Admin capabilities**
-  - Create / edit / delete clients (with safeguards)
+  - Mode: `collective` | `individual` | `hybrid`
+  - Feature flags (JSON): which optional features are enabled
 
 #### Challenge
 - **Purpose**: a container that sequences assignments into a learning trajectory.
 - **Properties**
   - Internal name (string, admin-only)
-  - Public title (string, optional; display toggle)
+  - Public title (string, optional)
   - Description (rich text)
   - Brand color (hex)
   - Support information (rich text)
   - Challenge visual (image)
-  - Unique public URL (auto-generated)
-  - Client ID (required)
-  - Active/archived status (boolean)
-  - Folder/project grouping (minimum one level)
+  - Public URL (auto-generated + optional custom slug)
+  - Client ID (FK)
+  - Active/archived status
+  - Folder/project grouping
 - **Key behaviors**
-  - A challenge **does not own** assignments; it references them via `AssignmentUsage`.
-  - Challenge duplication copies **structure + references**, not assignment content.
-  - Archiving is **soft-delete**.
+  - A challenge **references** assignments via `AssignmentUsage`, does not own them.
+  - Challenge duplication copies structure + references, not content.
+  - Archiving is soft-delete.
 
 #### Assignment
-- **Purpose**: a standalone, reusable content unit (atomic building block).
+- **Purpose**: a standalone, reusable content unit.
 - **Properties**
-  - Internal title (string, admin-only)
-  - Public title (string, optional)
-  - Subtitle (string, optional)
+  - Internal title (admin-only)
+  - Public title (optional)
+  - Subtitle (optional)
   - Description (rich text)
-  - Visual (image upload)
+  - Visual (image)
   - Media URL (optional; embedded video)
   - Password (optional; shared access key)
-  - Unique public URL (auto-generated)
+  - Public URL (auto-generated)
 - **Key behaviors**
   - Exists independently of challenges.
-  - Can be referenced by multiple challenges simultaneously.
+  - Can be referenced by multiple challenges.
   - Can be duplicated (new entity + new URL).
-  - Can reference other assignments as **admin-only metadata** for variants.
+  - Can link to other assignments as variants (admin metadata).
 
-#### AssignmentUsage (relationship entity)
-- **Purpose**: defines how a specific assignment appears within a specific challenge.
+#### AssignmentUsage
+- **Purpose**: defines how an assignment appears within a challenge.
 - **Properties**
   - Challenge ID (FK)
   - Assignment ID (FK)
+  - Sprint ID (FK, optional — for Collective Enhancements)
   - Order/position (int)
-  - Visibility (boolean: shown/hidden)
+  - Visibility (boolean)
   - Release date (datetime, optional)
   - Label (string, optional)
-- **Why it matters**
-  - Enables true reuse without duplication
-  - Allows different sequencing/pacing per challenge
-  - Creates a foundation for future conditional logic without breaking content structure
+  - Gamification points (int, optional)
+  - Gamification unlock condition (JSON, optional)
+
+### Extended entities (Individual Mode)
+
+#### Participant
+- **Purpose**: authenticated user identity.
+- **Properties**
+  - Clerk user ID (external FK)
+  - Display name (optional)
+  - Email
+  - Created at
+
+#### ChallengeEnrollment
+- **Purpose**: links participant to challenge.
+- **Properties**
+  - Participant ID (FK)
+  - Challenge ID (FK)
+  - Enrolled at
+  - Status: `active` | `completed` | `dropped`
+
+#### AssignmentProgress
+- **Purpose**: tracks per-user assignment state.
+- **Properties**
+  - Participant ID (FK)
+  - AssignmentUsage ID (FK)
+  - Status: `not_started` | `in_progress` | `completed`
+  - Started at
+  - Completed at
+  - Quiz responses (JSON, optional)
+
+### Extended entities (Collective Enhancements)
+
+#### Sprint
+- **Purpose**: groups assignments into themed phases.
+- **Properties**
+  - Challenge ID (FK)
+  - Title
+  - Description (rich text)
+  - Order/position
+  - Host video URL (optional)
+
+#### Announcement
+- **Purpose**: admin-posted update visible to all participants.
+- **Properties**
+  - Challenge ID (FK)
+  - Title
+  - Content (rich text)
+  - Published at
+  - Pinned (boolean)
+
+### Extended entities (Gamification)
+
+#### Milestone
+- **Purpose**: collective achievement marker.
+- **Properties**
+  - Challenge ID (FK)
+  - Title
+  - Description
+  - Trigger condition (JSON)
+  - Visual/icon
+
+#### MicroQuiz
+- **Purpose**: reflective check-in (non-scored).
+- **Properties**
+  - Assignment ID (FK)
+  - Questions (JSON array)
+  - Position: `before` | `after` assignment
 
 ---
 
-## Functional requirements
+## Base platform requirements
 
-### Participant experience (unchanged)
+### Participant experience (Collective Mode)
 
 #### Access flow
-1. Participant receives challenge URL (email/chat/etc.)
-2. Open URL → challenge overview page
-3. View list of available assignments
-4. Open assignment
+1. Participant receives challenge URL
+2. Opens URL → challenge overview page
+3. Views list of available assignments
+4. Opens assignment
    - If public: content loads
-   - If gated: password prompt appears before content loads
-5. Read content / play media if present
-6. “Complete” button returns to challenge overview
+   - If gated: password prompt appears
+5. Reads content / plays media
+6. "Complete" button returns to overview
 
-#### Participant capabilities
+#### Capabilities
 - View challenge overview and description
-- Navigate between assignments and back to overview
+- Navigate between assignments
 - Enter passwords when required
 - Play embedded media
 
-#### Explicitly not included (participant)
-- No login/accounts
-- No progress saving
-- No submissions/uploads
-- No social features
-- No user profiles / identification
+### Admin functional requirements
+
+#### Content editing (critical)
+Rich text fields must support:
+- Headings (H1/H2/H3)
+- Bold / italic / underline
+- Bulleted and numbered lists
+- Hyperlinks
+- Inline images
+- Embedded media
+- Copy/paste from Word/Google Docs without breaking
+- Undo/redo
+
+#### Layout & scaling (critical)
+- No fixed-height containers
+- Fluid scaling based on content
+- No clipped images or awkward whitespace
+- Responsive across desktop and mobile
+
+#### Content reuse (primary rebuild driver)
+- Assignments are standalone and reusable by reference
+- Single source of truth: editing updates all usages
+- View all challenges using an assignment
+- Usage count visible
+- Explicit duplication creates independent copy
+
+#### Challenge management
+- Create, edit, duplicate, archive
+- Folder/project grouping
+- Copy URL to clipboard
+- Preview participant view
+
+#### Assignment passwords
+- Shared access keys (not user authentication)
+- Single password per assignment
+- Password prompt before content loads
+- Rate limiting on attempts
+
+#### Scheduled release
+- Release date per AssignmentUsage (challenge-level)
+- Before release: hidden or "Available on [date]"
+- Can combine with passwords
+
+#### Variants
+- Assignments can reference other assignments as metadata
+- Admin can create, view, navigate relationships
+- Labels: "English version", "French translation", "Advanced version"
+- Not exposed to participants (this rebuild)
+
+#### Custom URLs
+- Challenges can have admin-defined slugs
+- Critical for QR codes and printed materials
+- Assignments use auto-generated URLs
 
 ---
 
-### Admin functional requirements
+## Extended scope: Individual Mode
 
-#### Content editing & rich text (critical)
-All rich text fields (challenge description, support info, assignment description/instructions) must support:
-- Headings (H1/H2/H3)
-- Paragraphs with line breaks
-- Bold / italic / underline
-- Bulleted and numbered lists
-- Hyperlinks (add/edit/remove)
-- Inline images
-- Emoji/icon insertion
-- Embedded media (video, audio) where appropriate
-- Copy/paste from external sources (Word/Google Docs) without breaking formatting
-- Undo/redo
+**Requires**: Clerk authentication
 
-Implementation note: the editor is a **core daily-use component**; poor editing UX directly harms admin productivity.
+### Participant capabilities
+- Log in via email, social, or SSO
+- View personal dashboard
+- See progress across enrolled challenges
+- Resume where left off (session persistence)
+- Mark assignments complete
 
-#### Layout & visual scaling (critical)
-Requirements:
-- No fixed-height containers for user content
-- Layout scales fluidly based on content length
-- No clipped images, awkward whitespace, or scroll-within-scroll
-- Responsive across desktop and mobile
+### Data stored
+- Participant profile (Clerk user ID, email, display name)
+- Challenge enrollments
+- Assignment progress (status, timestamps)
+- Quiz responses (if micro-quizzes enabled)
 
-Failures to avoid:
-- Cropping long content via fixed windows
-- Excess whitespace when content is short
-- Non-proportional image scaling
+### Privacy considerations
+- Personal data is stored (unlike Collective Mode)
+- Must comply with GDPR
+- Users can request data deletion
+- No data shared between clients
 
-#### Management & reuse (primary rebuild driver)
-Required improvements:
-- **Create once, reuse everywhere**
-  - Assignments are standalone and reusable across challenges by reference
-  - Single source of truth: editing an assignment updates all usages
-- **Visibility & tracking**
-  - View all challenges using an assignment
-  - See usage count
-  - Navigate from assignment → challenges where it’s used
-- **Duplication when needed**
-  - Explicit “Duplicate assignment” creates an independent copy (new ID + new URL)
-  - Changes to duplicates do not affect the original
-- **Challenge duplication**
-  - Duplicating a challenge copies structure + assignment references (not content)
-  - New challenge gets a new URL
-- **Archival**
-  - Challenges can be archived/restored (soft delete)
+### Admin capabilities
+- View participant list per challenge
+- See aggregate progress
+- Export progress data
 
-#### Assignment passwords (critical)
-Purpose: staged access control without accounts.
+---
 
-Requirements:
-- Passwords are **shared access keys**, not user authentication.
-- Single password per assignment (set/change/remove).
-- Password prompt appears before assignment content loads.
-- Rate limiting on password attempts (see Security).
+## Extended scope: Collective Enhancements
 
-Clarifications:
-- No user identity linkage
-- No user/password tracking
-- No “password reset” flows (admin can change the shared key)
+**Does not require**: Individual Mode (works with anonymous access)
 
-#### Scheduled release (challenge-level)
-Purpose: automate availability without manual admin intervention.
+### Sprint structure
+- Group assignments into themed phases
+- Sprint title, description, order
+- Optional host video per sprint (intro/recap)
 
-Requirements:
-- Release logic is defined per `AssignmentUsage` (challenge-level), not per assignment.
-- The same assignment can have different release schedules in different challenges.
-- Before release: assignment is hidden or shows “Available on [date]”.
-- After release: assignment is accessible normally.
-- Scheduling can be combined with passwords.
+### Announcements
+- Admin posts updates visible to all
+- Title, content, timestamp
+- Can be pinned
+- Displayed on challenge overview
 
-Explicitly not required (this rebuild):
-- Participant notifications (email/push)
+### Editorial milestones
+- "You've completed Sprint 1!" moments
+- Triggered by assignment position, not individual progress
+- Creates narrative rhythm
 
-#### Variants (minimum viable)
-Goal: stop manual hyperlink spaghetti.
+---
 
-Requirements:
-- Assignments can reference other assignments as **metadata relationships** (not in-body links).
-- Admin can create, view, and navigate relationships.
-- Not exposed to participants (yet).
+## Extended scope: Gamification
 
-Examples of relationship labels:
-- “English version”
-- “French translation”
-- “Advanced version”
+**Does not require**: Individual Mode (collective mechanics work anonymously)
 
-Explicitly not required (this rebuild):
-- Automatic language detection/switching
-- Participant-facing language/difficulty selection UI
-- Multi-language UI
+### Time-based unlocks
+- Content reveals at scheduled times
+- Goes beyond basic release dates
+- Can create "reveal moments"
 
-Future extension path: participant-facing variant selection without restructuring content.
+### Reveal moments
+- Dramatic content unlocks
+- Visual/animation treatment
+- Builds collective anticipation
+
+### Micro-quizzes
+- Reflective, non-scored check-ins
+- Appear before or after assignments
+- Multiple choice or short text
+- Responses stored (if Individual Mode) or anonymous
+
+### Collective progress
+- "X% of participants reached this point"
+- Anonymous calculation from analytics events
+- Creates social proof without individual tracking
+
+### Milestones
+- Challenge-level achievements
+- Triggered by collective metrics
+- Visual celebration moments
 
 ---
 
 ## Admin interface requirements
 
 ### Client management
-- List clients (name, logo thumbnail)
-- Create client (name, logo upload)
-- Edit client
-- Delete client (confirm + safeguards if challenges exist)
+- List clients (name, logo)
+- Create / edit / delete client
+- Configure mode and feature flags
 
-### Challenge management (per client)
-- List challenges for selected client
-- Show status (active/archived)
-- Folder/project grouping (minimum one level)
-- Create challenge
-- Edit challenge properties
-- Duplicate challenge
-- Archive/restore challenge
-- Copy challenge URL
-- Preview participant view
+### Challenge management
+- List challenges per client (with status)
+- Create / edit / duplicate / archive
+- Folder organization
+- Copy URL / Preview
+- Configure sprints (if enabled)
+- Post announcements (if enabled)
 
-### Assignment management (within a challenge)
-- List assignments in challenge order
-- Drag-and-drop reordering
-- Add existing assignment (reference)
-- Create new assignment
-- Remove assignment from challenge (break reference; does not delete assignment)
-- Edit usage properties (visibility, release date, label)
-- Quick link to edit assignment content
+### Assignment management (within challenge)
+- List in order
+- Drag-drop reorder
+- Add existing / create new
+- Remove from challenge (without deleting)
+- Edit usage properties (visibility, release, label, gamification)
 
-### Assignment library (cross-challenge)
-- View all assignments (across all challenges)
-- Search by title/content
-- Filter by client and/or usage in challenges
-- Show usage count per assignment
-- Create / edit / duplicate assignment
-- View “used in” (challenges list)
+### Assignment library
+- View all assignments
+- Search / filter
+- Usage count
+- "Used in" list
+- Create / edit / duplicate
+- Configure micro-quizzes (if enabled)
 
-### Bulk operations (nice to have)
-- CSV/Excel import for assignment list
-- Bulk reordering
-- Bulk release date setting
+### Analytics dashboard
+- Views per challenge
+- Views per assignment
+- Media engagement
+- (Individual Mode) Progress summaries
+- (Gamification) Collective progress metrics
 
 ---
 
-## Analytics (minimum viable, privacy-light)
+## Analytics
 
-### Purpose
-Understand usage patterns without identifying individuals.
-
-### Events to track
+### Core events (anonymous)
 - Challenge page viewed
 - Assignment page viewed
-- Media play/clicked
+- Media played
 - Password attempt (success/failure)
+
+### Individual Mode events
+- User logged in
+- Assignment started
+- Assignment completed
+- Quiz submitted
 
 ### Event metadata
 - Client ID
 - Challenge ID
 - Assignment ID
 - Timestamp
+- (Individual Mode) Participant ID
 
-### Privacy constraints
-- No personal identifiers
-- No IP address storage
-- No user tracking across sessions
-
-### Reporting needs
-- Views per challenge
-- Views per assignment
-- Media engagement rate (clicks/views)
-- Comparisons between challenges/assignments
+### Privacy
+- Collective Mode: no personal identifiers, no IP storage
+- Individual Mode: user-linked data, GDPR compliant
+- No cross-session tracking in Collective Mode
 
 ### Implementation
-- GA4 preferred, or simple server-side event logging
-- Must be anonymous and GDPR-compliant
-
-Explicitly not required:
-- Session recording
-- Heatmaps
-- A/B testing infrastructure
-- Individual user profiles/funnels
+- GA4 or custom event logging
+- Anonymous by default
+- Individual events only when mode enabled
 
 ---
 
 ## Non-functional requirements
 
-### Hosting & operational independence (critical)
-Delivery requirements:
-- Complete source code access
-- Clear deployment documentation
-- Environment setup guide
-- Dependency list and versions
-- No proprietary/locked components
-- No hidden external dependencies required to operate
-- Deployable on client infrastructure
-- Maintainable without relying on a third party
-
-Technology preferences:
-- Modern, well-documented frameworks
-- Cloud-agnostic hosting where possible
-- Clear separation of concerns
-- Avoid vendor lock-in
-
-### Performance & scalability (replace “LLM-y” guesses with testable SLOs)
-This rebuild should be designed for **typical SMB-to-mid-market usage**, but we will not hardcode fake load projections in the PRD. Instead:
-
-- **Sizing assumptions (to confirm)**:
-  - Number of clients, challenges, assignments, and traffic must be confirmed from the current system and/or stakeholder input.
-  - Data model and queries must remain efficient as counts grow by at least an order of magnitude from “today’s” usage.
-
-- **Performance SLOs (measured at p95)**:
-  - **Challenge overview load**: content usable within a reasonable budget on modern devices/browsers.
-  - **Assignment page load**: render text/images without jank; avoid layout shifts.
-  - **Media start**: when participant clicks play, media begins promptly (subject to provider/network).
-  - **Admin CRUD actions**: create/edit operations feel responsive; long operations show progress states.
-
-Measurement notes:
-- Use **Web Vitals** (LCP/INP/CLS) for participant pages and capture p95 in production.
-- Use **p95 API latency** for admin CRUD endpoints, plus UI responsiveness metrics where relevant.
-
-Note: final numeric targets (e.g., “LCP <= Xs”) should be set after baseline measurements on the current platform and after choosing hosting + media delivery approach.
+### Security
+- HTTPS only
+- Secure password storage (bcrypt for shared keys)
+- SQL injection prevention (Supabase RLS + parameterized queries)
+- XSS protection (sanitized rich text)
+- Rate limiting on password attempts
+- Clerk handles auth security for Individual Mode
 
 ### Browser support
-- Chrome: latest 2 versions
-- Firefox: latest 2 versions
-- Safari: latest 2 versions
-- Edge: latest 2 versions
-- Mobile Safari: last 2 major iOS versions
-- Mobile Chrome: last 2 major Android versions
+- Chrome, Firefox, Safari, Edge: latest 2 versions
+- Mobile Safari: last 2 iOS versions
+- Mobile Chrome: last 2 Android versions
 
 ### Accessibility
-- Target: WCAG 2.1 AA (contrast, keyboard nav, focus states, semantic structure)
+- Target: WCAG 2.1 AA
+- Keyboard navigation
+- Proper contrast
+- Semantic HTML
 
-### Security requirements
-- HTTPS only
-- Secure password storage (even if shared keys)
-- SQL injection prevention
-- XSS protection
-- CSRF protection (where applicable)
-- Rate limiting on password attempts
-- No sensitive data in URLs (except opaque IDs)
+### Performance
+- Page load < 2s (p95)
+- No layout shifts
+- Media starts promptly on click
+- Admin CRUD feels responsive
 
----
-
-## Explicitly out of scope (first rebuild)
-These are excluded, but must not be architecturally blocked.
-
-### Participant-side
-- Accounts/login
-- Progress saving/bookmarking
-- Answer submission / quizzes / assessments
-- Certificates / completion tracking
-- Social features (comments/likes/forums)
-- Notifications
-
-### Admin-side
-- LMS integrations
-- SSO/SAML
-- Advanced analytics (cohorts/funnels)
-- A/B testing
-- Automated email campaigns
-- Public API for external systems
-
-### Content/experience
-- Interactive elements (polls/quizzes)
-- Gamification (points/badges/leaderboards)
-- Branching/conditional logic
-- Personalization based on user data
-
-### Technical
-- Multi-language admin UI
-- Native mobile apps
-- Offline mode
+### Hosting & independence
+- Complete source code access
+- Deployment documentation
+- No proprietary locked components
+- Deployable on client infrastructure (Vercel)
 
 ---
 
 ## Success metrics
 
-### Primary success criteria
-- **Operational independence achieved**: platform can be deployed, run, and maintained entirely by the client team.
-- **Assignment reuse works**: the same assignment can be used in multiple challenges without duplication.
-- **Admin time reduced**: creating a new challenge using existing assignments takes **< 10 minutes**.
-- **Visual quality consistent**: no layout/scaling issues across varied content lengths.
-- **Zero regression**: participant-facing functionality matches current behavior.
+### Launch criteria
+- First client can run a full challenge in Collective Mode
+- Admin can manage content without developer help
+- Assignment reuse works correctly
+- Custom URLs work for QR codes
+- No layout/scaling issues
 
 ### Secondary success criteria
 - Positive admin feedback on management interface
 - Fewer support requests about reuse/variants
 - Codebase is understandable by external developers
+
+### Quality criteria
+- Page load < 2s (p95)
+- Rich text paste works from Word/Docs
+- Zero data leakage between modes
+- WCAG 2.1 AA compliance
 
 ---
 
@@ -471,7 +525,7 @@ These are excluded, but must not be architecturally blocked.
   - As an admin, I can create a new challenge with title, description, and branding so participants have clear context.
   - As an admin, I can organize challenges into folders so I can manage multiple projects efficiently.
   - As an admin, I can duplicate a challenge so I can quickly create variations for different groups.
-  - As an admin, I can archive a challenge so it’s hidden but recoverable if needed.
+  - As an admin, I can archive a challenge so it's hidden but recoverable if needed.
   - As an admin, I can preview a challenge so I see what participants will experience.
   - As an admin, I can copy a challenge URL so I can distribute it to participants.
 - **Assignment creation & management**
@@ -480,7 +534,7 @@ These are excluded, but must not be architecturally blocked.
   - As an admin, I can reorder assignments within a challenge so I control the sequence.
   - As an admin, I can see which challenges use an assignment so I understand content relationships.
   - As an admin, I can duplicate an assignment so I can create a modified version without affecting the original.
-  - As an admin, I can edit an assignment knowing it updates everywhere it’s used.
+  - As an admin, I can edit an assignment knowing it updates everywhere it's used.
   - As an admin, I can remove an assignment from a challenge without deleting the assignment itself.
 - **Content editing**
   - As an admin, I can format content so I create professional-looking assignments.
@@ -511,37 +565,37 @@ These are excluded, but must not be architecturally blocked.
 ---
 
 ## Delivery phases (suggested)
-- **Phase 1 **: core data model + admin foundation
+- **Phase 1**: core data model + admin foundation
   - Schema (Client, Challenge, Assignment, AssignmentUsage)
   - Basic CRUD for all entities
   - Admin authentication
   - Client management screen
   - Assignment library basics
-- **Phase 2 **: challenge management + content editing
+- **Phase 2**: challenge management + content editing
   - Challenge management screen
   - Rich text editor integration
   - Image upload/management
   - Assignment create/edit
   - Assignment-to-challenge relationship management
-- **Phase 3 **: participant experience
+- **Phase 3**: participant experience
   - Public challenge view
   - Public assignment view
   - Password functionality
   - Media embed/playback
   - Navigation flow
-- **Phase 4 **: advanced admin features
+- **Phase 4**: advanced admin features
   - Scheduled release
   - Drag/drop reordering
   - Challenge duplication
   - Variant relationships
   - Folder/project organization
-- **Phase 5 **: analytics + polish
+- **Phase 5**: analytics + polish
   - Analytics integration
   - Admin preview
   - Visual scaling fixes
   - Performance optimization
   - Bug fixes/refinement
-- **Phase 6 **: deployment + handoff
+- **Phase 6**: deployment + handoff
   - Deployment documentation
   - Environment setup
   - Migration plan/execution (if needed)
@@ -551,48 +605,43 @@ These are excluded, but must not be architecturally blocked.
 ---
 
 ## Risks & mitigations
-- **Rich text editor complexity**
-  - Impact: high
-  - Mitigation: pick a proven editor early; allocate time for paste/import edge cases and content sanitization.
-- **Layout scaling edge cases**
-  - Impact: medium
-  - Mitigation: test with extreme content lengths; build a fluid design system.
-- **Assignment reuse architecture complexity**
-  - Impact: high
-  - Mitigation: document the entity model; prototype usage flows early.
-- **Scope creep**
-  - Impact: medium
-  - Mitigation: keep out-of-scope list explicit; track future ideas separately.
-- **Migration risk**
-  - Impact: medium
-  - Mitigation: define migration strategy; validate in staging; have rollback plan.
+
+| Risk | Impact | Mitigation |
+|------|--------|------------|
+| Rich text editor complexity | High | Use TipTap, allocate time for paste edge cases |
+| Layout scaling edge cases | Medium | Test with extreme content lengths, fluid design system |
+| Assignment reuse architecture | High | Document entity model, prototype usage flows early |
+| Mode configuration complexity | Medium | Clear feature flag schema, test all combinations |
+| Scope creep | Medium | Keep out-of-scope explicit, track future ideas separately |
 
 ---
 
-## Open questions
-- Rich text editor: preference (TipTap vs Lexical vs other)?
-- Tech stack constraints: must it remain Next.js, or open?
-- Backend preference: Node/Python/etc?
-- Database preference: Postgres vs other?
-- Hosting preference: cloud provider vs on-prem?
-- Image/media storage: local filesystem vs S3-compatible vs CDN?
-- Analytics approach: GA4 sufficient or custom logging required?
-- Migration strategy: big bang vs gradual?
-- Assignment library UI: list vs cards vs hybrid?
-- Folder depth: one level enough or nested?
+## Decisions made
+
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| Framework | Next.js 16 (App Router) | Server components, streaming, Vercel integration |
+| Styling | Tailwind CSS 4 | Design system, responsive utilities |
+| Auth | Clerk | Enterprise-grade, SSO/social/email, separates auth complexity |
+| Database | Supabase (Postgres) | RLS, storage included, self-hostable option |
+| Rich text | TipTap | Modern, extensible, good paste handling |
+| Hosting | Vercel | CI/CD, preview deployments, edge network |
 
 ---
 
-## Appendix: reference materials
+## Appendix
 
-### Loom videos (provided)
-- Client admin walkthrough
-- Challenge admin walkthrough
-- Assignment admin walkthrough
-
-### Live examples (provided)
-- Challenge example: `https://app.companychallenges.com/KK6wYjG`
-- Admin interface: `https://app.companychallenges.com/`
+### Reference materials
+- Loom videos: client admin, challenge admin, assignment admin walkthroughs
+- Live example: `https://app.companychallenges.com/KK6wYjG`
+- Admin: `https://app.companychallenges.com/` (credentials in secure location)
 
 Note: avoid storing real passwords inside the PRD. If specific example passwords are needed for testing, keep them in a separate, access-controlled place.
 
+### Document control
+- **Author**: Dev team
+- **Stakeholders**: Michiel, Jaspar, Liska
+- **Status**: Active
+- **Revision history**
+  - v1.0 (2026-01-05): Initial PRD for base rebuild
+  - v2.0 (2026-01-06): Added Individual Mode, Collective Enhancements, Gamification; updated decisions
