@@ -4,6 +4,7 @@ import { useState } from 'react'
 import {
   Button,
   Input,
+  Select,
   Dialog,
   DialogHeader,
   DialogTitle,
@@ -13,10 +14,11 @@ import {
   Spinner,
 } from '@/components/ui'
 import { updateAssignmentUsage } from '@/lib/actions/assignment-usages'
-import type { AssignmentUsageWithAssignment } from '@/lib/types/database'
+import type { AssignmentUsageWithAssignment, Sprint } from '@/lib/types/database'
 
 interface AssignmentUsageEditorProps {
   usage: AssignmentUsageWithAssignment | null
+  sprints?: Sprint[]
   open: boolean
   onClose: () => void
   onSuccess: () => void
@@ -24,11 +26,13 @@ interface AssignmentUsageEditorProps {
 
 export function AssignmentUsageEditor({
   usage,
+  sprints = [],
   open,
   onClose,
   onSuccess,
 }: AssignmentUsageEditorProps) {
   const [label, setLabel] = useState(usage?.label ?? '')
+  const [sprintId, setSprintId] = useState(usage?.sprint_id ?? '')
   const [releaseAt, setReleaseAt] = useState(
     usage?.release_at ? formatDateTimeLocal(usage.release_at) : ''
   )
@@ -42,6 +46,7 @@ export function AssignmentUsageEditor({
   if (usage && open) {
     if (label !== (usage.label ?? '') && !isSubmitting) {
       setLabel(usage.label ?? '')
+      setSprintId(usage.sprint_id ?? '')
     }
   }
 
@@ -55,6 +60,7 @@ export function AssignmentUsageEditor({
     try {
       const result = await updateAssignmentUsage(usage.id, {
         label: label || null,
+        sprint_id: sprintId || null,
         release_at: releaseAt ? new Date(releaseAt).toISOString() : null,
         is_visible: isVisible,
         is_milestone: isMilestone,
@@ -105,6 +111,22 @@ export function AssignmentUsageEditor({
             placeholder="e.g., Week 1, Day 3"
             hint="Optional label shown in the challenge overview."
           />
+
+          {sprints.length > 0 && (
+            <Select
+              label="Sprint"
+              value={sprintId}
+              onChange={(e) => setSprintId(e.target.value)}
+              options={[
+                { value: '', label: 'No sprint (standalone)' },
+                ...sprints.map((sprint) => ({
+                  value: sprint.id,
+                  label: `${sprint.position + 1}. ${sprint.name}`,
+                })),
+              ]}
+              hint="Assign this content to a sprint phase."
+            />
+          )}
 
           <Input
             label="Release Date"

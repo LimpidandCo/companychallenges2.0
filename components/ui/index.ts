@@ -15,4 +15,4 @@ export {
   type DialogProps,
 } from './dialog'
 export { RichTextEditor, type RichTextEditorProps } from './rich-text-editor'
-
+export { Skeleton, SkeletonText, SkeletonCard, SkeletonList, SkeletonTable } from './skeleton'

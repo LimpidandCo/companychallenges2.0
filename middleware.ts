@@ -7,6 +7,7 @@ const isDemoMode = process.env.DEMO_MODE === 'true'
 
 // Define protected routes
 const isAdminRoute = createRouteMatcher(['/admin(.*)'])
+const isParticipantRoute = createRouteMatcher(['/participant(.*)'])
 
 // Demo mode middleware (bypasses auth)
 function demoMiddleware(req: NextRequest) {
@@ -15,8 +16,8 @@ function demoMiddleware(req: NextRequest) {
 
 // Production middleware with Clerk auth
 const productionMiddleware = clerkMiddleware(async (auth, req) => {
-  if (isAdminRoute(req)) {
-    // Protect admin routes - requires authentication
+  if (isAdminRoute(req) || isParticipantRoute(req)) {
+    // Protect admin and participant routes - requires authentication
     await auth.protect()
   }
 })

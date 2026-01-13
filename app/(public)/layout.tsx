@@ -7,8 +7,11 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
         // e.g., style={{ '--brand-color': challenge.brand_color }}
       }}
     >
-      {children}
+      {/* Mesh gradient background for visual interest */}
+      <div className="fixed inset-0 mesh-gradient opacity-30 pointer-events-none" />
+      <div className="relative">
+        {children}
+      </div>
     </div>
   )
 }
-

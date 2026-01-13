@@ -246,7 +246,7 @@ export async function restoreChallenge(id: string): Promise<ChallengeActionResul
 }
 
 /**
- * Duplicate a challenge (copies structure, not content)
+ * Duplicate a challenge (copies structure including sprints, announcements, milestones)
  */
 export async function duplicateChallenge(id: string): Promise<ChallengeActionResult> {
   try {
@@ -266,8 +266,8 @@ export async function duplicateChallenge(id: string): Promise<ChallengeActionRes
     // Generate new slug
     const newSlug = await generateUniqueSlug(`${original.internal_name} copy`)
 
-    // Create the duplicate
-    const { data, error } = await supabase
+    // Create the duplicate challenge
+    const { data: newChallenge, error } = await supabase
       .from('challenges')
       .insert({
         client_id: original.client_id,
@@ -285,21 +285,54 @@ export async function duplicateChallenge(id: string): Promise<ChallengeActionRes
       .select()
       .single()
 
-    if (error) {
+    if (error || !newChallenge) {
       console.error('Error duplicating challenge:', error)
-      return { success: false, error: error.message }
+      return { success: false, error: error?.message || 'Failed to create challenge copy' }
     }
 
-    // Copy assignment usages (references, not the assignments themselves)
+    // Copy sprints and create ID mapping
+    const sprintIdMap = new Map<string, string>()
+    const { data: sprints } = await supabase
+      .from('sprints')
+      .select('*')
+      .eq('challenge_id', id)
+      .order('position')
+
+    if (sprints && sprints.length > 0) {
+      for (const sprint of sprints) {
+        const { data: newSprint } = await supabase
+          .from('sprints')
+          .insert({
+            challenge_id: newChallenge.id,
+            name: sprint.name,
+            description: sprint.description,
+            position: sprint.position,
+            visual_url: sprint.visual_url,
+            intro_video_url: sprint.intro_video_url,
+            recap_video_url: sprint.recap_video_url,
+            starts_at: null, // Reset dates for the copy
+            ends_at: null,
+          })
+          .select()
+          .single()
+
+        if (newSprint) {
+          sprintIdMap.set(sprint.id, newSprint.id)
+        }
+      }
+    }
+
+    // Copy assignment usages with correct sprint IDs
     const { data: usages } = await supabase
       .from('assignment_usages')
       .select('*')
       .eq('challenge_id', id)
+      .order('position')
 
     if (usages && usages.length > 0) {
       const newUsages = usages.map((usage) => ({
-        challenge_id: data.id,
-        sprint_id: null, // Sprints are not copied in this basic implementation
+        challenge_id: newChallenge.id,
+        sprint_id: usage.sprint_id ? sprintIdMap.get(usage.sprint_id) || null : null,
         assignment_id: usage.assignment_id,
         position: usage.position,
         is_visible: usage.is_visible,
@@ -312,8 +345,50 @@ export async function duplicateChallenge(id: string): Promise<ChallengeActionRes
       await supabase.from('assignment_usages').insert(newUsages)
     }
 
+    // Copy announcements
+    const { data: announcements } = await supabase
+      .from('announcements')
+      .select('*')
+      .eq('challenge_id', id)
+
+    if (announcements && announcements.length > 0) {
+      const newAnnouncements = announcements.map((announcement) => ({
+        challenge_id: newChallenge.id,
+        title: announcement.title,
+        content: announcement.content,
+        visual_url: announcement.visual_url,
+        is_pinned: announcement.is_pinned,
+        published_at: announcement.published_at,
+        expires_at: announcement.expires_at,
+      }))
+
+      await supabase.from('announcements').insert(newAnnouncements)
+    }
+
+    // Copy milestones
+    const { data: milestones } = await supabase
+      .from('milestones')
+      .select('*')
+      .eq('challenge_id', id)
+      .order('position')
+
+    if (milestones && milestones.length > 0) {
+      const newMilestones = milestones.map((milestone) => ({
+        challenge_id: newChallenge.id,
+        name: milestone.name,
+        description: milestone.description,
+        trigger_type: milestone.trigger_type,
+        trigger_value: milestone.trigger_value,
+        celebration_type: milestone.celebration_type,
+        celebration_content: milestone.celebration_content,
+        position: milestone.position,
+      }))
+
+      await supabase.from('milestones').insert(newMilestones)
+    }
+
     revalidatePath('/admin/challenges')
-    return { success: true, data: data as Challenge }
+    return { success: true, data: newChallenge as Challenge }
   } catch (err) {
     console.error('Unexpected error duplicating challenge:', err)
     return { success: false, error: 'Failed to duplicate challenge' }

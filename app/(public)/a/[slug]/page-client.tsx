@@ -32,8 +32,9 @@ export function AssignmentPageClient({
 
   const title = assignment.public_title || assignment.internal_title
   const challengeSlug = navContext?.challenge.slug
+  const brandColor = navContext?.challenge.brandColor || '#ff6b4a'
 
-  // Track assignment view on mount (once, only if released and has access)
+  // Track assignment view on mount
   useEffect(() => {
     if (hasTrackedView.current) return
     if (!navContext || !isReleased || (requiresPassword && !hasAccess)) return
@@ -47,7 +48,6 @@ export function AssignmentPageClient({
     )
   }, [navContext, isReleased, requiresPassword, hasAccess, assignment.id])
 
-  // Handler for tracking completion when user clicks "Complete"
   const handleComplete = () => {
     if (!navContext) return
     trackAssignmentComplete(
@@ -58,7 +58,6 @@ export function AssignmentPageClient({
     )
   }
 
-  // Handler for tracking media play
   const handleMediaPlay = () => {
     if (hasTrackedMediaPlay.current || !navContext) return
     hasTrackedMediaPlay.current = true
@@ -70,7 +69,7 @@ export function AssignmentPageClient({
     )
   }
 
-  // Show password gate if required and not yet verified
+  // Show password gate if required
   if (requiresPassword && !hasAccess) {
     return (
       <PasswordGate
@@ -96,13 +95,12 @@ export function AssignmentPageClient({
         {navContext && (
           <nav
             className="border-b border-[var(--color-border)]"
-            style={{ backgroundColor: navContext.challenge.brandColor || 'var(--color-bg-subtle)' }}
+            style={{ backgroundColor: brandColor }}
           >
-            <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 lg:px-8">
+            <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6 lg:px-8">
               <Link
                 href={`/c/${challengeSlug}`}
-                className="inline-flex items-center gap-2 text-sm font-medium transition-colors"
-                style={{ color: navContext.challenge.brandColor ? '#ffffff' : 'var(--color-fg)' }}
+                className="inline-flex items-center gap-2 text-sm font-medium text-white/90 hover:text-white transition-colors"
               >
                 <ChevronLeftIcon className="h-4 w-4" />
                 Back to {navContext.challenge.publicTitle || navContext.challenge.internalName}
@@ -113,23 +111,33 @@ export function AssignmentPageClient({
 
         {/* Scheduled Release Message */}
         <div className="flex-1 flex items-center justify-center px-4">
-          <div className="max-w-md text-center">
-            <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[var(--color-accent-subtle)]">
-              <CalendarIcon className="h-10 w-10 text-[var(--color-accent)]" />
+          <div className="max-w-md text-center animate-pop-in">
+            <div 
+              className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-3xl animate-float"
+              style={{ backgroundColor: `${brandColor}15` }}
+            >
+              <span className="text-5xl">📅</span>
             </div>
-            <h1 className="text-2xl font-bold text-[var(--color-fg)] mb-2">{title}</h1>
-            <p className="text-lg text-[var(--color-fg-muted)] mb-4">
+            <h1 className="text-3xl font-bold text-[var(--color-fg)] mb-3">{title}</h1>
+            <p className="text-lg text-[var(--color-fg-muted)] mb-6">
               This assignment will be available on
             </p>
-            <p className="text-xl font-semibold text-[var(--color-accent)]">
+            <p 
+              className="text-2xl font-bold mb-8"
+              style={{ color: brandColor }}
+            >
               {formatDate(releaseAt)}
             </p>
             {navContext && (
               <Link
                 href={`/c/${challengeSlug}`}
-                className="mt-8 inline-flex items-center gap-2 rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-2 text-sm font-medium text-white transition-colors hover:opacity-90"
+                className="inline-flex items-center gap-2 rounded-xl px-6 py-3 text-base font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+                style={{ 
+                  backgroundColor: brandColor,
+                  boxShadow: `0 4px 16px -4px ${brandColor}60`
+                }}
               >
-                <ChevronLeftIcon className="h-4 w-4" />
+                <ChevronLeftIcon className="h-5 w-5" />
                 Return to Challenge
               </Link>
             )}
@@ -145,17 +153,16 @@ export function AssignmentPageClient({
       {/* Navigation Bar */}
       {navContext && (
         <nav
-          className="sticky top-0 z-40 border-b border-[var(--color-border)]"
-          style={{ backgroundColor: navContext.challenge.brandColor || 'var(--color-bg-subtle)' }}
+          className="sticky top-0 z-40 border-b border-white/10 backdrop-blur-md"
+          style={{ backgroundColor: `${brandColor}f0` }}
         >
           <div className="mx-auto max-w-4xl px-4 py-3 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between">
               <Link
                 href={`/c/${challengeSlug}`}
-                className="inline-flex items-center gap-2 text-sm font-medium transition-colors"
-                style={{ color: navContext.challenge.brandColor ? '#ffffff' : 'var(--color-fg)' }}
+                className="inline-flex items-center gap-2 text-sm font-medium text-white/90 hover:text-white transition-colors group"
               >
-                <ChevronLeftIcon className="h-4 w-4" />
+                <ChevronLeftIcon className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
                 <span className="hidden sm:inline">
                   {navContext.challenge.publicTitle || navContext.challenge.internalName}
                 </span>
@@ -163,11 +170,22 @@ export function AssignmentPageClient({
               </Link>
 
               {/* Progress Indicator */}
-              <div
-                className="text-sm font-medium"
-                style={{ color: navContext.challenge.brandColor ? 'rgba(255,255,255,0.9)' : 'var(--color-fg-muted)' }}
-              >
-                {navContext.currentPosition} of {navContext.totalCount}
+              <div className="flex items-center gap-3">
+                <div className="hidden sm:flex gap-1">
+                  {Array.from({ length: navContext.totalCount }, (_, i) => (
+                    <div
+                      key={i}
+                      className={`w-2 h-2 rounded-full transition-colors ${
+                        i + 1 <= navContext.currentPosition
+                          ? 'bg-white'
+                          : 'bg-white/30'
+                      }`}
+                    />
+                  ))}
+                </div>
+                <span className="text-sm font-semibold text-white">
+                  {navContext.currentPosition}/{navContext.totalCount}
+                </span>
               </div>
             </div>
           </div>
@@ -176,12 +194,12 @@ export function AssignmentPageClient({
 
       {/* Header */}
       <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-subtle)]">
-        <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-          <h1 className="text-2xl font-bold text-[var(--color-fg)] sm:text-3xl">
+        <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8 sm:py-10">
+          <h1 className="text-3xl font-bold text-[var(--color-fg)] sm:text-4xl tracking-tight animate-fade-in-up">
             {title}
           </h1>
           {assignment.subtitle && (
-            <p className="mt-2 text-lg text-[var(--color-fg-muted)]">
+            <p className="mt-3 text-xl text-[var(--color-fg-muted)] animate-fade-in-up delay-100">
               {assignment.subtitle}
             </p>
           )}
@@ -189,10 +207,10 @@ export function AssignmentPageClient({
       </header>
 
       {/* Content */}
-      <main className="flex-1 mx-auto w-full max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+      <main className="flex-1 mx-auto w-full max-w-4xl px-4 py-10 sm:px-6 lg:px-8">
         {/* Visual */}
         {assignment.visual_url && (
-          <div className="mb-8 overflow-hidden rounded-[var(--radius-lg)]">
+          <div className="mb-10 overflow-hidden rounded-2xl shadow-lg animate-fade-in-up delay-150">
             <img
               src={assignment.visual_url}
               alt={title}
@@ -203,8 +221,8 @@ export function AssignmentPageClient({
 
         {/* Media */}
         {assignment.media_url && (
-          <div className="mb-8">
-            <div className="aspect-video overflow-hidden rounded-[var(--radius-lg)] bg-[var(--color-bg-muted)]">
+          <div className="mb-10 animate-fade-in-up delay-200">
+            <div className="aspect-video overflow-hidden rounded-2xl bg-[var(--color-bg-muted)] shadow-lg ring-1 ring-[var(--color-border)]">
               {isYouTubeUrl(assignment.media_url) ? (
                 <iframe
                   src={getYouTubeEmbedUrl(assignment.media_url)}
@@ -236,19 +254,19 @@ export function AssignmentPageClient({
         {/* Description */}
         {assignment.description && (
           <div
-            className="prose prose-gray max-w-none dark:prose-invert"
+            className="prose prose-gray max-w-none dark:prose-invert prose-lg prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[var(--color-accent)] animate-fade-in-up delay-300"
             dangerouslySetInnerHTML={{ __html: assignment.description }}
           />
         )}
 
         {/* Empty state */}
         {!assignment.description && !assignment.media_url && !assignment.visual_url && (
-          <div className="flex flex-col items-center justify-center py-16 text-center">
-            <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-bg-muted)]">
-              <FileIcon className="h-8 w-8 text-[var(--color-fg-muted)]" />
+          <div className="flex flex-col items-center justify-center py-20 text-center animate-pop-in">
+            <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--color-bg-muted)] animate-float">
+              <span className="text-4xl">📄</span>
             </div>
-            <h2 className="text-lg font-medium text-[var(--color-fg)]">No content yet</h2>
-            <p className="mt-1 text-sm text-[var(--color-fg-muted)]">
+            <h2 className="text-xl font-bold text-[var(--color-fg)]">No content yet</h2>
+            <p className="mt-2 text-[var(--color-fg-muted)]">
               This assignment doesn't have any content.
             </p>
           </div>
@@ -257,7 +275,7 @@ export function AssignmentPageClient({
 
       {/* Bottom Navigation */}
       {navContext && (
-        <div className="sticky bottom-0 border-t border-[var(--color-border)] bg-[var(--color-bg)]">
+        <div className="sticky bottom-0 border-t border-[var(--color-border)] bg-[var(--color-bg-elevated)]/95 backdrop-blur-md">
           <div className="mx-auto max-w-4xl px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between gap-4">
               {/* Previous */}
@@ -265,11 +283,11 @@ export function AssignmentPageClient({
                 {navContext.prevAssignment ? (
                   <Link
                     href={`/a/${navContext.prevAssignment.slug}?from=${challengeSlug}`}
-                    className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm font-medium text-[var(--color-fg)] transition-colors hover:bg-[var(--color-bg-subtle)]"
+                    className="group inline-flex items-center gap-2 rounded-xl border-[1.5px] border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-sm font-medium text-[var(--color-fg)] transition-all duration-200 hover:border-[var(--color-border-hover)] hover:shadow-sm"
                   >
-                    <ChevronLeftIcon className="h-4 w-4" />
+                    <ChevronLeftIcon className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" />
                     <span className="hidden sm:inline truncate max-w-32">{navContext.prevAssignment.title}</span>
-                    <span className="sm:hidden">Previous</span>
+                    <span className="sm:hidden">Prev</span>
                   </Link>
                 ) : (
                   <div />
@@ -280,10 +298,13 @@ export function AssignmentPageClient({
               <Link
                 href={`/c/${challengeSlug}`}
                 onClick={handleComplete}
-                className="inline-flex items-center gap-2 rounded-[var(--radius-md)] px-4 py-2 text-sm font-medium text-white transition-colors"
-                style={{ backgroundColor: navContext.challenge.brandColor || 'var(--color-accent)' }}
+                className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5"
+                style={{ 
+                  backgroundColor: brandColor,
+                  boxShadow: `0 4px 12px -4px ${brandColor}50`
+                }}
               >
-                <CheckIcon className="h-4 w-4" />
+                <CheckIcon className="h-5 w-5" />
                 <span className="hidden sm:inline">Complete</span>
               </Link>
 
@@ -292,11 +313,11 @@ export function AssignmentPageClient({
                 {navContext.nextAssignment ? (
                   <Link
                     href={`/a/${navContext.nextAssignment.slug}?from=${challengeSlug}`}
-                    className="inline-flex items-center gap-2 rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm font-medium text-[var(--color-fg)] transition-colors hover:bg-[var(--color-bg-subtle)]"
+                    className="group inline-flex items-center gap-2 rounded-xl border-[1.5px] border-[var(--color-border)] bg-[var(--color-bg)] px-4 py-2.5 text-sm font-medium text-[var(--color-fg)] transition-all duration-200 hover:border-[var(--color-border-hover)] hover:shadow-sm"
                   >
                     <span className="hidden sm:inline truncate max-w-32">{navContext.nextAssignment.title}</span>
                     <span className="sm:hidden">Next</span>
-                    <ChevronRightIcon className="h-4 w-4" />
+                    <ChevronRightIcon className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
                   </Link>
                 ) : (
                   <div />
@@ -310,9 +331,9 @@ export function AssignmentPageClient({
       {/* Footer - only show if no nav context */}
       {!navContext && (
         <footer className="border-t border-[var(--color-border)] bg-[var(--color-bg-subtle)]">
-          <div className="mx-auto max-w-4xl px-4 py-6 sm:px-6 lg:px-8">
-            <p className="text-center text-sm text-[var(--color-fg-muted)]">
-              Powered by Company Challenges
+          <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6 lg:px-8">
+            <p className="text-center text-sm text-[var(--color-fg-subtle)]">
+              Powered by <span className="font-semibold text-[var(--color-fg-muted)]">Company Challenges</span>
             </p>
           </div>
         </footer>
@@ -366,7 +387,7 @@ function getVimeoEmbedUrl(url: string): string {
 // Icons
 function ChevronLeftIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
     </svg>
   )
@@ -374,7 +395,7 @@ function ChevronLeftIcon({ className }: { className?: string }) {
 
 function ChevronRightIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
     </svg>
   )
@@ -382,24 +403,8 @@ function ChevronRightIcon({ className }: { className?: string }) {
 
 function CheckIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
-    </svg>
-  )
-}
-
-function CalendarIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5" />
-    </svg>
-  )
-}
-
-function FileIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 14.25v-2.625a3.375 3.375 0 0 0-3.375-3.375h-1.5A1.125 1.125 0 0 1 13.5 7.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H8.25m2.25 0H5.625c-.621 0-1.125.504-1.125 1.125v17.25c0 .621.504 1.125 1.125 1.125h12.75c.621 0 1.125-.504 1.125-1.125V11.25a9 9 0 0 0-9-9Z" />
     </svg>
   )
 }

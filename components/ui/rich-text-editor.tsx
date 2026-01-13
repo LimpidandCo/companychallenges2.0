@@ -38,6 +38,7 @@ export function RichTextEditor({
   const [videoUrl, setVideoUrl] = useState('')
 
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
       StarterKit.configure({
         heading: {
@@ -47,17 +48,17 @@ export function RichTextEditor({
       Link.configure({
         openOnClick: false,
         HTMLAttributes: {
-          class: 'text-[var(--color-primary)] underline hover:no-underline',
+          class: 'text-[var(--color-accent)] underline hover:no-underline',
         },
       }),
       Image.configure({
         HTMLAttributes: {
-          class: 'max-w-full rounded-[var(--radius-md)]',
+          class: 'max-w-full rounded-xl my-4',
         },
       }),
       Youtube.configure({
         HTMLAttributes: {
-          class: 'w-full aspect-video rounded-[var(--radius-md)]',
+          class: 'w-full aspect-video rounded-xl my-4',
         },
       }),
       Placeholder.configure({
@@ -72,15 +73,18 @@ export function RichTextEditor({
     editorProps: {
       attributes: {
         class: cn(
-          'prose prose-sm max-w-none p-3 min-h-[150px] focus:outline-none',
-          '[&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2',
-          '[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-2',
-          '[&_h3]:text-base [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1',
-          '[&_p]:my-2',
+          'prose prose-sm max-w-none px-4 py-3 min-h-[180px] focus:outline-none',
+          'text-[var(--color-fg)]',
+          '[&_h1]:text-xl [&_h1]:font-bold [&_h1]:mt-4 [&_h1]:mb-2 [&_h1]:text-[var(--color-fg)]',
+          '[&_h2]:text-lg [&_h2]:font-semibold [&_h2]:mt-3 [&_h2]:mb-2 [&_h2]:text-[var(--color-fg)]',
+          '[&_h3]:text-base [&_h3]:font-medium [&_h3]:mt-2 [&_h3]:mb-1 [&_h3]:text-[var(--color-fg)]',
+          '[&_p]:my-2 [&_p]:text-[var(--color-fg)]',
           '[&_ul]:list-disc [&_ul]:pl-5 [&_ul]:my-2',
           '[&_ol]:list-decimal [&_ol]:pl-5 [&_ol]:my-2',
-          '[&_li]:my-1',
-          '[&_a]:text-[var(--color-primary)] [&_a]:underline',
+          '[&_li]:my-1 [&_li]:text-[var(--color-fg)]',
+          '[&_a]:text-[var(--color-accent)] [&_a]:underline',
+          '[&_blockquote]:border-l-4 [&_blockquote]:border-[var(--color-accent)] [&_blockquote]:pl-4 [&_blockquote]:italic [&_blockquote]:text-[var(--color-fg-muted)]',
+          '[&_code]:bg-[var(--color-bg-muted)] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:rounded [&_code]:text-sm [&_code]:font-mono',
           '[&_.ProseMirror-placeholder]:text-[var(--color-fg-subtle)]'
         ),
       },
@@ -129,24 +133,24 @@ export function RichTextEditor({
   }, [editor])
 
   return (
-    <div className={cn('space-y-1', className)}>
+    <div className={cn('space-y-1.5', className)}>
       {label && (
-        <label className="block text-sm font-medium text-[var(--color-fg)]">
+        <label className="block text-sm font-semibold text-[var(--color-fg)]">
           {label}
         </label>
       )}
 
       <div
         className={cn(
-          'rounded-[var(--radius-md)] border bg-[var(--color-bg)]',
+          'rounded-xl border-[1.5px] bg-[var(--color-bg)] overflow-hidden transition-all duration-150',
           error
-            ? 'border-[var(--color-error)]'
-            : 'border-[var(--color-border)] focus-within:border-[var(--color-primary)] focus-within:ring-1 focus-within:ring-[var(--color-primary)]',
+            ? 'border-[var(--color-error)] shadow-[var(--shadow-xs)]'
+            : 'border-[var(--color-border)] focus-within:border-[var(--color-accent)] focus-within:shadow-[var(--shadow-sm)]',
           disabled && 'opacity-50 cursor-not-allowed'
         )}
       >
         {/* Toolbar */}
-        <div className="flex flex-wrap items-center gap-1 border-b border-[var(--color-border)] p-2 bg-[var(--color-bg-subtle)] rounded-t-[var(--radius-md)]">
+        <div className="flex flex-wrap items-center gap-1 border-b border-[var(--color-border)] px-2 py-2 bg-[var(--color-bg-muted)]">
           <ToolbarGroup>
             <ToolbarButton
               onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -222,6 +226,14 @@ export function RichTextEditor({
             >
               <OrderedListIcon className="h-4 w-4" />
             </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+              active={editor?.isActive('blockquote')}
+              disabled={disabled}
+              title="Quote"
+            >
+              <QuoteIcon className="h-4 w-4" />
+            </ToolbarButton>
           </ToolbarGroup>
 
           <ToolbarDivider />
@@ -251,7 +263,7 @@ export function RichTextEditor({
             </ToolbarButton>
           </ToolbarGroup>
 
-          <ToolbarDivider />
+          <div className="flex-1" />
 
           <ToolbarGroup>
             <ToolbarButton
@@ -286,34 +298,34 @@ export function RichTextEditor({
           title="Add Link"
           onClose={() => setLinkDialogOpen(false)}
         >
-          <div className="space-y-3">
+          <div className="space-y-4">
             <input
               type="url"
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
               placeholder="https://example.com"
-              className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+              className="w-full h-10 rounded-lg border-[1.5px] border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm focus:border-[var(--color-accent)] focus:outline-none"
               autoFocus
             />
             <div className="flex gap-2 justify-end">
               {editor?.isActive('link') && (
                 <button
                   onClick={handleRemoveLink}
-                  className="px-3 py-1.5 text-sm text-[var(--color-error)] hover:bg-[var(--color-error-subtle)] rounded-[var(--radius-md)]"
+                  className="px-3 py-2 text-sm font-medium text-[var(--color-error)] hover:bg-[var(--color-error-subtle)] rounded-lg transition-colors"
                 >
                   Remove
                 </button>
               )}
               <button
                 onClick={() => setLinkDialogOpen(false)}
-                className="px-3 py-1.5 text-sm text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-subtle)] rounded-[var(--radius-md)]"
+                className="px-3 py-2 text-sm font-medium text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)] rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSetLink}
                 disabled={!linkUrl}
-                className="px-3 py-1.5 text-sm bg-[var(--color-primary)] text-white rounded-[var(--radius-md)] hover:opacity-90 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
               >
                 Save
               </button>
@@ -328,28 +340,38 @@ export function RichTextEditor({
           title="Add Image"
           onClose={() => setImageDialogOpen(false)}
         >
-          <div className="space-y-3">
+          <div className="space-y-4">
             <input
               type="url"
               value={imageUrl}
               onChange={(e) => setImageUrl(e.target.value)}
               placeholder="https://example.com/image.jpg"
-              className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+              className="w-full h-10 rounded-lg border-[1.5px] border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm focus:border-[var(--color-accent)] focus:outline-none"
               autoFocus
             />
+            {imageUrl && (
+              <div className="aspect-video rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-muted)] overflow-hidden">
+                <img 
+                  src={imageUrl} 
+                  alt="Preview" 
+                  className="w-full h-full object-contain"
+                  onError={(e) => { e.currentTarget.style.display = 'none' }}
+                />
+              </div>
+            )}
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setImageDialogOpen(false)}
-                className="px-3 py-1.5 text-sm text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-subtle)] rounded-[var(--radius-md)]"
+                className="px-3 py-2 text-sm font-medium text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)] rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddImage}
                 disabled={!imageUrl}
-                className="px-3 py-1.5 text-sm bg-[var(--color-primary)] text-white rounded-[var(--radius-md)] hover:opacity-90 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
               >
-                Add
+                Add Image
               </button>
             </div>
           </div>
@@ -362,29 +384,29 @@ export function RichTextEditor({
           title="Embed Video"
           onClose={() => setVideoDialogOpen(false)}
         >
-          <div className="space-y-3">
+          <div className="space-y-4">
             <input
               type="url"
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
               placeholder="https://www.youtube.com/watch?v=..."
-              className="w-full rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm focus:border-[var(--color-primary)] focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)]"
+              className="w-full h-10 rounded-lg border-[1.5px] border-[var(--color-border)] bg-[var(--color-bg)] px-3 text-sm focus:border-[var(--color-accent)] focus:outline-none"
               autoFocus
             />
-            <p className="text-xs text-[var(--color-fg-muted)]">
-              Supports YouTube URLs
+            <p className="text-xs text-[var(--color-fg-muted)] flex items-center gap-2">
+              <span className="text-base">📺</span> Supports YouTube URLs
             </p>
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => setVideoDialogOpen(false)}
-                className="px-3 py-1.5 text-sm text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-subtle)] rounded-[var(--radius-md)]"
+                className="px-3 py-2 text-sm font-medium text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)] rounded-lg transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={handleAddVideo}
                 disabled={!videoUrl}
-                className="px-3 py-1.5 text-sm bg-[var(--color-primary)] text-white rounded-[var(--radius-md)] hover:opacity-90 disabled:opacity-50"
+                className="px-4 py-2 text-sm font-medium bg-[var(--color-accent)] text-white rounded-lg hover:bg-[var(--color-accent-hover)] disabled:opacity-50 transition-colors"
               >
                 Embed
               </button>
@@ -403,7 +425,7 @@ function ToolbarGroup({ children }: { children: React.ReactNode }) {
 }
 
 function ToolbarDivider() {
-  return <div className="mx-1 h-5 w-px bg-[var(--color-border)]" />
+  return <div className="mx-1.5 h-5 w-px bg-[var(--color-border)]" />
 }
 
 interface ToolbarButtonProps {
@@ -428,11 +450,11 @@ function ToolbarButton({
       disabled={disabled}
       title={title}
       className={cn(
-        'flex h-7 min-w-7 items-center justify-center rounded px-1.5 text-sm font-medium transition-colors',
+        'flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-sm font-medium transition-all duration-150',
         active
-          ? 'bg-[var(--color-primary)] text-white'
-          : 'text-[var(--color-fg)] hover:bg-[var(--color-bg-hover)]',
-        disabled && 'opacity-50 cursor-not-allowed'
+          ? 'bg-[var(--color-accent)] text-white shadow-sm'
+          : 'text-[var(--color-fg-muted)] hover:bg-[var(--color-bg)] hover:text-[var(--color-fg)]',
+        disabled && 'opacity-40 cursor-not-allowed'
       )}
     >
       {children}
@@ -448,13 +470,17 @@ interface MiniDialogProps {
 
 function MiniDialog({ title, onClose, children }: MiniDialogProps) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-sm rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-4 shadow-lg">
-        <div className="mb-3 flex items-center justify-between">
-          <h3 className="font-medium text-[var(--color-fg)]">{title}</h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" 
+        onClick={onClose}
+      />
+      <div className="relative w-full max-w-md rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-5 shadow-2xl animate-scale-in">
+        <div className="mb-4 flex items-center justify-between">
+          <h3 className="font-bold text-[var(--color-fg)]">{title}</h3>
           <button
             onClick={onClose}
-            className="text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
+            className="p-1.5 rounded-lg text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-fg)] transition-colors"
           >
             <CloseIcon className="h-4 w-4" />
           </button>
@@ -469,7 +495,7 @@ function MiniDialog({ title, onClose, children }: MiniDialogProps) {
 
 function BoldIcon({ className }: { className?: string }) {
   return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z" />
     </svg>
@@ -505,6 +531,14 @@ function OrderedListIcon({ className }: { className?: string }) {
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M10 6h11M10 12h11M10 18h11" />
       <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h1v4M4 10h2M4 18h2l-2-3h2" />
+    </svg>
+  )
+}
+
+function QuoteIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.129.166 2.27.293 3.423.379.35.026.67.21.865.501L12 21l2.755-4.133a1.14 1.14 0 0 1 .865-.501 48.172 48.172 0 0 0 3.423-.379c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0 0 12 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018Z" />
     </svg>
   )
 }

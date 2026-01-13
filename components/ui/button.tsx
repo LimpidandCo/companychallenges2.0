@@ -2,7 +2,7 @@ import { forwardRef, type ButtonHTMLAttributes } from 'react'
 import { cn } from '@/lib/utils/cn'
 
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive'
+  variant?: 'primary' | 'secondary' | 'ghost' | 'destructive' | 'success'
   size?: 'sm' | 'md' | 'lg'
   isLoading?: boolean
 }
@@ -15,27 +15,34 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         className={cn(
           // Base styles
-          'inline-flex items-center justify-center gap-2 font-medium',
-          'transition-all duration-150 ease-out',
+          'inline-flex items-center justify-center gap-2 font-semibold',
+          'transition-all duration-200',
           'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
           'disabled:pointer-events-none disabled:opacity-50',
           'active:scale-[0.98]',
           // Variants
           {
-            'bg-[var(--gradient-primary)] text-[var(--color-accent-fg)] shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] hover:shadow-[var(--color-accent)]/20 hover:-translate-y-px focus-visible:ring-[var(--color-accent)]':
+            // Primary - Solid coral
+            'bg-[var(--color-accent)] text-white hover:bg-[var(--color-accent-hover)] shadow-sm hover:shadow-md focus-visible:ring-[var(--color-accent)]':
               variant === 'primary',
-            'bg-[var(--color-bg)] text-[var(--color-fg)] border border-[var(--color-border)] shadow-[var(--shadow-xs)] hover:bg-[var(--color-bg-subtle)] hover:border-[var(--color-border-hover)] hover:shadow-[var(--shadow-sm)] focus-visible:ring-[var(--color-border)]':
+            // Secondary - Clean with border
+            'bg-[var(--color-bg-elevated)] text-[var(--color-fg)] border border-[var(--color-border)] shadow-sm hover:bg-[var(--color-bg-subtle)] hover:border-[var(--color-border-hover)] focus-visible:ring-[var(--color-border)]':
               variant === 'secondary',
+            // Ghost - Minimal
             'bg-transparent text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-fg)] focus-visible:ring-[var(--color-border)]':
               variant === 'ghost',
-            'bg-[var(--color-error)] text-white shadow-[var(--shadow-sm)] hover:bg-[var(--color-error)]/90 hover:shadow-[var(--shadow-md)] focus-visible:ring-[var(--color-error)]':
+            // Destructive - Red
+            'bg-[var(--color-error)] text-white hover:bg-[var(--color-error)]/90 shadow-sm hover:shadow-md focus-visible:ring-[var(--color-error)]':
               variant === 'destructive',
+            // Success - Teal
+            'bg-[var(--color-secondary)] text-white hover:bg-[var(--color-secondary-hover)] shadow-sm hover:shadow-md focus-visible:ring-[var(--color-secondary)]':
+              variant === 'success',
           },
           // Sizes
           {
-            'h-8 px-3 text-sm rounded-[var(--radius-md)]': size === 'sm',
-            'h-10 px-4 text-sm rounded-[var(--radius-lg)]': size === 'md',
-            'h-12 px-6 text-base rounded-[var(--radius-xl)]': size === 'lg',
+            'h-8 px-3 text-sm rounded-lg': size === 'sm',
+            'h-10 px-4 text-sm rounded-lg': size === 'md',
+            'h-12 px-6 text-base rounded-xl': size === 'lg',
           },
           className
         )}
@@ -76,4 +83,3 @@ const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 Button.displayName = 'Button'
 
 export { Button }
-

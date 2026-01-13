@@ -9,7 +9,6 @@ interface PasswordGateProps {
   assignmentId: string
   assignmentTitle: string
   onSuccess: () => void
-  // Analytics context (optional - only tracked if provided)
   analyticsContext?: {
     clientId: string
     challengeId: string
@@ -54,7 +53,6 @@ export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, analyti
     startTransition(async () => {
       const result = await verifyAssignmentPassword(assignmentId, password)
 
-      // Track password attempt if analytics context provided
       if (analyticsContext) {
         trackPasswordAttempt(
           analyticsContext.clientId,
@@ -76,50 +74,64 @@ export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, analyti
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg-subtle)] p-4">
-      <div className="w-full max-w-md">
-        <div className="rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] p-8 shadow-sm">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] p-4">
+      {/* Background decoration */}
+      <div className="fixed inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-32 -right-32 w-96 h-96 bg-[var(--color-accent)] opacity-[0.05] rounded-full blur-3xl" />
+        <div className="absolute bottom-0 -left-32 w-64 h-64 bg-[var(--color-tertiary)] opacity-[0.05] rounded-full blur-3xl" />
+      </div>
+
+      <div className="relative w-full max-w-md">
+        <div className="rounded-3xl border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-8 shadow-[var(--shadow-xl)] animate-pop-in">
+          {/* Decorative top line */}
+          <div className="absolute top-0 left-8 right-8 h-[2px] bg-gradient-to-r from-transparent via-[var(--color-accent)] to-transparent opacity-50 rounded-full" />
+          
           {/* Lock Icon */}
-          <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-full bg-[var(--color-accent-subtle)]">
-            <LockIcon className="h-8 w-8 text-[var(--color-accent)]" />
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--color-accent-subtle)] animate-float">
+            <LockIcon className="h-10 w-10 text-[var(--color-accent)]" />
           </div>
 
           {/* Title */}
-          <h1 className="mb-2 text-center text-xl font-semibold text-[var(--color-fg)]">
+          <h1 className="mb-2 text-center text-2xl font-bold text-[var(--color-fg)]">
             Password Required
           </h1>
-          <p className="mb-6 text-center text-sm text-[var(--color-fg-muted)]">
-            Enter the password to access{' '}
-            <span className="font-medium text-[var(--color-fg)]">{assignmentTitle}</span>
+          <p className="mb-8 text-center text-[var(--color-fg-muted)]">
+            Enter the password to unlock{' '}
+            <span className="font-semibold text-[var(--color-fg)]">{assignmentTitle}</span>
           </p>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="relative">
               <label htmlFor="password" className="sr-only">
                 Password
               </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter password"
-                disabled={isPending || !!retryAfter}
-                className={cn(
-                  'w-full rounded-[var(--radius-md)] border bg-[var(--color-bg)] px-4 py-3 text-[var(--color-fg)] placeholder-[var(--color-fg-muted)] transition-colors focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2',
-                  error
-                    ? 'border-[var(--color-error)]'
-                    : 'border-[var(--color-border)]'
-                )}
-                autoFocus
-                autoComplete="current-password"
-              />
+              <div className="relative">
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter password"
+                  disabled={isPending || !!retryAfter}
+                  className={cn(
+                    'w-full rounded-2xl border-[1.5px] bg-[var(--color-bg)] px-5 py-4 text-[var(--color-fg)] placeholder-[var(--color-fg-subtle)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2',
+                    error
+                      ? 'border-[var(--color-error)]'
+                      : 'border-[var(--color-border)] hover:border-[var(--color-border-hover)]'
+                  )}
+                  autoFocus
+                  autoComplete="current-password"
+                />
+                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                  <KeyIcon className="h-5 w-5 text-[var(--color-fg-subtle)]" />
+                </div>
+              </div>
             </div>
 
             {/* Error Message */}
             {error && (
-              <div className="flex items-start gap-2 rounded-[var(--radius-md)] bg-[var(--color-error-subtle)] px-3 py-2 text-sm text-[var(--color-error)]">
+              <div className="flex items-start gap-2 rounded-xl bg-[var(--color-error-subtle)] px-4 py-3 text-sm text-[var(--color-error)] animate-slide-up">
                 <AlertCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
                 <span>{error}</span>
               </div>
@@ -127,8 +139,11 @@ export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, analyti
 
             {/* Retry Timer */}
             {retryAfter && (
-              <div className="text-center text-sm text-[var(--color-fg-muted)]">
-                Please wait <span className="font-medium">{retryAfter}</span> seconds before trying again
+              <div className="text-center text-sm text-[var(--color-fg-muted)] py-2">
+                <span className="inline-flex items-center gap-2">
+                  <ClockIcon className="h-4 w-4" />
+                  Wait <span className="font-bold text-[var(--color-fg)] tabular-nums">{retryAfter}</span> seconds
+                </span>
               </div>
             )}
 
@@ -136,24 +151,28 @@ export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, analyti
             <button
               type="submit"
               disabled={isPending || !!retryAfter || !password.trim()}
-              className="w-full rounded-[var(--radius-md)] bg-[var(--color-accent)] px-4 py-3 text-sm font-medium text-[var(--color-accent-fg)] transition-colors hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-2xl bg-[var(--gradient-accent)] px-5 py-4 text-base font-semibold text-white shadow-[0_4px_16px_-4px_rgba(255,107,74,0.4)] transition-all duration-200 hover:shadow-[0_8px_24px_-6px_rgba(255,107,74,0.5)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
             >
               {isPending ? (
                 <span className="flex items-center justify-center gap-2">
-                  <LoaderIcon className="h-4 w-4 animate-spin" />
+                  <LoaderIcon className="h-5 w-5 animate-spin" />
                   Verifying...
                 </span>
               ) : retryAfter ? (
-                `Wait ${retryAfter}s`
+                `Try again in ${retryAfter}s`
               ) : (
-                'Unlock Content'
+                <span className="flex items-center justify-center gap-2">
+                  <UnlockIcon className="h-5 w-5" />
+                  Unlock Content
+                </span>
               )}
             </button>
           </form>
 
           {/* Help Text */}
-          <p className="mt-6 text-center text-xs text-[var(--color-fg-subtle)]">
-            Don't have the password? Contact your administrator.
+          <p className="mt-8 text-center text-sm text-[var(--color-fg-subtle)]">
+            Don't have the password?{' '}
+            <span className="text-[var(--color-fg-muted)]">Contact your administrator.</span>
           </p>
         </div>
       </div>
@@ -169,10 +188,34 @@ function LockIcon({ className }: { className?: string }) {
   )
 }
 
-function AlertCircleIcon({ className }: { className?: string }) {
+function UnlockIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 10.5V6.75a4.5 4.5 0 1 1 9 0v3.75M3.75 21.75h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H3.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+    </svg>
+  )
+}
+
+function KeyIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z" />
+    </svg>
+  )
+}
+
+function AlertCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9 3.75h.008v.008H12v-.008Z" />
+    </svg>
+  )
+}
+
+function ClockIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
     </svg>
   )
 }

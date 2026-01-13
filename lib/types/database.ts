@@ -471,6 +471,16 @@ export interface MicroQuizInsert {
   position?: number
 }
 
+export interface MicroQuizUpdate {
+  question?: string
+  quiz_type?: 'reflection' | 'multiple_choice' | 'scale'
+  options?: string[] | null
+  scale_min?: number | null
+  scale_max?: number | null
+  scale_labels?: { min: string; max: string } | null
+  position?: number
+}
+
 export interface AnnouncementInsert {
   challenge_id: string
   title: string
@@ -490,4 +500,87 @@ export interface MilestoneInsert {
   celebration_type: 'badge' | 'message' | 'animation' | 'unlock'
   celebration_content?: string | null
   position?: number
+}
+
+export interface MilestoneUpdate {
+  name?: string
+  description?: string | null
+  trigger_type?: 'assignment_complete' | 'sprint_complete' | 'percentage' | 'custom'
+  trigger_value?: string
+  celebration_type?: 'badge' | 'message' | 'animation' | 'unlock'
+  celebration_content?: string | null
+  position?: number
+}
+
+// =============================================================================
+// Participant Input Types
+// =============================================================================
+
+export interface ParticipantInsert {
+  clerk_user_id: string
+  display_name?: string | null
+  avatar_url?: string | null
+  show_in_leaderboard?: boolean
+  show_progress_publicly?: boolean
+}
+
+export interface ParticipantUpdate {
+  display_name?: string | null
+  avatar_url?: string | null
+  show_in_leaderboard?: boolean
+  show_progress_publicly?: boolean
+}
+
+export interface ChallengeEnrollmentInsert {
+  participant_id: string
+  challenge_id: string
+  last_assignment_id?: string | null
+}
+
+export interface AssignmentProgressInsert {
+  participant_id: string
+  assignment_usage_id: string
+  status?: 'not_started' | 'in_progress' | 'completed'
+  started_at?: string | null
+  completed_at?: string | null
+  quiz_responses?: QuizResponse[] | null
+}
+
+export interface AssignmentProgressUpdate {
+  status?: 'not_started' | 'in_progress' | 'completed'
+  started_at?: string | null
+  completed_at?: string | null
+  quiz_responses?: QuizResponse[] | null
+}
+
+export interface MilestoneAchievementInsert {
+  participant_id: string
+  milestone_id: string
+  achieved_at?: string
+}
+
+// =============================================================================
+// Participant Dashboard Types
+// =============================================================================
+
+export interface ParticipantDashboardStats {
+  enrolledChallenges: number
+  completedAssignments: number
+  totalAssignments: number
+  achievementsEarned: number
+  currentStreak: number
+}
+
+export interface EnrolledChallengeWithProgress extends ChallengeEnrollment {
+  challenge: Challenge & { client: Client }
+  completedCount: number
+  totalCount: number
+  progressPercentage: number
+}
+
+export interface AssignmentWithProgress extends AssignmentUsage {
+  assignment: Assignment
+  sprint: Sprint | null
+  progress: AssignmentProgress | null
+  micro_quizzes: MicroQuiz[]
 }
