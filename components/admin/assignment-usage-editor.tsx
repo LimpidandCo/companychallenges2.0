@@ -33,6 +33,8 @@ export function AssignmentUsageEditor({
 }: AssignmentUsageEditorProps) {
   const [label, setLabel] = useState(usage?.label ?? '')
   const [sprintId, setSprintId] = useState(usage?.sprint_id ?? '')
+  const [publicTitleOverride, setPublicTitleOverride] = useState(usage?.public_title_override ?? '')
+  const [subtitleOverride, setSubtitleOverride] = useState(usage?.subtitle_override ?? '')
   const [releaseAt, setReleaseAt] = useState(
     usage?.release_at ? formatDateTimeLocal(usage.release_at) : ''
   )
@@ -47,6 +49,8 @@ export function AssignmentUsageEditor({
     if (label !== (usage.label ?? '') && !isSubmitting) {
       setLabel(usage.label ?? '')
       setSprintId(usage.sprint_id ?? '')
+      setPublicTitleOverride(usage.public_title_override ?? '')
+      setSubtitleOverride(usage.subtitle_override ?? '')
     }
   }
 
@@ -61,6 +65,8 @@ export function AssignmentUsageEditor({
       const result = await updateAssignmentUsage(usage.id, {
         label: label || null,
         sprint_id: sprintId || null,
+        public_title_override: publicTitleOverride || null,
+        subtitle_override: subtitleOverride || null,
         release_at: releaseAt ? new Date(releaseAt).toISOString() : null,
         is_visible: isVisible,
         is_milestone: isMilestone,
@@ -111,6 +117,32 @@ export function AssignmentUsageEditor({
             placeholder="e.g., Week 1, Day 3"
             hint="Optional label shown in the challenge overview."
           />
+
+          {/* Title/Subtitle Overrides */}
+          <div className="rounded-[var(--radius-md)] bg-[var(--color-bg-subtle)] p-4 space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-[var(--color-fg)] mb-3">Challenge-Specific Display</p>
+              <p className="text-xs text-[var(--color-fg-muted)] mb-3">
+                Override the default title and subtitle for this challenge only. Leave blank to use the assignment defaults.
+              </p>
+            </div>
+            <Input
+              label="Public Title Override"
+              name="publicTitleOverride"
+              value={publicTitleOverride}
+              onChange={(e) => setPublicTitleOverride(e.target.value)}
+              placeholder={usage?.assignment.public_title || usage?.assignment.internal_title || 'Default title'}
+              hint="Custom title for participants in this challenge."
+            />
+            <Input
+              label="Subtitle Override"
+              name="subtitleOverride"
+              value={subtitleOverride}
+              onChange={(e) => setSubtitleOverride(e.target.value)}
+              placeholder={usage?.assignment.subtitle || 'Default subtitle'}
+              hint="Custom teaser text for this challenge."
+            />
+          </div>
 
           {sprints.length > 0 && (
             <Select

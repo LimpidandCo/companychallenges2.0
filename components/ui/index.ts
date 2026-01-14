@@ -15,4 +15,5 @@ export {
   type DialogProps,
 } from './dialog'
 export { RichTextEditor, type RichTextEditorProps } from './rich-text-editor'
+export { TagInput, type TagInputProps } from './tag-input'
 export { Skeleton, SkeletonText, SkeletonCard, SkeletonList, SkeletonTable } from './skeleton'

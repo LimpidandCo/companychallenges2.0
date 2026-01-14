@@ -1,13 +1,104 @@
 'use client'
 
-import { useCallback, useState } from 'react'
+import { useCallback, useState, useRef, useEffect } from 'react'
 import { useEditor, EditorContent, type Editor } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
 import Youtube from '@tiptap/extension-youtube'
 import Placeholder from '@tiptap/extension-placeholder'
+import { TextStyle } from '@tiptap/extension-text-style'
+import FontFamily from '@tiptap/extension-font-family'
+import { Color } from '@tiptap/extension-color'
+import Highlight from '@tiptap/extension-highlight'
+import TextAlign from '@tiptap/extension-text-align'
+import { Extension } from '@tiptap/core'
 import { cn } from '@/lib/utils/cn'
+
+// Custom Font Size extension
+const FontSize = Extension.create({
+  name: 'fontSize',
+
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    }
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: (element) => element.style.fontSize?.replace(/['"]+/g, ''),
+            renderHTML: (attributes) => {
+              if (!attributes.fontSize) {
+                return {}
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              }
+            },
+          },
+        },
+      },
+    ]
+  },
+
+  addCommands() {
+    return {
+      setFontSize:
+        (fontSize: string) =>
+        ({ chain }) => {
+          return chain().setMark('textStyle', { fontSize }).run()
+        },
+      unsetFontSize:
+        () =>
+        ({ chain }) => {
+          return chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run()
+        },
+    }
+  },
+})
+
+// Font options
+const FONT_FAMILIES = [
+  { value: '', label: 'Default' },
+  { value: 'Inter, sans-serif', label: 'Sans Serif' },
+  { value: 'Georgia, serif', label: 'Serif' },
+  { value: 'ui-monospace, monospace', label: 'Mono' },
+]
+
+// Font sizes using CSS classes
+const FONT_SIZES = [
+  { value: '0.875rem', label: 'Small' },
+  { value: '1rem', label: 'Normal' },
+  { value: '1.25rem', label: 'Large' },
+  { value: '1.5rem', label: 'XL' },
+]
+
+// Color palette
+const TEXT_COLORS = [
+  { value: '', label: 'Default', color: 'var(--color-fg)' },
+  { value: '#ef4444', label: 'Red', color: '#ef4444' },
+  { value: '#f97316', label: 'Orange', color: '#f97316' },
+  { value: '#eab308', label: 'Yellow', color: '#eab308' },
+  { value: '#22c55e', label: 'Green', color: '#22c55e' },
+  { value: '#3b82f6', label: 'Blue', color: '#3b82f6' },
+  { value: '#8b5cf6', label: 'Purple', color: '#8b5cf6' },
+  { value: '#ec4899', label: 'Pink', color: '#ec4899' },
+]
+
+const HIGHLIGHT_COLORS = [
+  { value: '', label: 'None', color: 'transparent' },
+  { value: '#fef08a', label: 'Yellow', color: '#fef08a' },
+  { value: '#bbf7d0', label: 'Green', color: '#bbf7d0' },
+  { value: '#bfdbfe', label: 'Blue', color: '#bfdbfe' },
+  { value: '#fbcfe8', label: 'Pink', color: '#fbcfe8' },
+  { value: '#fed7aa', label: 'Orange', color: '#fed7aa' },
+]
 
 export interface RichTextEditorProps {
   value?: string
@@ -44,6 +135,16 @@ export function RichTextEditor({
         heading: {
           levels: [1, 2, 3],
         },
+      }),
+      TextStyle,
+      FontFamily,
+      FontSize,
+      Color,
+      Highlight.configure({
+        multicolor: true,
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
       }),
       Link.configure({
         openOnClick: false,
@@ -151,6 +252,7 @@ export function RichTextEditor({
       >
         {/* Toolbar */}
         <div className="flex flex-wrap items-center gap-1 border-b border-[var(--color-border)] px-2 py-2 bg-[var(--color-bg-muted)]">
+          {/* Headings */}
           <ToolbarGroup>
             <ToolbarButton
               onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
@@ -180,6 +282,41 @@ export function RichTextEditor({
 
           <ToolbarDivider />
 
+          {/* Font Family & Size */}
+          <ToolbarGroup>
+            <ToolbarSelect
+              options={FONT_FAMILIES}
+              value={editor?.getAttributes('textStyle').fontFamily || ''}
+              onChange={(value) => {
+                if (value) {
+                  editor?.chain().focus().setFontFamily(value).run()
+                } else {
+                  editor?.chain().focus().unsetFontFamily().run()
+                }
+              }}
+              disabled={disabled}
+              title="Font Family"
+              className="w-24"
+            />
+            <ToolbarSelect
+              options={FONT_SIZES}
+              value={getCurrentFontSize(editor)}
+              onChange={(value) => {
+                if (value && value !== '1rem') {
+                  (editor?.chain().focus() as any).setFontSize(value).run()
+                } else {
+                  (editor?.chain().focus() as any).unsetFontSize().run()
+                }
+              }}
+              disabled={disabled}
+              title="Font Size"
+              className="w-20"
+            />
+          </ToolbarGroup>
+
+          <ToolbarDivider />
+
+          {/* Text Formatting */}
           <ToolbarGroup>
             <ToolbarButton
               onClick={() => editor?.chain().focus().toggleBold().run()}
@@ -204,6 +341,70 @@ export function RichTextEditor({
               title="Strikethrough"
             >
               <StrikeIcon className="h-4 w-4" />
+            </ToolbarButton>
+          </ToolbarGroup>
+
+          <ToolbarDivider />
+
+          {/* Colors */}
+          <ToolbarGroup>
+            <ColorPicker
+              colors={TEXT_COLORS}
+              currentColor={editor?.getAttributes('textStyle').color || ''}
+              onSelect={(color) => {
+                if (color) {
+                  editor?.chain().focus().setColor(color).run()
+                } else {
+                  editor?.chain().focus().unsetColor().run()
+                }
+              }}
+              disabled={disabled}
+              title="Text Color"
+              icon={<TextColorIcon className="h-4 w-4" />}
+            />
+            <ColorPicker
+              colors={HIGHLIGHT_COLORS}
+              currentColor={editor?.getAttributes('highlight').color || ''}
+              onSelect={(color) => {
+                if (color) {
+                  editor?.chain().focus().toggleHighlight({ color }).run()
+                } else {
+                  editor?.chain().focus().unsetHighlight().run()
+                }
+              }}
+              disabled={disabled}
+              title="Highlight"
+              icon={<HighlightIcon className="h-4 w-4" />}
+            />
+          </ToolbarGroup>
+
+          <ToolbarDivider />
+
+          {/* Alignment */}
+          <ToolbarGroup>
+            <ToolbarButton
+              onClick={() => editor?.chain().focus().setTextAlign('left').run()}
+              active={editor?.isActive({ textAlign: 'left' })}
+              disabled={disabled}
+              title="Align Left"
+            >
+              <AlignLeftIcon className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor?.chain().focus().setTextAlign('center').run()}
+              active={editor?.isActive({ textAlign: 'center' })}
+              disabled={disabled}
+              title="Align Center"
+            >
+              <AlignCenterIcon className="h-4 w-4" />
+            </ToolbarButton>
+            <ToolbarButton
+              onClick={() => editor?.chain().focus().setTextAlign('right').run()}
+              active={editor?.isActive({ textAlign: 'right' })}
+              disabled={disabled}
+              title="Align Right"
+            >
+              <AlignRightIcon className="h-4 w-4" />
             </ToolbarButton>
           </ToolbarGroup>
 
@@ -462,6 +663,135 @@ function ToolbarButton({
   )
 }
 
+interface ToolbarSelectProps {
+  options: { value: string; label: string }[]
+  value: string
+  onChange: (value: string) => void
+  disabled?: boolean
+  title?: string
+  className?: string
+}
+
+function ToolbarSelect({
+  options,
+  value,
+  onChange,
+  disabled,
+  title,
+  className,
+}: ToolbarSelectProps) {
+  return (
+    <select
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      disabled={disabled}
+      title={title}
+      className={cn(
+        'h-8 rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-[var(--color-fg-muted)] transition-all duration-150',
+        'hover:bg-[var(--color-bg)] hover:text-[var(--color-fg)]',
+        'focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-0',
+        disabled && 'opacity-40 cursor-not-allowed',
+        className
+      )}
+    >
+      {options.map((opt) => (
+        <option key={opt.value} value={opt.value}>
+          {opt.label}
+        </option>
+      ))}
+    </select>
+  )
+}
+
+interface ColorPickerProps {
+  colors: { value: string; label: string; color: string }[]
+  currentColor: string
+  onSelect: (color: string) => void
+  disabled?: boolean
+  title?: string
+  icon: React.ReactNode
+}
+
+function ColorPicker({
+  colors,
+  currentColor,
+  onSelect,
+  disabled,
+  title,
+  icon,
+}: ColorPickerProps) {
+  const [isOpen, setIsOpen] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  return (
+    <div ref={containerRef} className="relative">
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        disabled={disabled}
+        title={title}
+        className={cn(
+          'flex h-8 min-w-8 items-center justify-center rounded-lg px-2 text-sm font-medium transition-all duration-150',
+          'text-[var(--color-fg-muted)] hover:bg-[var(--color-bg)] hover:text-[var(--color-fg)]',
+          disabled && 'opacity-40 cursor-not-allowed'
+        )}
+      >
+        <span className="relative">
+          {icon}
+          {currentColor && (
+            <span
+              className="absolute -bottom-1 left-0 right-0 h-0.5 rounded-full"
+              style={{ backgroundColor: currentColor }}
+            />
+          )}
+        </span>
+      </button>
+
+      {isOpen && (
+        <div className="absolute top-full left-0 z-50 mt-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-2 shadow-lg">
+          <div className="grid grid-cols-4 gap-1">
+            {colors.map((c) => (
+              <button
+                key={c.value || 'default'}
+                type="button"
+                onClick={() => {
+                  onSelect(c.value)
+                  setIsOpen(false)
+                }}
+                title={c.label}
+                className={cn(
+                  'h-6 w-6 rounded-md border-2 transition-all duration-150',
+                  currentColor === c.value
+                    ? 'border-[var(--color-accent)] scale-110'
+                    : 'border-transparent hover:scale-110'
+                )}
+                style={{ backgroundColor: c.color }}
+              />
+            ))}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Helper to get current font size from editor
+function getCurrentFontSize(editor: Editor | null): string {
+  if (!editor) return '1rem'
+  const attrs = editor.getAttributes('textStyle')
+  return attrs.fontSize || '1rem'
+}
+
 interface MiniDialogProps {
   title: string
   onClose: () => void
@@ -587,6 +917,47 @@ function CloseIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+    </svg>
+  )
+}
+
+function TextColorIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v12M6 15l6-12 6 12M8 13h8" />
+    </svg>
+  )
+}
+
+function HighlightIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18" />
+    </svg>
+  )
+}
+
+function AlignLeftIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h10.5m-10.5 5.25h16.5" />
+    </svg>
+  )
+}
+
+function AlignCenterIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M6.75 12h10.5M3.75 17.25h16.5" />
+    </svg>
+  )
+}
+
+function AlignRightIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M10.5 12h10.5M3.75 17.25h16.5" />
     </svg>
   )
 }

@@ -322,12 +322,21 @@ function QuizDialog({ open, onClose, assignment, loading, onComplete }: QuizDial
       </DialogHeader>
 
       <DialogContent className="space-y-6 max-h-[60vh] overflow-y-auto">
-        {/* Assignment Description */}
-        {assignment.assignment.description && (
+        {/* Assignment Instructions */}
+        {assignment.assignment.instructions && (
           <div className="p-4 rounded-xl bg-[var(--color-bg-subtle)] border border-[var(--color-border)]">
             <div
               className="prose prose-sm max-w-none text-[var(--color-fg-muted)]"
-              dangerouslySetInnerHTML={{ __html: assignment.assignment.description }}
+              dangerouslySetInnerHTML={{ __html: assignment.assignment.instructions }}
+            />
+          </div>
+        )}
+        {/* Assignment Content */}
+        {assignment.assignment.content && (
+          <div className="p-4 rounded-xl bg-[var(--color-bg-subtle)] border border-[var(--color-border)]">
+            <div
+              className="prose prose-sm max-w-none text-[var(--color-fg-muted)]"
+              dangerouslySetInnerHTML={{ __html: assignment.assignment.content }}
             />
           </div>
         )}

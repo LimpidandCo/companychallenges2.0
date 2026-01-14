@@ -11,6 +11,7 @@ interface AssignmentListProps {
   assignments: AssignmentWithUsages[]
   onEdit: (assignment: AssignmentWithUsages) => void
   onRefresh: () => void
+  onTagClick?: (tag: string) => void
 }
 
 const CONTENT_TYPE_BADGES: Record<string, { label: string; variant: 'default' | 'success' | 'warning' | 'outline' }> = {
@@ -20,7 +21,7 @@ const CONTENT_TYPE_BADGES: Record<string, { label: string; variant: 'default' | 
   announcement: { label: 'Announcement', variant: 'outline' },
 }
 
-export function AssignmentList({ assignments, onEdit, onRefresh }: AssignmentListProps) {
+export function AssignmentList({ assignments, onEdit, onRefresh, onTagClick }: AssignmentListProps) {
   const [actionId, setActionId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [usedInAssignment, setUsedInAssignment] = useState<AssignmentWithUsages | null>(null)
@@ -106,6 +107,9 @@ export function AssignmentList({ assignments, onEdit, onRefresh }: AssignmentLis
                 Type
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium text-[var(--color-fg-muted)]">
+                Tags
+              </th>
+              <th className="px-4 py-3 text-left text-sm font-medium text-[var(--color-fg-muted)]">
                 Usage
               </th>
               <th className="px-4 py-3 text-left text-sm font-medium text-[var(--color-fg-muted)]">
@@ -137,6 +141,28 @@ export function AssignmentList({ assignments, onEdit, onRefresh }: AssignmentLis
                   </td>
                   <td className="px-4 py-3">
                     <Badge variant={badge.variant}>{badge.label}</Badge>
+                  </td>
+                  <td className="px-4 py-3">
+                    {assignment.tags && assignment.tags.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {assignment.tags.slice(0, 3).map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => onTagClick?.(tag)}
+                            className="inline-flex items-center rounded-full bg-[var(--color-bg-muted)] px-2 py-0.5 text-xs font-medium text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-subtle)] transition-colors cursor-pointer"
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                        {assignment.tags.length > 3 && (
+                          <span className="text-xs text-[var(--color-fg-subtle)]">
+                            +{assignment.tags.length - 3}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-[var(--color-fg-subtle)]">-</span>
+                    )}
                   </td>
                   <td className="px-4 py-3">
                     {usageCount === 0 ? (

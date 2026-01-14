@@ -236,12 +236,14 @@ export async function createAssignment(input: AssignmentInsert): Promise<Assignm
         internal_title: input.internal_title,
         public_title: input.public_title ?? null,
         subtitle: input.subtitle ?? null,
-        description: input.description ?? null,
+        instructions: input.instructions ?? null,
+        content: input.content ?? null,
         visual_url: input.visual_url ?? null,
         media_url: input.media_url ?? null,
         password_hash: passwordHash,
         content_type: input.content_type ?? 'standard',
-        is_reusable: input.is_reusable ?? true, // default to true (saved for future reference)
+        is_reusable: input.is_reusable ?? true,
+        tags: input.tags ?? [],
       })
       .select()
       .single()
@@ -282,12 +284,14 @@ export async function createAssignmentForChallenge(
         internal_title: input.internal_title,
         public_title: input.public_title ?? null,
         subtitle: input.subtitle ?? null,
-        description: input.description ?? null,
+        instructions: input.instructions ?? null,
+        content: input.content ?? null,
         visual_url: input.visual_url ?? null,
         media_url: input.media_url ?? null,
         password_hash: passwordHash,
         content_type: input.content_type ?? 'standard',
         is_reusable: input.is_reusable ?? true,
+        tags: input.tags ?? [],
       })
       .select()
       .single()
@@ -348,11 +352,13 @@ export async function updateAssignment(id: string, input: AssignmentUpdate): Pro
     if (input.internal_title !== undefined) updateData.internal_title = input.internal_title
     if (input.public_title !== undefined) updateData.public_title = input.public_title
     if (input.subtitle !== undefined) updateData.subtitle = input.subtitle
-    if (input.description !== undefined) updateData.description = input.description
+    if (input.instructions !== undefined) updateData.instructions = input.instructions
+    if (input.content !== undefined) updateData.content = input.content
     if (input.visual_url !== undefined) updateData.visual_url = input.visual_url
     if (input.media_url !== undefined) updateData.media_url = input.media_url
     if (input.content_type !== undefined) updateData.content_type = input.content_type
     if (input.is_reusable !== undefined) updateData.is_reusable = input.is_reusable
+    if (input.tags !== undefined) updateData.tags = input.tags
 
     // Handle password update
     if (input.password !== undefined) {
@@ -419,12 +425,14 @@ export async function createAssignmentVersion(
         internal_title: `${source.internal_title} (${relationshipLabel})`,
         public_title: source.public_title,
         subtitle: source.subtitle,
-        description: source.description,
+        instructions: source.instructions,
+        content: source.content,
         visual_url: source.visual_url,
         media_url: source.media_url,
         password_hash: null, // Don't copy password
         content_type: source.content_type,
         is_reusable: true,
+        tags: source.tags || [],
       })
       .select()
       .single()
@@ -510,11 +518,13 @@ export async function duplicateAssignment(id: string): Promise<AssignmentActionR
         internal_title: `${original.internal_title} (Copy)`,
         public_title: original.public_title,
         subtitle: original.subtitle,
-        description: original.description,
+        instructions: original.instructions,
+        content: original.content,
         visual_url: original.visual_url,
         media_url: original.media_url,
         password_hash: null, // Don't copy password
         content_type: original.content_type,
+        tags: original.tags || [],
       })
       .select()
       .single()
@@ -612,5 +622,41 @@ export async function getAssignmentUsageCount(id: string): Promise<number> {
   } catch (err) {
     console.error('Unexpected error getting usage count:', err)
     return 0
+  }
+}
+
+/**
+ * Get all unique tags used across assignments
+ */
+export async function getUniqueTags(): Promise<string[]> {
+  try {
+    const supabase = createAdminClient()
+
+    // Get all assignments with tags
+    const { data, error } = await supabase
+      .from('assignments')
+      .select('tags')
+      .not('tags', 'is', null)
+
+    if (error) {
+      console.error('Error fetching tags:', error)
+      return []
+    }
+
+    // Extract unique tags from all assignments
+    const allTags = new Set<string>()
+    for (const assignment of data || []) {
+      if (Array.isArray(assignment.tags)) {
+        for (const tag of assignment.tags) {
+          if (tag) allTags.add(tag)
+        }
+      }
+    }
+
+    // Return sorted array of unique tags
+    return Array.from(allTags).sort()
+  } catch (err) {
+    console.error('Unexpected error fetching tags:', err)
+    return []
   }
 }

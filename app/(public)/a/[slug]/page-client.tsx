@@ -251,16 +251,27 @@ export function AssignmentPageClient({
           </div>
         )}
 
-        {/* Description */}
-        {assignment.description && (
+        {/* Instructions */}
+        {assignment.instructions && (
+          <div className="animate-fade-in-up delay-300">
+            <h2 className="text-lg font-semibold text-[var(--color-fg)] mb-3">Instructions</h2>
+            <div
+              className="prose prose-gray max-w-none dark:prose-invert prose-lg prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[var(--color-accent)]"
+              dangerouslySetInnerHTML={{ __html: assignment.instructions }}
+            />
+          </div>
+        )}
+
+        {/* Content */}
+        {assignment.content && (
           <div
             className="prose prose-gray max-w-none dark:prose-invert prose-lg prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[var(--color-accent)] animate-fade-in-up delay-300"
-            dangerouslySetInnerHTML={{ __html: assignment.description }}
+            dangerouslySetInnerHTML={{ __html: assignment.content }}
           />
         )}
 
         {/* Empty state */}
-        {!assignment.description && !assignment.media_url && !assignment.visual_url && (
+        {!assignment.content && !assignment.instructions && !assignment.media_url && !assignment.visual_url && (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-pop-in">
             <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--color-bg-muted)] animate-float">
               <span className="text-4xl">📄</span>

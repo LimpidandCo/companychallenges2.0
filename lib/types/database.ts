@@ -101,12 +101,14 @@ export interface Assignment {
   id: string
   slug: string // unique public URL segment
   internal_title: string
-  public_title: string | null
-  subtitle: string | null
-  description: string | null // rich text
+  public_title: string | null // default display title for participants
+  subtitle: string | null // default short teaser text
+  instructions: string | null // how to complete (rich text)
+  content: string | null // assignment content/materials (rich text, renamed from description)
   visual_url: string | null
   media_url: string | null // embedded video URL
   password_hash: string | null // hashed shared access key
+  tags: string[] // categorization tags for filtering
 
   // Content type
   content_type: 'standard' | 'quiz' | 'video' | 'announcement'
@@ -134,11 +136,15 @@ export interface AssignmentUsage {
   is_visible: boolean // can be hidden without removing
   release_at: string | null // scheduled release datetime
   label: string | null // optional custom label
-  
+
+  // Per-challenge title/subtitle overrides (null = use assignment defaults)
+  public_title_override: string | null
+  subtitle_override: string | null
+
   // Gamification
   is_milestone: boolean // marks completion of this as a milestone
   reveal_style: 'instant' | 'fade' | 'dramatic' | null
-  
+
   created_at: string
   updated_at: string
 }
@@ -422,10 +428,12 @@ export interface AssignmentInsert {
   internal_title: string
   public_title?: string | null
   subtitle?: string | null
-  description?: string | null
+  instructions?: string | null // how to complete (rich text)
+  content?: string | null // assignment content/materials (rich text)
   visual_url?: string | null
   media_url?: string | null
   password?: string // plain text, will be hashed
+  tags?: string[] // categorization tags
   content_type?: 'standard' | 'quiz' | 'video' | 'announcement'
   is_reusable?: boolean // defaults to true (saved for future reference)
 }
@@ -435,10 +443,12 @@ export interface AssignmentUpdate {
   internal_title?: string
   public_title?: string | null
   subtitle?: string | null
-  description?: string | null
+  instructions?: string | null
+  content?: string | null
   visual_url?: string | null
   media_url?: string | null
   password?: string | null // plain text or null to remove
+  tags?: string[]
   content_type?: 'standard' | 'quiz' | 'video' | 'announcement'
   is_reusable?: boolean
 }
@@ -451,6 +461,8 @@ export interface AssignmentUsageInsert {
   is_visible?: boolean
   release_at?: string | null
   label?: string | null
+  public_title_override?: string | null
+  subtitle_override?: string | null
   is_milestone?: boolean
   reveal_style?: 'instant' | 'fade' | 'dramatic' | null
 }
@@ -461,6 +473,8 @@ export interface AssignmentUsageUpdate {
   is_visible?: boolean
   release_at?: string | null
   label?: string | null
+  public_title_override?: string | null
+  subtitle_override?: string | null
   is_milestone?: boolean
   reveal_style?: 'instant' | 'fade' | 'dramatic' | null
 }

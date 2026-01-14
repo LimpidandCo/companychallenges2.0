@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Button, Input, Spinner, RichTextEditor } from '@/components/ui'
+import { useState, useEffect, useRef } from 'react'
+import { Button, Input, Spinner, RichTextEditor, TagInput } from '@/components/ui'
 import { createAssignment, updateAssignment, createAssignmentForChallenge } from '@/lib/actions/assignments'
+import { uploadFile } from '@/lib/actions/upload'
 import type { Assignment, AssignmentWithUsages } from '@/lib/types/database'
 import { cn } from '@/lib/utils/cn'
 
@@ -28,18 +29,26 @@ export function AssignmentForm({
   const usageCount = assignment?.assignment_usages?.length ?? 0
   const isSharedAssignment = usageCount > 1
 
+  // File input refs
+  const visualInputRef = useRef<HTMLInputElement>(null)
+  const mediaInputRef = useRef<HTMLInputElement>(null)
+
   // Form state
   const [internalTitle, setInternalTitle] = useState(assignment?.internal_title ?? '')
   const [publicTitle, setPublicTitle] = useState(assignment?.public_title ?? '')
   const [subtitle, setSubtitle] = useState(assignment?.subtitle ?? '')
-  const [description, setDescription] = useState(assignment?.description ?? '')
+  const [instructions, setInstructions] = useState(assignment?.instructions ?? '')
+  const [content, setContent] = useState(assignment?.content ?? '')
   const [mediaUrl, setMediaUrl] = useState(assignment?.media_url ?? '')
   const [visualUrl, setVisualUrl] = useState(assignment?.visual_url ?? '')
   const [password, setPassword] = useState('')
   const [removePassword, setRemovePassword] = useState(false)
   const [saveForFutureReference, setSaveForFutureReference] = useState(true)
+  const [tags, setTags] = useState<string[]>(assignment?.tags ?? [])
 
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isUploadingVisual, setIsUploadingVisual] = useState(false)
+  const [isUploadingMedia, setIsUploadingMedia] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const hasPassword = assignment?.password_hash !== null
@@ -50,14 +59,70 @@ export function AssignmentForm({
       setInternalTitle('')
       setPublicTitle('')
       setSubtitle('')
-      setDescription('')
+      setInstructions('')
+      setContent('')
       setMediaUrl('')
       setVisualUrl('')
       setPassword('')
       setRemovePassword(false)
       setSaveForFutureReference(true)
+      setTags([])
     }
   }, [open, isEditing])
+
+  const handleVisualUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploadingVisual(true)
+    setError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const result = await uploadFile(formData, 'assignments')
+
+      if (result.success) {
+        setVisualUrl(result.url)
+      } else {
+        setError(result.error)
+      }
+    } catch {
+      setError('Failed to upload image')
+    } finally {
+      setIsUploadingVisual(false)
+      if (visualInputRef.current) {
+        visualInputRef.current.value = ''
+      }
+    }
+  }
+
+  const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+
+    setIsUploadingMedia(true)
+    setError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append('file', file)
+      const result = await uploadFile(formData, 'assignments')
+
+      if (result.success) {
+        setMediaUrl(result.url)
+      } else {
+        setError(result.error)
+      }
+    } catch {
+      setError('Failed to upload video')
+    } finally {
+      setIsUploadingMedia(false)
+      if (mediaInputRef.current) {
+        mediaInputRef.current.value = ''
+      }
+    }
+  }
 
   const handleSubmit = async () => {
     setIsSubmitting(true)
@@ -72,10 +137,12 @@ export function AssignmentForm({
           internal_title: internalTitle,
           public_title: publicTitle || null,
           subtitle: subtitle || null,
-          description: description || null,
+          instructions: instructions || null,
+          content: content || null,
           media_url: mediaUrl || null,
           visual_url: visualUrl || null,
           password: removePassword ? null : (password || undefined),
+          tags,
         })
       } else if (isCreatingForChallenge) {
         // Create assignment within challenge context
@@ -84,11 +151,13 @@ export function AssignmentForm({
             internal_title: internalTitle,
             public_title: publicTitle || null,
             subtitle: subtitle || null,
-            description: description || null,
+            instructions: instructions || null,
+            content: content || null,
             media_url: mediaUrl || null,
             visual_url: visualUrl || null,
             password: password || undefined,
             is_reusable: saveForFutureReference,
+            tags,
           },
           challengeId,
           sprintId
@@ -99,11 +168,13 @@ export function AssignmentForm({
           internal_title: internalTitle,
           public_title: publicTitle || null,
           subtitle: subtitle || null,
-          description: description || null,
+          instructions: instructions || null,
+          content: content || null,
           media_url: mediaUrl || null,
           visual_url: visualUrl || null,
           password: password || undefined,
           is_reusable: saveForFutureReference,
+          tags,
         })
       }
 
@@ -200,12 +271,31 @@ export function AssignmentForm({
               />
             </div>
 
-            {/* Description */}
+            {/* Instructions - How to complete */}
             <RichTextEditor
-              label="Description"
-              value={description}
-              onChange={setDescription}
-              placeholder="Write your content here... Use the toolbar to format text, add links, images, and videos."
+              label="Instructions"
+              value={instructions}
+              onChange={setInstructions}
+              placeholder="How should participants complete this assignment?"
+              hint="Guidance for completing the assignment"
+            />
+
+            {/* Content - Assignment materials */}
+            <RichTextEditor
+              label="Content"
+              value={content}
+              onChange={setContent}
+              placeholder="Write your assignment content here... Use the toolbar to format text, add links, images, and videos."
+              hint="The main content and materials for this assignment"
+            />
+
+            {/* Tags */}
+            <TagInput
+              label="Tags"
+              value={tags}
+              onChange={setTags}
+              placeholder="Type and press Enter to add tags"
+              hint="Categorization tags for filtering"
             />
 
             {/* Media */}
@@ -215,56 +305,120 @@ export function AssignmentForm({
                   Cover Image
                 </label>
                 <div className={cn(
-                  "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center mb-2 overflow-hidden",
+                  "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center mb-2 overflow-hidden relative",
                   visualUrl
                     ? "border-[var(--color-accent)] bg-[var(--color-bg)]"
                     : "border-[var(--color-border)] bg-[var(--color-bg-muted)]"
                 )}>
                   {visualUrl ? (
-                    <img
-                      src={visualUrl}
-                      alt="Preview"
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none'
-                      }}
-                    />
+                    <>
+                      <img
+                        src={visualUrl}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.currentTarget.style.display = 'none'
+                        }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setVisualUrl('')}
+                        className="absolute top-2 right-2 p-1 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
+                      >
+                        <CloseIcon className="h-4 w-4" />
+                      </button>
+                    </>
                   ) : (
                     <span className="text-xs text-[var(--color-fg-subtle)]">No image</span>
                   )}
                 </div>
-                <Input
-                  value={visualUrl}
-                  onChange={(e) => setVisualUrl(e.target.value)}
-                  placeholder="https://example.com/image.jpg"
-                />
+                <div className="flex gap-2">
+                  <input
+                    ref={visualInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleVisualUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => visualInputRef.current?.click()}
+                    disabled={isUploadingVisual}
+                    className="flex-shrink-0"
+                  >
+                    {isUploadingVisual ? <Spinner size="sm" /> : <UploadIcon className="h-4 w-4" />}
+                    <span className="ml-2">Upload</span>
+                  </Button>
+                  <Input
+                    value={visualUrl}
+                    onChange={(e) => setVisualUrl(e.target.value)}
+                    placeholder="or paste image URL..."
+                  />
+                </div>
               </div>
 
               <div>
                 <label className="text-sm font-semibold text-[var(--color-fg)] block mb-2">
-                  Video URL
+                  Video
                 </label>
                 <div className={cn(
-                  "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center mb-2 overflow-hidden",
+                  "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center mb-2 overflow-hidden relative",
                   mediaUrl
                     ? "border-[var(--color-secondary)] bg-[var(--color-bg)]"
                     : "border-[var(--color-border)] bg-[var(--color-bg-muted)]"
                 )}>
                   {mediaUrl ? (
-                    <iframe
-                      src={getEmbedUrl(mediaUrl)}
-                      className="w-full h-full"
-                      allowFullScreen
-                    />
+                    <>
+                      {mediaUrl.includes('supabase') ? (
+                        <video
+                          src={mediaUrl}
+                          controls
+                          className="w-full h-full object-contain"
+                        />
+                      ) : (
+                        <iframe
+                          src={getEmbedUrl(mediaUrl)}
+                          className="w-full h-full"
+                          allowFullScreen
+                        />
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => setMediaUrl('')}
+                        className="absolute top-2 right-2 p-1 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
+                      >
+                        <CloseIcon className="h-4 w-4" />
+                      </button>
+                    </>
                   ) : (
                     <span className="text-xs text-[var(--color-fg-subtle)]">No video</span>
                   )}
                 </div>
-                <Input
-                  value={mediaUrl}
-                  onChange={(e) => setMediaUrl(e.target.value)}
-                  placeholder="https://youtube.com/watch?v=..."
-                />
+                <div className="flex gap-2">
+                  <input
+                    ref={mediaInputRef}
+                    type="file"
+                    accept="video/*"
+                    onChange={handleMediaUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => mediaInputRef.current?.click()}
+                    disabled={isUploadingMedia}
+                    className="flex-shrink-0"
+                  >
+                    {isUploadingMedia ? <Spinner size="sm" /> : <UploadIcon className="h-4 w-4" />}
+                    <span className="ml-2">Upload</span>
+                  </Button>
+                  <Input
+                    value={mediaUrl}
+                    onChange={(e) => setMediaUrl(e.target.value)}
+                    placeholder="or paste YouTube URL..."
+                  />
+                </div>
               </div>
             </div>
 
@@ -369,6 +523,14 @@ function LockIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+    </svg>
+  )
+}
+
+function UploadIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
     </svg>
   )
 }
