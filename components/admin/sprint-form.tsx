@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Button,
   Input,
@@ -36,19 +36,21 @@ export function SprintForm({ challengeId, sprint, open, onClose, onSuccess }: Sp
   const [startsAt, setStartsAt] = useState(sprint?.starts_at?.slice(0, 16) ?? '')
   const [endsAt, setEndsAt] = useState(sprint?.ends_at?.slice(0, 16) ?? '')
 
-  // Reset form when sprint changes
-  const resetForm = () => {
-    setName(sprint?.name ?? '')
-    setDescription(sprint?.description ?? '')
-    setIntroVideoUrl(sprint?.intro_video_url ?? '')
-    setRecapVideoUrl(sprint?.recap_video_url ?? '')
-    setStartsAt(sprint?.starts_at?.slice(0, 16) ?? '')
-    setEndsAt(sprint?.ends_at?.slice(0, 16) ?? '')
-    setError(null)
-  }
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open) {
+      setName(sprint?.name ?? '')
+      setDescription(sprint?.description ?? '')
+      setIntroVideoUrl(sprint?.intro_video_url ?? '')
+      setRecapVideoUrl(sprint?.recap_video_url ?? '')
+      setStartsAt(sprint?.starts_at?.slice(0, 16) ?? '')
+      setEndsAt(sprint?.ends_at?.slice(0, 16) ?? '')
+      setError(null)
+    }
+  }, [open, sprint])
 
   const handleClose = () => {
-    resetForm()
+    setError(null)
     onClose()
   }
 

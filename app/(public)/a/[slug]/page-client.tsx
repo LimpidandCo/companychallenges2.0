@@ -3,9 +3,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { useUser } from '@/components/providers/clerk-provider'
 import { PasswordGate } from '@/components/public/password-gate'
+import { InstructionsRenderer, AssignmentContentRenderer } from '@/components/public/content-renderer'
+import { MicroQuizList } from '@/components/public/micro-quiz'
 import { trackAssignmentView, trackAssignmentComplete, trackMediaPlay } from '@/lib/actions/analytics'
-import type { Assignment } from '@/lib/types/database'
+import { startAssignment, completeAssignment } from '@/lib/actions/participants'
+import type { Assignment, MicroQuiz } from '@/lib/types/database'
 import type { AssignmentNavContext } from '@/lib/actions/public'
 
 interface AssignmentPageClientProps {
@@ -15,6 +19,7 @@ interface AssignmentPageClientProps {
   isReleased: boolean
   releaseAt?: string
   navContext?: AssignmentNavContext
+  quizzes?: MicroQuiz[]
 }
 
 export function AssignmentPageClient({
@@ -23,12 +28,17 @@ export function AssignmentPageClient({
   initialHasAccess,
   isReleased,
   releaseAt,
-  navContext
+  navContext,
+  quizzes = []
 }: AssignmentPageClientProps) {
   const router = useRouter()
+  const { isSignedIn } = useUser()
   const [hasAccess, setHasAccess] = useState(initialHasAccess)
+  const [isCompleted, setIsCompleted] = useState(false)
+  const [isMarkingComplete, setIsMarkingComplete] = useState(false)
   const hasTrackedView = useRef(false)
   const hasTrackedMediaPlay = useRef(false)
+  const hasStartedProgress = useRef(false)
 
   const title = assignment.public_title || assignment.internal_title
   const challengeSlug = navContext?.challenge.slug
@@ -48,14 +58,35 @@ export function AssignmentPageClient({
     )
   }, [navContext, isReleased, requiresPassword, hasAccess, assignment.id])
 
-  const handleComplete = () => {
+  // Start progress tracking for signed-in users
+  useEffect(() => {
+    if (hasStartedProgress.current) return
+    if (!isSignedIn || !navContext?.assignmentUsageId || !isReleased || (requiresPassword && !hasAccess)) return
+
+    hasStartedProgress.current = true
+    startAssignment(navContext.assignmentUsageId)
+  }, [isSignedIn, navContext?.assignmentUsageId, isReleased, requiresPassword, hasAccess])
+
+  const handleComplete = async () => {
     if (!navContext) return
+    
+    // Track analytics
     trackAssignmentComplete(
       navContext.challenge.clientId,
       navContext.challenge.id,
       assignment.id,
       navContext.sprintId
     )
+    
+    // Mark complete for signed-in users
+    if (isSignedIn && navContext.assignmentUsageId) {
+      setIsMarkingComplete(true)
+      const result = await completeAssignment(navContext.assignmentUsageId)
+      if (result.success) {
+        setIsCompleted(true)
+      }
+      setIsMarkingComplete(false)
+    }
   }
 
   const handleMediaPlay = () => {
@@ -252,26 +283,32 @@ export function AssignmentPageClient({
         )}
 
         {/* Instructions */}
-        {assignment.instructions && (
+        {(assignment.instructions_html || assignment.instructions) && (
           <div className="animate-fade-in-up delay-300">
             <h2 className="text-lg font-semibold text-[var(--color-fg)] mb-3">Instructions</h2>
-            <div
-              className="prose prose-gray max-w-none dark:prose-invert prose-lg prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[var(--color-accent)]"
-              dangerouslySetInnerHTML={{ __html: assignment.instructions }}
-            />
+            <InstructionsRenderer assignment={assignment} />
           </div>
         )}
 
         {/* Content */}
-        {assignment.content && (
-          <div
-            className="prose prose-gray max-w-none dark:prose-invert prose-lg prose-headings:font-bold prose-headings:tracking-tight prose-a:text-[var(--color-accent)] animate-fade-in-up delay-300"
-            dangerouslySetInnerHTML={{ __html: assignment.content }}
-          />
+        {(assignment.content_html || assignment.content) && (
+          <div className="animate-fade-in-up delay-300">
+            <AssignmentContentRenderer assignment={assignment} />
+          </div>
+        )}
+
+        {/* Micro Quizzes */}
+        {quizzes.length > 0 && (
+          <div className="mt-10 animate-fade-in-up delay-400">
+            <MicroQuizList 
+              quizzes={quizzes} 
+              brandColor={brandColor}
+            />
+          </div>
         )}
 
         {/* Empty state */}
-        {!assignment.content && !assignment.instructions && !assignment.media_url && !assignment.visual_url && (
+        {!assignment.content && !assignment.content_html && !assignment.instructions && !assignment.instructions_html && !assignment.media_url && !assignment.visual_url && (
           <div className="flex flex-col items-center justify-center py-20 text-center animate-pop-in">
             <div className="mb-6 flex h-20 w-20 items-center justify-center rounded-3xl bg-[var(--color-bg-muted)] animate-float">
               <span className="text-4xl">📄</span>
@@ -306,18 +343,53 @@ export function AssignmentPageClient({
               </div>
 
               {/* Complete / Return to Overview */}
-              <Link
-                href={`/c/${challengeSlug}`}
-                onClick={handleComplete}
-                className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5"
-                style={{ 
-                  backgroundColor: brandColor,
-                  boxShadow: `0 4px 12px -4px ${brandColor}50`
-                }}
-              >
-                <CheckIcon className="h-5 w-5" />
-                <span className="hidden sm:inline">Complete</span>
-              </Link>
+              {isSignedIn ? (
+                isCompleted ? (
+                  <Link
+                    href={`/c/${challengeSlug}`}
+                    className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white bg-green-600 transition-all duration-200 hover:-translate-y-0.5"
+                    style={{ boxShadow: `0 4px 12px -4px #16a34a50` }}
+                  >
+                    <CheckIcon className="h-5 w-5" />
+                    <span className="hidden sm:inline">Completed!</span>
+                  </Link>
+                ) : (
+                  <button
+                    onClick={handleComplete}
+                    disabled={isMarkingComplete}
+                    className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 disabled:opacity-70"
+                    style={{ 
+                      backgroundColor: brandColor,
+                      boxShadow: `0 4px 12px -4px ${brandColor}50`
+                    }}
+                  >
+                    {isMarkingComplete ? (
+                      <>
+                        <SpinnerIcon className="h-5 w-5 animate-spin" />
+                        <span className="hidden sm:inline">Saving...</span>
+                      </>
+                    ) : (
+                      <>
+                        <CheckIcon className="h-5 w-5" />
+                        <span className="hidden sm:inline">Mark Complete</span>
+                      </>
+                    )}
+                  </button>
+                )
+              ) : (
+                <Link
+                  href={`/c/${challengeSlug}`}
+                  onClick={handleComplete}
+                  className="inline-flex items-center gap-2 rounded-xl px-5 py-2.5 text-sm font-semibold text-white transition-all duration-200 hover:-translate-y-0.5"
+                  style={{ 
+                    backgroundColor: brandColor,
+                    boxShadow: `0 4px 12px -4px ${brandColor}50`
+                  }}
+                >
+                  <CheckIcon className="h-5 w-5" />
+                  <span className="hidden sm:inline">Done</span>
+                </Link>
+              )}
 
               {/* Next */}
               <div className="flex-1 flex justify-end">
@@ -416,6 +488,15 @@ function CheckIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+    </svg>
+  )
+}
+
+function SpinnerIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
     </svg>
   )
 }

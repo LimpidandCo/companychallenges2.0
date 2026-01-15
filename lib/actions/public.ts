@@ -278,6 +278,72 @@ export async function getPendingAssignmentUsages(challengeId: string): Promise<{
   }
 }
 
+import type { Sprint, Announcement } from '@/lib/types/database'
+
+export type PublicSprintsResult =
+  | { success: true; data: Sprint[] }
+  | { success: false; error: string }
+
+/**
+ * Get public sprints for a challenge (only active/visible ones)
+ */
+export async function getPublicSprints(challengeId: string): Promise<PublicSprintsResult> {
+  try {
+    const supabase = createAdminClient()
+    const now = new Date().toISOString()
+
+    const { data, error } = await supabase
+      .from('sprints')
+      .select('*')
+      .eq('challenge_id', challengeId)
+      .or(`starts_at.is.null,starts_at.lte.${now}`)
+      .order('position', { ascending: true })
+
+    if (error) {
+      console.error('Error fetching public sprints:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data: data as Sprint[] }
+  } catch (err) {
+    console.error('Unexpected error fetching public sprints:', err)
+    return { success: false, error: 'Failed to fetch sprints' }
+  }
+}
+
+export type PublicAnnouncementsResult =
+  | { success: true; data: Announcement[] }
+  | { success: false; error: string }
+
+/**
+ * Get public announcements for a challenge (published and not expired)
+ */
+export async function getPublicAnnouncements(challengeId: string): Promise<PublicAnnouncementsResult> {
+  try {
+    const supabase = createAdminClient()
+    const now = new Date().toISOString()
+
+    const { data, error } = await supabase
+      .from('announcements')
+      .select('*')
+      .eq('challenge_id', challengeId)
+      .lte('published_at', now)
+      .or(`expires_at.is.null,expires_at.gt.${now}`)
+      .order('is_pinned', { ascending: false })
+      .order('published_at', { ascending: false })
+
+    if (error) {
+      console.error('Error fetching public announcements:', error)
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data: data as Announcement[] }
+  } catch (err) {
+    console.error('Unexpected error fetching public announcements:', err)
+    return { success: false, error: 'Failed to fetch announcements' }
+  }
+}
+
 export type AssignmentNavContext = {
   challenge: {
     id: string
@@ -286,7 +352,9 @@ export type AssignmentNavContext = {
     publicTitle?: string
     internalName: string
     brandColor?: string
+    mode?: string
   }
+  assignmentUsageId?: string
   sprintId?: string
   currentPosition: number
   totalCount: number
@@ -462,8 +530,10 @@ export async function getAssignmentWithContext(
             slug: challenge.slug,
             publicTitle: challenge.public_title || undefined,
             internalName: challenge.internal_name,
-            brandColor: challenge.brand_color || undefined
+            brandColor: challenge.brand_color || undefined,
+            mode: (challenge as any).mode || 'collective'
           },
+          assignmentUsageId: currentUsage.id,
           sprintId: currentUsage.sprint_id || undefined,
           currentPosition: releasedIndex + 1,
           totalCount: releasedUsages.length,

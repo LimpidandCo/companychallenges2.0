@@ -1,10 +1,12 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
-import { Button, Input, Spinner, RichTextEditor, TagInput } from '@/components/ui'
+import { Button, Input, Spinner, TagInput } from '@/components/ui'
+import { AdvancedEditor, EditorTrigger } from '@/components/ui/advanced-editor'
 import { createAssignment, updateAssignment, createAssignmentForChallenge } from '@/lib/actions/assignments'
 import { uploadFile } from '@/lib/actions/upload'
-import type { Assignment, AssignmentWithUsages } from '@/lib/types/database'
+import type { Assignment, AssignmentWithUsages, EditorContent } from '@/lib/types/database'
+import type { ContainerNode } from '@/components/ui/rich-editor'
 import { cn } from '@/lib/utils/cn'
 
 interface AssignmentFormProps {
@@ -37,14 +39,30 @@ export function AssignmentForm({
   const [internalTitle, setInternalTitle] = useState(assignment?.internal_title ?? '')
   const [publicTitle, setPublicTitle] = useState(assignment?.public_title ?? '')
   const [subtitle, setSubtitle] = useState(assignment?.subtitle ?? '')
-  const [instructions, setInstructions] = useState(assignment?.instructions ?? '')
-  const [content, setContent] = useState(assignment?.content ?? '')
   const [mediaUrl, setMediaUrl] = useState(assignment?.media_url ?? '')
   const [visualUrl, setVisualUrl] = useState(assignment?.visual_url ?? '')
   const [password, setPassword] = useState('')
   const [removePassword, setRemovePassword] = useState(false)
   const [saveForFutureReference, setSaveForFutureReference] = useState(true)
   const [tags, setTags] = useState<string[]>(assignment?.tags ?? [])
+
+  // Rich content state (new JSON format)
+  const [instructionsJson, setInstructionsJson] = useState<ContainerNode | null>(
+    (assignment?.instructions_json as ContainerNode | null) ?? null
+  )
+  const [instructionsHtml, setInstructionsHtml] = useState<string>(
+    assignment?.instructions_html ?? ''
+  )
+  const [contentJson, setContentJson] = useState<ContainerNode | null>(
+    (assignment?.content_json as ContainerNode | null) ?? null
+  )
+  const [contentHtml, setContentHtml] = useState<string>(
+    assignment?.content_html ?? ''
+  )
+
+  // Editor modal states
+  const [instructionsEditorOpen, setInstructionsEditorOpen] = useState(false)
+  const [contentEditorOpen, setContentEditorOpen] = useState(false)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isUploadingVisual, setIsUploadingVisual] = useState(false)
@@ -55,20 +73,52 @@ export function AssignmentForm({
 
   // Reset form when opening
   useEffect(() => {
-    if (open && !isEditing) {
-      setInternalTitle('')
-      setPublicTitle('')
-      setSubtitle('')
-      setInstructions('')
-      setContent('')
-      setMediaUrl('')
-      setVisualUrl('')
-      setPassword('')
-      setRemovePassword(false)
-      setSaveForFutureReference(true)
-      setTags([])
+    if (open) {
+      if (isEditing && assignment) {
+        // Editing: populate with existing values
+        setInternalTitle(assignment.internal_title ?? '')
+        setPublicTitle(assignment.public_title ?? '')
+        setSubtitle(assignment.subtitle ?? '')
+        setInstructionsJson((assignment.instructions_json as ContainerNode | null) ?? null)
+        setInstructionsHtml(assignment.instructions_html ?? '')
+        setContentJson((assignment.content_json as ContainerNode | null) ?? null)
+        setContentHtml(assignment.content_html ?? '')
+        setMediaUrl(assignment.media_url ?? '')
+        setVisualUrl(assignment.visual_url ?? '')
+        setPassword('')
+        setRemovePassword(false)
+        setSaveForFutureReference(true)
+        setTags(assignment.tags ?? [])
+        setError(null)
+      } else {
+        // Creating new: reset to defaults
+        setInternalTitle('')
+        setPublicTitle('')
+        setSubtitle('')
+        setInstructionsJson(null)
+        setInstructionsHtml('')
+        setContentJson(null)
+        setContentHtml('')
+        setMediaUrl('')
+        setVisualUrl('')
+        setPassword('')
+        setRemovePassword(false)
+        setSaveForFutureReference(true)
+        setTags([])
+        setError(null)
+      }
     }
-  }, [open, isEditing])
+  }, [open, isEditing, assignment])
+
+  const handleInstructionsChange = (json: ContainerNode, html: string) => {
+    setInstructionsJson(json)
+    setInstructionsHtml(html)
+  }
+
+  const handleContentChange = (json: ContainerNode, html: string) => {
+    setContentJson(json)
+    setContentHtml(html)
+  }
 
   const handleVisualUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -137,8 +187,10 @@ export function AssignmentForm({
           internal_title: internalTitle,
           public_title: publicTitle || null,
           subtitle: subtitle || null,
-          instructions: instructions || null,
-          content: content || null,
+          instructions_json: instructionsJson as EditorContent | null,
+          instructions_html: instructionsHtml || null,
+          content_json: contentJson as EditorContent | null,
+          content_html: contentHtml || null,
           media_url: mediaUrl || null,
           visual_url: visualUrl || null,
           password: removePassword ? null : (password || undefined),
@@ -151,8 +203,10 @@ export function AssignmentForm({
             internal_title: internalTitle,
             public_title: publicTitle || null,
             subtitle: subtitle || null,
-            instructions: instructions || null,
-            content: content || null,
+            instructions_json: instructionsJson as EditorContent | null,
+            instructions_html: instructionsHtml || null,
+            content_json: contentJson as EditorContent | null,
+            content_html: contentHtml || null,
             media_url: mediaUrl || null,
             visual_url: visualUrl || null,
             password: password || undefined,
@@ -168,8 +222,10 @@ export function AssignmentForm({
           internal_title: internalTitle,
           public_title: publicTitle || null,
           subtitle: subtitle || null,
-          instructions: instructions || null,
-          content: content || null,
+          instructions_json: instructionsJson as EditorContent | null,
+          instructions_html: instructionsHtml || null,
+          content_json: contentJson as EditorContent | null,
+          content_html: contentHtml || null,
           media_url: mediaUrl || null,
           visual_url: visualUrl || null,
           password: password || undefined,
@@ -193,303 +249,338 @@ export function AssignmentForm({
 
   if (!open) return null
 
+  // Check if there's content
+  const hasInstructions = instructionsJson !== null && instructionsJson.children?.length > 0
+  const hasContent = contentJson !== null && contentJson.children?.length > 0
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      {/* Backdrop */}
-      <div
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in"
-        onClick={onClose}
-      />
+    <>
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        {/* Backdrop */}
+        <div
+          className="absolute inset-0 bg-black/70 backdrop-blur-sm animate-fade-in"
+          onClick={onClose}
+        />
 
-      {/* Modal */}
-      <div className="relative w-full max-w-2xl animate-scale-in">
-        <div className="rounded-2xl bg-[var(--color-bg-elevated)] shadow-2xl overflow-hidden border border-[var(--color-border)]">
+        {/* Modal */}
+        <div className="relative w-full max-w-2xl animate-scale-in">
+          <div className="rounded-2xl bg-[var(--color-bg-elevated)] shadow-2xl overflow-hidden border border-[var(--color-border)]">
 
-          {/* Header */}
-          <div className="px-6 pt-5 pb-4 border-b border-[var(--color-border)]">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-bold text-[var(--color-fg)]">
-                {isEditing ? 'Edit Assignment' : 'Create Assignment'}
-              </h2>
-              <button
-                onClick={onClose}
-                className="p-1.5 rounded-lg hover:bg-[var(--color-bg-muted)] text-[var(--color-fg-muted)] transition-colors"
-              >
-                <CloseIcon className="h-5 w-5" />
-              </button>
+            {/* Header */}
+            <div className="px-6 pt-5 pb-4 border-b border-[var(--color-border)]">
+              <div className="flex items-center justify-between">
+                <h2 className="text-lg font-bold text-[var(--color-fg)]">
+                  {isEditing ? 'Edit Assignment' : 'Create Assignment'}
+                </h2>
+                <button
+                  onClick={onClose}
+                  className="p-1.5 rounded-lg hover:bg-[var(--color-bg-muted)] text-[var(--color-fg-muted)] transition-colors"
+                >
+                  <CloseIcon className="h-5 w-5" />
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* Content */}
-          <div className="p-6 max-h-[70vh] overflow-y-auto space-y-5">
-            {/* Shared assignment warning */}
-            {isEditing && isSharedAssignment && (
-              <div className="flex items-start gap-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
-                <WarningIcon className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
-                <div className="text-sm">
-                  <p className="font-semibold text-amber-200">
-                    Shared in {usageCount} challenges
-                  </p>
-                  <p className="text-amber-200/80">
-                    Changes will apply everywhere this is used.
-                  </p>
+            {/* Content */}
+            <div className="p-6 max-h-[70vh] overflow-y-auto space-y-5">
+              {/* Shared assignment warning */}
+              {isEditing && isSharedAssignment && (
+                <div className="flex items-start gap-3 rounded-xl bg-amber-500/10 border border-amber-500/20 p-4">
+                  <WarningIcon className="h-5 w-5 text-amber-400 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm">
+                    <p className="font-semibold text-amber-200">
+                      Shared in {usageCount} challenges
+                    </p>
+                    <p className="text-amber-200/80">
+                      Changes will apply everywhere this is used.
+                    </p>
+                  </div>
                 </div>
+              )}
+
+              {error && (
+                <div className="rounded-xl bg-[var(--color-error-subtle)] p-4 text-sm text-[var(--color-error)]">
+                  {error}
+                </div>
+              )}
+
+              {/* Basic Info */}
+              <div className="space-y-4">
+                <Input
+                  label="Internal Title"
+                  value={internalTitle}
+                  onChange={(e) => setInternalTitle(e.target.value)}
+                  placeholder="e.g. Week 1: Introduction"
+                  hint="Admin reference only"
+                  autoFocus
+                />
+
+                <Input
+                  label="Public Title"
+                  value={publicTitle}
+                  onChange={(e) => setPublicTitle(e.target.value)}
+                  placeholder="e.g. Getting Started"
+                  hint="What participants will see (optional)"
+                />
+
+                <Input
+                  label="Subtitle"
+                  value={subtitle}
+                  onChange={(e) => setSubtitle(e.target.value)}
+                  placeholder="e.g. Learn the fundamentals..."
+                  hint="Short teaser text (optional)"
+                />
               </div>
-            )}
 
-            {error && (
-              <div className="rounded-xl bg-[var(--color-error-subtle)] p-4 text-sm text-[var(--color-error)]">
-                {error}
-              </div>
-            )}
-
-            {/* Basic Info */}
-            <div className="space-y-4">
-              <Input
-                label="Internal Title"
-                value={internalTitle}
-                onChange={(e) => setInternalTitle(e.target.value)}
-                placeholder="e.g. Week 1: Introduction"
-                hint="Admin reference only"
-                autoFocus
-              />
-
-              <Input
-                label="Public Title"
-                value={publicTitle}
-                onChange={(e) => setPublicTitle(e.target.value)}
-                placeholder="e.g. Getting Started"
-                hint="What participants will see (optional)"
-              />
-
-              <Input
-                label="Subtitle"
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                placeholder="e.g. Learn the fundamentals..."
-                hint="Short teaser text (optional)"
-              />
-            </div>
-
-            {/* Instructions - How to complete */}
-            <RichTextEditor
-              label="Instructions"
-              value={instructions}
-              onChange={setInstructions}
-              placeholder="How should participants complete this assignment?"
-              hint="Guidance for completing the assignment"
-            />
-
-            {/* Content - Assignment materials */}
-            <RichTextEditor
-              label="Content"
-              value={content}
-              onChange={setContent}
-              placeholder="Write your assignment content here... Use the toolbar to format text, add links, images, and videos."
-              hint="The main content and materials for this assignment"
-            />
-
-            {/* Tags */}
-            <TagInput
-              label="Tags"
-              value={tags}
-              onChange={setTags}
-              placeholder="Type and press Enter to add tags"
-              hint="Categorization tags for filtering"
-            />
-
-            {/* Media */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="text-sm font-semibold text-[var(--color-fg)] block mb-2">
-                  Cover Image
+              {/* Instructions - Advanced Editor Trigger */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[var(--color-fg)]">
+                  Instructions
                 </label>
-                <div className={cn(
-                  "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center mb-2 overflow-hidden relative",
-                  visualUrl
-                    ? "border-[var(--color-accent)] bg-[var(--color-bg)]"
-                    : "border-[var(--color-border)] bg-[var(--color-bg-muted)]"
-                )}>
-                  {visualUrl ? (
-                    <>
-                      <img
-                        src={visualUrl}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          e.currentTarget.style.display = 'none'
-                        }}
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setVisualUrl('')}
-                        className="absolute top-2 right-2 p-1 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
-                      >
-                        <CloseIcon className="h-4 w-4" />
-                      </button>
-                    </>
-                  ) : (
-                    <span className="text-xs text-[var(--color-fg-subtle)]">No image</span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    ref={visualInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleVisualUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => visualInputRef.current?.click()}
-                    disabled={isUploadingVisual}
-                    className="flex-shrink-0"
-                  >
-                    {isUploadingVisual ? <Spinner size="sm" /> : <UploadIcon className="h-4 w-4" />}
-                    <span className="ml-2">Upload</span>
-                  </Button>
-                  <Input
-                    value={visualUrl}
-                    onChange={(e) => setVisualUrl(e.target.value)}
-                    placeholder="or paste image URL..."
-                  />
-                </div>
+                <EditorTrigger
+                  label="Instructions"
+                  hasContent={hasInstructions}
+                  onClick={() => setInstructionsEditorOpen(true)}
+                />
+                <p className="text-xs text-[var(--color-fg-subtle)]">
+                  How should participants complete this assignment?
+                </p>
               </div>
 
-              <div>
-                <label className="text-sm font-semibold text-[var(--color-fg)] block mb-2">
-                  Video
+              {/* Content - Advanced Editor Trigger */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[var(--color-fg)]">
+                  Content
                 </label>
-                <div className={cn(
-                  "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center mb-2 overflow-hidden relative",
-                  mediaUrl
-                    ? "border-[var(--color-secondary)] bg-[var(--color-bg)]"
-                    : "border-[var(--color-border)] bg-[var(--color-bg-muted)]"
-                )}>
-                  {mediaUrl ? (
-                    <>
-                      {mediaUrl.includes('supabase') ? (
-                        <video
-                          src={mediaUrl}
-                          controls
-                          className="w-full h-full object-contain"
-                        />
-                      ) : (
-                        <iframe
-                          src={getEmbedUrl(mediaUrl)}
-                          className="w-full h-full"
-                          allowFullScreen
-                        />
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setMediaUrl('')}
-                        className="absolute top-2 right-2 p-1 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
-                      >
-                        <CloseIcon className="h-4 w-4" />
-                      </button>
-                    </>
-                  ) : (
-                    <span className="text-xs text-[var(--color-fg-subtle)]">No video</span>
-                  )}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    ref={mediaInputRef}
-                    type="file"
-                    accept="video/*"
-                    onChange={handleMediaUpload}
-                    className="hidden"
-                  />
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    onClick={() => mediaInputRef.current?.click()}
-                    disabled={isUploadingMedia}
-                    className="flex-shrink-0"
-                  >
-                    {isUploadingMedia ? <Spinner size="sm" /> : <UploadIcon className="h-4 w-4" />}
-                    <span className="ml-2">Upload</span>
-                  </Button>
-                  <Input
-                    value={mediaUrl}
-                    onChange={(e) => setMediaUrl(e.target.value)}
-                    placeholder="or paste YouTube URL..."
-                  />
-                </div>
+                <EditorTrigger
+                  label="Content"
+                  hasContent={hasContent}
+                  onClick={() => setContentEditorOpen(true)}
+                />
+                <p className="text-xs text-[var(--color-fg-subtle)]">
+                  The main content and materials for this assignment
+                </p>
               </div>
-            </div>
 
-            {/* Password */}
-            <div className="rounded-xl border border-[var(--color-border)] p-4 space-y-3">
-              <div className="flex items-center gap-3">
-                <LockIcon className="h-5 w-5 text-[var(--color-fg-muted)]" />
+              {/* Tags */}
+              <TagInput
+                label="Tags"
+                value={tags}
+                onChange={setTags}
+                placeholder="Type and press Enter to add tags"
+                hint="Categorization tags for filtering"
+              />
+
+              {/* Media */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <h4 className="font-semibold text-[var(--color-fg)] text-sm">Password Protection</h4>
-                  <p className="text-xs text-[var(--color-fg-muted)]">
-                    Optional shared access key
-                  </p>
+                  <label className="text-sm font-semibold text-[var(--color-fg)] block mb-2">
+                    Cover Image
+                  </label>
+                  <div className={cn(
+                    "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center mb-2 overflow-hidden relative",
+                    visualUrl
+                      ? "border-[var(--color-accent)] bg-[var(--color-bg)]"
+                      : "border-[var(--color-border)] bg-[var(--color-bg-muted)]"
+                  )}>
+                    {visualUrl ? (
+                      <>
+                        <img
+                          src={visualUrl}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.currentTarget.style.display = 'none'
+                          }}
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setVisualUrl('')}
+                          className="absolute top-2 right-2 p-1 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
+                        >
+                          <CloseIcon className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-[var(--color-fg-subtle)]">No image</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      ref={visualInputRef}
+                      type="file"
+                      accept="image/*"
+                      onChange={handleVisualUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => visualInputRef.current?.click()}
+                      disabled={isUploadingVisual}
+                      className="flex-shrink-0"
+                    >
+                      {isUploadingVisual ? <Spinner size="sm" /> : <UploadIcon className="h-4 w-4" />}
+                      <span className="ml-2">Upload</span>
+                    </Button>
+                    <Input
+                      value={visualUrl}
+                      onChange={(e) => setVisualUrl(e.target.value)}
+                      placeholder="or paste image URL..."
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-semibold text-[var(--color-fg)] block mb-2">
+                    Video
+                  </label>
+                  <div className={cn(
+                    "aspect-video rounded-xl border-2 border-dashed flex items-center justify-center mb-2 overflow-hidden relative",
+                    mediaUrl
+                      ? "border-[var(--color-secondary)] bg-[var(--color-bg)]"
+                      : "border-[var(--color-border)] bg-[var(--color-bg-muted)]"
+                  )}>
+                    {mediaUrl ? (
+                      <>
+                        {mediaUrl.includes('supabase') ? (
+                          <video
+                            src={mediaUrl}
+                            controls
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <iframe
+                            src={getEmbedUrl(mediaUrl)}
+                            className="w-full h-full"
+                            allowFullScreen
+                          />
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => setMediaUrl('')}
+                          className="absolute top-2 right-2 p-1 rounded-lg bg-black/60 text-white hover:bg-black/80 transition-colors"
+                        >
+                          <CloseIcon className="h-4 w-4" />
+                        </button>
+                      </>
+                    ) : (
+                      <span className="text-xs text-[var(--color-fg-subtle)]">No video</span>
+                    )}
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      ref={mediaInputRef}
+                      type="file"
+                      accept="video/*"
+                      onChange={handleMediaUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      onClick={() => mediaInputRef.current?.click()}
+                      disabled={isUploadingMedia}
+                      className="flex-shrink-0"
+                    >
+                      {isUploadingMedia ? <Spinner size="sm" /> : <UploadIcon className="h-4 w-4" />}
+                      <span className="ml-2">Upload</span>
+                    </Button>
+                    <Input
+                      value={mediaUrl}
+                      onChange={(e) => setMediaUrl(e.target.value)}
+                      placeholder="or paste YouTube URL..."
+                    />
+                  </div>
                 </div>
               </div>
 
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder={hasPassword ? '••••••••' : 'Enter password (optional)'}
-              />
+              {/* Password */}
+              <div className="rounded-xl border border-[var(--color-border)] p-4 space-y-3">
+                <div className="flex items-center gap-3">
+                  <LockIcon className="h-5 w-5 text-[var(--color-fg-muted)]" />
+                  <div>
+                    <h4 className="font-semibold text-[var(--color-fg)] text-sm">Password Protection</h4>
+                    <p className="text-xs text-[var(--color-fg-muted)]">
+                      Optional shared access key
+                    </p>
+                  </div>
+                </div>
 
-              {isEditing && hasPassword && (
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={removePassword}
-                    onChange={(e) => setRemovePassword(e.target.checked)}
-                    className="h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-accent)]"
-                  />
-                  <span className="text-[var(--color-fg)]">Remove password protection</span>
-                </label>
+                <Input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder={hasPassword ? '••••••••' : 'Enter password (optional)'}
+                />
+
+                {isEditing && hasPassword && (
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={removePassword}
+                      onChange={(e) => setRemovePassword(e.target.checked)}
+                      className="h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-accent)]"
+                    />
+                    <span className="text-[var(--color-fg)]">Remove password protection</span>
+                  </label>
+                )}
+              </div>
+
+              {/* Save for future reference - only show when creating */}
+              {!isEditing && (
+                <div className="rounded-xl border border-[var(--color-border)] p-4">
+                  <label className="flex items-start gap-3 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={saveForFutureReference}
+                      onChange={(e) => setSaveForFutureReference(e.target.checked)}
+                      className="h-5 w-5 rounded border-[var(--color-border)] text-[var(--color-accent)] mt-0.5"
+                    />
+                    <div>
+                      <span className="font-semibold text-[var(--color-fg)] text-sm block">
+                        Save for future reference
+                      </span>
+                      <span className="text-xs text-[var(--color-fg-muted)]">
+                        Add to the Assignments library for reuse in other challenges
+                      </span>
+                    </div>
+                  </label>
+                </div>
               )}
             </div>
 
-            {/* Save for future reference - only show when creating */}
-            {!isEditing && (
-              <div className="rounded-xl border border-[var(--color-border)] p-4">
-                <label className="flex items-start gap-3 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={saveForFutureReference}
-                    onChange={(e) => setSaveForFutureReference(e.target.checked)}
-                    className="h-5 w-5 rounded border-[var(--color-border)] text-[var(--color-accent)] mt-0.5"
-                  />
-                  <div>
-                    <span className="font-semibold text-[var(--color-fg)] text-sm block">
-                      Save for future reference
-                    </span>
-                    <span className="text-xs text-[var(--color-fg-muted)]">
-                      Add to the Assignments library for reuse in other challenges
-                    </span>
-                  </div>
-                </label>
-              </div>
-            )}
-          </div>
-
-          {/* Footer */}
-          <div className="px-6 py-4 border-t border-[var(--color-border)] flex justify-end gap-2">
-            <Button variant="secondary" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit} disabled={isSubmitting || !internalTitle.trim()}>
-              {isSubmitting && <Spinner size="sm" className="mr-2" />}
-              {isEditing ? 'Save Changes' : 'Create Assignment'}
-            </Button>
+            {/* Footer */}
+            <div className="px-6 py-4 border-t border-[var(--color-border)] flex justify-end gap-2">
+              <Button variant="secondary" onClick={onClose}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} disabled={isSubmitting || !internalTitle.trim()}>
+                {isSubmitting && <Spinner size="sm" className="mr-2" />}
+                {isEditing ? 'Save Changes' : 'Create Assignment'}
+              </Button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+
+      {/* Advanced Editor Modals */}
+      <AdvancedEditor
+        open={instructionsEditorOpen}
+        onClose={() => setInstructionsEditorOpen(false)}
+        value={instructionsJson}
+        onChange={handleInstructionsChange}
+        contentType="assignment-instructions"
+      />
+
+      <AdvancedEditor
+        open={contentEditorOpen}
+        onClose={() => setContentEditorOpen(false)}
+        value={contentJson}
+        onChange={handleContentChange}
+        contentType="assignment-content"
+      />
+    </>
   )
 }
 

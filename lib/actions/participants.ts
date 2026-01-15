@@ -1,6 +1,6 @@
 'use server'
 
-import { auth } from '@clerk/nextjs/server'
+import { auth } from '@/lib/auth/mock-server-auth'
 import { createAdminClient } from '@/lib/supabase/server'
 import type {
   Participant,

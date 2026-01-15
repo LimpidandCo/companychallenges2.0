@@ -1,33 +1,25 @@
 'use client'
 
-import { ClerkProvider as BaseClerkProvider } from '@clerk/nextjs'
 import { ReactNode } from 'react'
+import { MockAuthProvider, DevAuthToolbar } from './mock-auth-provider'
+
+// Re-export mock hooks as if they were Clerk hooks
+export { useMockUser as useUser, useMockAuth, MockSignInButton as SignInButton, MockUserButton as UserButton } from './mock-auth-provider'
 
 interface ClerkProviderProps {
   children: ReactNode
 }
 
-// Demo mode controlled by environment variable (set NEXT_PUBLIC_DEMO_MODE=true to bypass auth)
-const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+// For now, always use MockAuthProvider instead of real Clerk
+// To enable real Clerk, set NEXT_PUBLIC_USE_CLERK=true
+const useRealClerk = process.env.NEXT_PUBLIC_USE_CLERK === 'true'
 
 export function ClerkProvider({ children }: ClerkProviderProps) {
-  // Demo mode: skip Clerk entirely
-  if (isDemoMode) {
-    return <>{children}</>
-  }
-
-  // Check if Clerk is configured (client-side check)
-  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-
-  if (!publishableKey) {
-    // Clerk not configured, render children without provider
-    return <>{children}</>
-  }
-
+  // Always use mock for now
   return (
-    <BaseClerkProvider publishableKey={publishableKey}>
+    <MockAuthProvider>
       {children}
-    </BaseClerkProvider>
+      <DevAuthToolbar />
+    </MockAuthProvider>
   )
 }
-

@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation'
 import { getAssignmentWithContext } from '@/lib/actions/public'
+import { getMicroQuizzesForAssignment } from '@/lib/actions/micro-quizzes'
 import { AssignmentPageClient } from './page-client'
 
 interface AssignmentPageProps {
@@ -17,6 +18,10 @@ export default async function AssignmentPage({ params, searchParams }: Assignmen
 
   const { assignment, requiresPassword, hasAccess, isReleased, releaseAt, navContext } = result.data
 
+  // Fetch micro-quizzes for this assignment
+  const quizzesResult = await getMicroQuizzesForAssignment(assignment.id)
+  const quizzes = quizzesResult.success ? quizzesResult.data : []
+
   return (
     <AssignmentPageClient
       assignment={assignment}
@@ -25,6 +30,7 @@ export default async function AssignmentPage({ params, searchParams }: Assignmen
       isReleased={isReleased}
       releaseAt={releaseAt}
       navContext={navContext}
+      quizzes={quizzes}
     />
   )
 }

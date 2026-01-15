@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Button,
   Input,
@@ -44,15 +44,19 @@ export function AssignmentUsageEditor({
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Reset form when usage changes
-  if (usage && open) {
-    if (label !== (usage.label ?? '') && !isSubmitting) {
+  // Reset form when dialog opens
+  useEffect(() => {
+    if (open && usage) {
       setLabel(usage.label ?? '')
       setSprintId(usage.sprint_id ?? '')
       setPublicTitleOverride(usage.public_title_override ?? '')
       setSubtitleOverride(usage.subtitle_override ?? '')
+      setReleaseAt(usage.release_at ? formatDateTimeLocal(usage.release_at) : '')
+      setIsVisible(usage.is_visible ?? true)
+      setIsMilestone(usage.is_milestone ?? false)
+      setError(null)
     }
-  }
+  }, [open, usage])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

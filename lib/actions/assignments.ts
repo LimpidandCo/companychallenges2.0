@@ -236,6 +236,12 @@ export async function createAssignment(input: AssignmentInsert): Promise<Assignm
         internal_title: input.internal_title,
         public_title: input.public_title ?? null,
         subtitle: input.subtitle ?? null,
+        // New JSON content format
+        instructions_json: input.instructions_json ?? null,
+        instructions_html: input.instructions_html ?? null,
+        content_json: input.content_json ?? null,
+        content_html: input.content_html ?? null,
+        // Legacy fields (kept for backward compatibility)
         instructions: input.instructions ?? null,
         content: input.content ?? null,
         visual_url: input.visual_url ?? null,
@@ -284,6 +290,12 @@ export async function createAssignmentForChallenge(
         internal_title: input.internal_title,
         public_title: input.public_title ?? null,
         subtitle: input.subtitle ?? null,
+        // New JSON content format
+        instructions_json: input.instructions_json ?? null,
+        instructions_html: input.instructions_html ?? null,
+        content_json: input.content_json ?? null,
+        content_html: input.content_html ?? null,
+        // Legacy fields (kept for backward compatibility)
         instructions: input.instructions ?? null,
         content: input.content ?? null,
         visual_url: input.visual_url ?? null,
@@ -352,6 +364,12 @@ export async function updateAssignment(id: string, input: AssignmentUpdate): Pro
     if (input.internal_title !== undefined) updateData.internal_title = input.internal_title
     if (input.public_title !== undefined) updateData.public_title = input.public_title
     if (input.subtitle !== undefined) updateData.subtitle = input.subtitle
+    // New JSON content format
+    if (input.instructions_json !== undefined) updateData.instructions_json = input.instructions_json
+    if (input.instructions_html !== undefined) updateData.instructions_html = input.instructions_html
+    if (input.content_json !== undefined) updateData.content_json = input.content_json
+    if (input.content_html !== undefined) updateData.content_html = input.content_html
+    // Legacy fields (kept for backward compatibility)
     if (input.instructions !== undefined) updateData.instructions = input.instructions
     if (input.content !== undefined) updateData.content = input.content
     if (input.visual_url !== undefined) updateData.visual_url = input.visual_url

@@ -151,7 +151,7 @@ export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, analyti
             <button
               type="submit"
               disabled={isPending || !!retryAfter || !password.trim()}
-              className="w-full rounded-2xl bg-[var(--gradient-accent)] px-5 py-4 text-base font-semibold text-white shadow-[0_4px_16px_-4px_rgba(255,107,74,0.4)] transition-all duration-200 hover:shadow-[0_8px_24px_-6px_rgba(255,107,74,0.5)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+              className="w-full rounded-2xl bg-[var(--color-accent)] px-5 py-4 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:brightness-110 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-400 disabled:hover:translate-y-0 disabled:hover:brightness-100"
             >
               {isPending ? (
                 <span className="flex items-center justify-center gap-2">

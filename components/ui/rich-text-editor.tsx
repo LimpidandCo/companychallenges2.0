@@ -689,7 +689,7 @@ function ToolbarSelect({
       className={cn(
         'h-8 rounded-lg border-0 bg-transparent px-2 text-xs font-medium text-[var(--color-fg-muted)] transition-all duration-150',
         'hover:bg-[var(--color-bg)] hover:text-[var(--color-fg)]',
-        'focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-0',
+        'focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-0',
         disabled && 'opacity-40 cursor-not-allowed',
         className
       )}

@@ -55,6 +55,14 @@ export const DEFAULT_CLIENT_FEATURES: ClientFeatures = {
   private_views: false,
 }
 
+// JSON content type for rich editor (ContainerNode structure)
+export interface EditorContent {
+  id: string
+  type: 'container'
+  children: unknown[] // EditorNode[]
+  attributes?: Record<string, unknown>
+}
+
 export interface Challenge {
   id: string
   client_id: string
@@ -62,8 +70,19 @@ export interface Challenge {
   internal_name: string
   public_title: string | null
   show_public_title: boolean
-  description: string | null // rich text (stored as HTML)
-  brand_color: string | null // hex color, e.g., "#3b82f6"
+  
+  // Mode and features (per-challenge configuration)
+  mode: 'collective' | 'individual' | 'hybrid'
+  features: ChallengeFeatures
+  
+  // Rich content - new JSON format
+  description_json: EditorContent | null // editor JSON content
+  description_html: string | null // pre-rendered HTML for public view
+  
+  // Legacy HTML fields (deprecated, kept for backward compatibility)
+  description: string | null // @deprecated - use description_json/description_html
+  brand_color: string | null // @deprecated - editor handles styling
+  
   support_info: string | null // rich text
   visual_url: string | null
   is_archived: boolean
@@ -75,6 +94,40 @@ export interface Challenge {
   
   created_at: string
   updated_at: string
+}
+
+// Features that can be enabled per-challenge
+export interface ChallengeFeatures {
+  // Content & Structure
+  announcements: boolean
+  host_videos: boolean
+  sprint_structure: boolean
+  time_based_unlocks: boolean
+  
+  // Gamification
+  milestones: boolean
+  reveal_moments: boolean
+  micro_quizzes: boolean
+  
+  // Progress (requires individual or hybrid mode)
+  progress_tracking: boolean
+  collective_progress: boolean
+  session_persistence: boolean
+  private_views: boolean
+}
+
+export const DEFAULT_CHALLENGE_FEATURES: ChallengeFeatures = {
+  announcements: true,
+  host_videos: true,
+  sprint_structure: true,
+  time_based_unlocks: true,
+  milestones: false,
+  reveal_moments: false,
+  micro_quizzes: false,
+  progress_tracking: false,
+  collective_progress: false,
+  session_persistence: false,
+  private_views: false,
 }
 
 export interface Sprint {
@@ -103,8 +156,17 @@ export interface Assignment {
   internal_title: string
   public_title: string | null // default display title for participants
   subtitle: string | null // default short teaser text
-  instructions: string | null // how to complete (rich text)
-  content: string | null // assignment content/materials (rich text, renamed from description)
+  
+  // Rich content - new JSON format
+  instructions_json: EditorContent | null // editor JSON content for instructions
+  instructions_html: string | null // pre-rendered HTML for public view
+  content_json: EditorContent | null // editor JSON content for main content
+  content_html: string | null // pre-rendered HTML for public view
+  
+  // Legacy HTML fields (deprecated, kept for backward compatibility)
+  instructions: string | null // @deprecated - use instructions_json/instructions_html
+  content: string | null // @deprecated - use content_json/content_html
+  
   visual_url: string | null
   media_url: string | null // embedded video URL
   password_hash: string | null // hashed shared access key
@@ -188,7 +250,9 @@ export interface Announcement {
   id: string
   challenge_id: string
   title: string
-  content: string // rich text
+  content: string // rich text (legacy)
+  content_html: string | null // rendered HTML from rich editor
+  content_json: EditorContent | null // JSON from rich editor
   visual_url: string | null
   is_pinned: boolean
   published_at: string
@@ -376,8 +440,19 @@ export interface ChallengeInsert {
   internal_name: string
   public_title?: string | null
   show_public_title?: boolean
-  description?: string | null
-  brand_color?: string | null
+  
+  // Mode and features
+  mode?: 'collective' | 'individual' | 'hybrid'
+  features?: Partial<ChallengeFeatures>
+  
+  // Rich content - new JSON format
+  description_json?: EditorContent | null
+  description_html?: string | null
+  
+  // Legacy fields (deprecated)
+  description?: string | null // @deprecated
+  brand_color?: string | null // @deprecated
+  
   support_info?: string | null
   visual_url?: string | null
   folder?: string | null
@@ -390,8 +465,19 @@ export interface ChallengeUpdate {
   internal_name?: string
   public_title?: string | null
   show_public_title?: boolean
-  description?: string | null
-  brand_color?: string | null
+  
+  // Mode and features
+  mode?: 'collective' | 'individual' | 'hybrid'
+  features?: Partial<ChallengeFeatures>
+  
+  // Rich content - new JSON format
+  description_json?: EditorContent | null
+  description_html?: string | null
+  
+  // Legacy fields (deprecated)
+  description?: string | null // @deprecated
+  brand_color?: string | null // @deprecated
+  
   support_info?: string | null
   visual_url?: string | null
   is_archived?: boolean
@@ -428,8 +514,17 @@ export interface AssignmentInsert {
   internal_title: string
   public_title?: string | null
   subtitle?: string | null
-  instructions?: string | null // how to complete (rich text)
-  content?: string | null // assignment content/materials (rich text)
+  
+  // Rich content - new JSON format
+  instructions_json?: EditorContent | null
+  instructions_html?: string | null
+  content_json?: EditorContent | null
+  content_html?: string | null
+  
+  // Legacy fields (deprecated)
+  instructions?: string | null // @deprecated
+  content?: string | null // @deprecated
+  
   visual_url?: string | null
   media_url?: string | null
   password?: string // plain text, will be hashed
@@ -443,8 +538,17 @@ export interface AssignmentUpdate {
   internal_title?: string
   public_title?: string | null
   subtitle?: string | null
-  instructions?: string | null
-  content?: string | null
+  
+  // Rich content - new JSON format
+  instructions_json?: EditorContent | null
+  instructions_html?: string | null
+  content_json?: EditorContent | null
+  content_html?: string | null
+  
+  // Legacy fields (deprecated)
+  instructions?: string | null // @deprecated
+  content?: string | null // @deprecated
+  
   visual_url?: string | null
   media_url?: string | null
   password?: string | null // plain text or null to remove

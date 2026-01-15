@@ -1,29 +1,14 @@
-import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 
-// Check if demo mode is enabled (set NEXT_PUBLIC_DEMO_MODE=true in .env.local to bypass auth)
-const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+// For now, we're using mock auth so no middleware protection needed
+// When you want to enable real Clerk auth, set NEXT_PUBLIC_USE_CLERK=true
+// and uncomment the Clerk middleware below
 
-// Define protected routes
-const isAdminRoute = createRouteMatcher(['/admin(.*)'])
-const isParticipantRoute = createRouteMatcher(['/participant(.*)'])
-
-// Demo mode middleware (bypasses auth)
-function demoMiddleware(req: NextRequest) {
+export default function middleware(req: NextRequest) {
+  // Just pass through - auth is handled by client-side mock provider
   return NextResponse.next()
 }
-
-// Production middleware with Clerk auth
-const productionMiddleware = clerkMiddleware(async (auth, req) => {
-  if (isAdminRoute(req) || isParticipantRoute(req)) {
-    // Protect admin and participant routes - requires authentication
-    await auth.protect()
-  }
-})
-
-// Export the appropriate middleware based on mode
-export default isDemoMode ? demoMiddleware : productionMiddleware
 
 export const config = {
   matcher: [
@@ -33,3 +18,17 @@ export const config = {
     '/(api|trpc)(.*)',
   ],
 }
+
+/* 
+// REAL CLERK MIDDLEWARE - Uncomment when ready to use Clerk
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
+
+const isAdminRoute = createRouteMatcher(['/admin(.*)'])
+const isParticipantRoute = createRouteMatcher(['/participant(.*)'])
+
+export default clerkMiddleware(async (auth, req) => {
+  if (isAdminRoute(req) || isParticipantRoute(req)) {
+    await auth.protect()
+  }
+})
+*/

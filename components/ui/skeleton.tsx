@@ -1,84 +1,65 @@
-import { cn } from '@/lib/utils/cn'
+import { cn } from "@/lib/utils"
 
-interface SkeletonProps {
-  className?: string
-}
-
-export function Skeleton({ className }: SkeletonProps) {
+function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
   return (
     <div
-      className={cn(
-        'animate-pulse rounded-lg bg-[var(--color-bg-muted)]',
-        className
-      )}
+      data-slot="skeleton"
+      className={cn("bg-accent animate-pulse rounded-md", className)}
+      {...props}
     />
   )
 }
 
-export function SkeletonText({ className, lines = 1 }: SkeletonProps & { lines?: number }) {
+function SkeletonText({ className, lines = 3, ...props }: React.ComponentProps<"div"> & { lines?: number }) {
   return (
-    <div className={cn('space-y-2', className)}>
+    <div className={cn("space-y-2", className)} {...props}>
       {Array.from({ length: lines }).map((_, i) => (
-        <Skeleton
-          key={i}
-          className={cn('h-4', i === lines - 1 && lines > 1 ? 'w-3/4' : 'w-full')}
-        />
+        <Skeleton key={i} className={cn("h-4", i === lines - 1 ? "w-3/4" : "w-full")} />
       ))}
     </div>
   )
 }
 
-export function SkeletonCard({ className }: SkeletonProps) {
+function SkeletonCard({ className, ...props }: React.ComponentProps<"div">) {
   return (
-    <div className={cn('rounded-2xl border border-[var(--color-border)] p-5', className)}>
-      <div className="flex items-start justify-between mb-4">
-        <Skeleton className="h-12 w-12 rounded-2xl" />
-        <Skeleton className="h-5 w-16 rounded-full" />
-      </div>
-      <div className="space-y-2">
-        <Skeleton className="h-4 w-24" />
-        <Skeleton className="h-8 w-16" />
-        <Skeleton className="h-3 w-32" />
-      </div>
+    <div
+      className={cn("rounded-[var(--radius-lg)] border border-[var(--color-border)] p-6 space-y-4", className)}
+      {...props}
+    >
+      <Skeleton className="h-6 w-1/3" />
+      <SkeletonText lines={2} />
     </div>
   )
 }
 
-export function SkeletonList({ items = 5, className }: SkeletonProps & { items?: number }) {
+function SkeletonList({ className, items = 5, ...props }: React.ComponentProps<"div"> & { items?: number }) {
   return (
-    <div className={cn('space-y-3', className)}>
+    <div className={cn("space-y-3", className)} {...props}>
       {Array.from({ length: items }).map((_, i) => (
-        <div
-          key={i}
-          className="flex items-center gap-4 p-4 rounded-xl border border-[var(--color-border)]"
-        >
-          <Skeleton className="h-10 w-10 rounded-xl shrink-0" />
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="h-10 w-10 rounded-full" />
           <div className="flex-1 space-y-2">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-3 w-48" />
+            <Skeleton className="h-4 w-1/4" />
+            <Skeleton className="h-3 w-1/2" />
           </div>
-          <Skeleton className="h-8 w-20 rounded-lg" />
         </div>
       ))}
     </div>
   )
 }
 
-export function SkeletonTable({ rows = 5, cols = 4, className }: SkeletonProps & { rows?: number; cols?: number }) {
+function SkeletonTable({ className, rows = 5, cols = 4, ...props }: React.ComponentProps<"div"> & { rows?: number; cols?: number }) {
   return (
-    <div className={cn('rounded-xl border border-[var(--color-border)] overflow-hidden', className)}>
+    <div className={cn("space-y-3", className)} {...props}>
       {/* Header */}
-      <div className="flex gap-4 p-4 border-b border-[var(--color-border)] bg-[var(--color-bg-subtle)]">
+      <div className="flex gap-4 pb-2 border-b border-[var(--color-border)]">
         {Array.from({ length: cols }).map((_, i) => (
           <Skeleton key={i} className="h-4 flex-1" />
         ))}
       </div>
       {/* Rows */}
       {Array.from({ length: rows }).map((_, rowIndex) => (
-        <div
-          key={rowIndex}
-          className="flex gap-4 p-4 border-b border-[var(--color-border)] last:border-0"
-        >
+        <div key={rowIndex} className="flex gap-4">
           {Array.from({ length: cols }).map((_, colIndex) => (
             <Skeleton key={colIndex} className="h-4 flex-1" />
           ))}
@@ -88,3 +69,4 @@ export function SkeletonTable({ rows = 5, cols = 4, className }: SkeletonProps &
   )
 }
 
+export { Skeleton, SkeletonText, SkeletonCard, SkeletonList, SkeletonTable }

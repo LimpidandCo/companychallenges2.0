@@ -5,6 +5,7 @@ import { getChallengeAssignmentsWithProgress, getEnrolledChallenges } from '@/li
 import { getChallenge } from '@/lib/actions/challenges'
 import { getSprintsForChallenge } from '@/lib/actions/sprints'
 import { getAnnouncementsForChallenge } from '@/lib/actions/announcements'
+import { ChallengeDescriptionRenderer } from '@/components/public/content-renderer'
 import { ChallengeProgressClient } from './page-client'
 
 interface Props {
@@ -76,11 +77,10 @@ export default async function ChallengePage({ params }: Props) {
             <h1 className="text-3xl font-bold text-[var(--color-fg)] tracking-tight mb-2">
               {challenge.public_title || challenge.internal_name}
             </h1>
-            {challenge.description && (
-              <div
-                className="text-[var(--color-fg-muted)] prose prose-sm max-w-2xl"
-                dangerouslySetInnerHTML={{ __html: challenge.description }}
-              />
+            {(challenge.description_html || challenge.description) && (
+              <div className="max-w-2xl">
+                <ChallengeDescriptionRenderer challenge={challenge} />
+              </div>
             )}
           </div>
 

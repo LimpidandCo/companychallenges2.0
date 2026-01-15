@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useTransition } from 'react'
-import { useUser, useClerk, useAuth } from '@clerk/nextjs'
+import { useUser, useMockAuth } from '@/components/providers/clerk-provider'
 import { Button, Card, CardContent, CardHeader, CardTitle, CardDescription, Input, Skeleton } from '@/components/ui'
 import { cn } from '@/lib/utils/cn'
 
@@ -17,10 +17,12 @@ const TABS: { id: TabId; label: string; icon: React.ReactNode; description: stri
 
 export function SettingsClient() {
   const { user, isLoaded: userLoaded } = useUser()
-  const { signOut, openUserProfile } = useClerk()
-  const { isSignedIn } = useAuth()
+  const { signOut, isSignedIn } = useMockAuth()
   const [activeTab, setActiveTab] = useState<TabId>('profile')
   const [isPending, startTransition] = useTransition()
+  
+  // Mock function for openUserProfile (not available in mock)
+  const openUserProfile = () => { alert('Profile editing is not available in mock mode') }
 
   // Local state for editable fields
   const [firstName, setFirstName] = useState('')
@@ -69,7 +71,8 @@ export function SettingsClient() {
 
   const handleSignOut = () => {
     startTransition(() => {
-      signOut({ redirectUrl: '/' })
+      signOut()
+      window.location.href = '/'
     })
   }
 

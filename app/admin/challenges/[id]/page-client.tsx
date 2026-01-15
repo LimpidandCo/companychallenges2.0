@@ -45,6 +45,7 @@ import type {
   Announcement,
   Milestone,
 } from '@/lib/types/database'
+import { DEFAULT_CHALLENGE_FEATURES } from '@/lib/types/database'
 
 interface ChallengeDetailClientProps {
   challenge: ChallengeWithClient
@@ -77,6 +78,10 @@ export function ChallengeDetailClient({
   const [sprints, setSprints] = useState(initialSprints)
   const [announcements, setAnnouncements] = useState(initialAnnouncements)
   const [milestones, setMilestones] = useState(initialMilestones)
+
+  // Feature flags from challenge settings
+  const features = challenge.features ?? DEFAULT_CHALLENGE_FEATURES
+  const isIndividualMode = challenge.mode === 'individual' || challenge.mode === 'hybrid'
   const [isPickerOpen, setIsPickerOpen] = useState(false)
   const [isAssignmentFormOpen, setIsAssignmentFormOpen] = useState(false)
   const [editingUsage, setEditingUsage] = useState<AssignmentUsageWithAssignment | null>(null)
@@ -269,7 +274,17 @@ export function ChallengeDetailClient({
               </p>
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex items-center gap-2">
+            {/* Preview Link - Most important action */}
+            <a
+              href={`/c/${challenge.slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-accent)] px-4 py-2 text-sm font-semibold text-white shadow-sm transition-all hover:brightness-110"
+            >
+              <ExternalLinkIcon className="h-4 w-4" />
+              Preview Public Page
+            </a>
             <Button variant="secondary" onClick={() => setIsAssignmentFormOpen(true)}>
               <PlusIcon className="h-4 w-4" />
               Create New
@@ -279,6 +294,35 @@ export function ChallengeDetailClient({
               From Library
             </Button>
           </div>
+        </div>
+      </div>
+
+      {/* Quick Info Banner */}
+      <div className="mb-6 rounded-xl bg-gradient-to-r from-[var(--color-bg-subtle)] to-[var(--color-bg)] border border-[var(--color-border)] p-4">
+        <div className="flex flex-wrap items-center gap-4 text-sm">
+          <div className="flex items-center gap-2">
+            <span className="text-[var(--color-fg-muted)]">Public URL:</span>
+            <code className="rounded bg-[var(--color-bg-muted)] px-2 py-0.5 font-mono text-[var(--color-fg)]">
+              /c/{challenge.slug}
+            </code>
+          </div>
+          <div className="h-4 w-px bg-[var(--color-border)]" />
+          <div className="flex items-center gap-2">
+            <div 
+              className="h-4 w-4 rounded-full border border-white/20"
+              style={{ backgroundColor: challenge.brand_color || '#3b82f6' }}
+            />
+            <span className="text-[var(--color-fg-muted)]">Brand Color</span>
+          </div>
+          {challenge.folder && (
+            <>
+              <div className="h-4 w-px bg-[var(--color-border)]" />
+              <div className="flex items-center gap-2">
+                <FolderIcon className="h-4 w-4 text-[var(--color-fg-muted)]" />
+                <span className="text-[var(--color-fg)]">{challenge.folder}</span>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
@@ -331,8 +375,8 @@ export function ChallengeDetailClient({
         </Card>
       </div>
 
-      {/* Sprints Section */}
-      {(sprints.length > 0 || true) && (
+      {/* Sprints Section - Only show if sprint_structure feature is enabled */}
+      {features.sprint_structure && (
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -372,83 +416,87 @@ export function ChallengeDetailClient({
         </Card>
       )}
 
-      {/* Announcements Section */}
-      <Card className="mb-6">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Announcements</CardTitle>
-              <CardDescription>
-                Post updates and communicate with participants.
-              </CardDescription>
-            </div>
-            {announcements.length === 0 && (
-              <Button variant="secondary" size="sm" onClick={() => setIsAnnouncementFormOpen(true)}>
-                <PlusIcon className="h-4 w-4" />
-                Post Announcement
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {announcements.length > 0 ? (
-            <AnnouncementList
-              announcements={announcements}
-              onEdit={handleEditAnnouncement}
-              onRefresh={handleAnnouncementRefresh}
-            />
-          ) : (
-            <div className="flex min-h-[100px] items-center justify-center text-[var(--color-fg-muted)]">
-              <div className="text-center">
-                <MegaphoneIcon className="mx-auto h-8 w-8 text-[var(--color-fg-subtle)]" />
-                <p className="mt-2 text-sm">
-                  No announcements yet. Post updates to communicate with participants.
-                </p>
+      {/* Announcements Section - Only show if announcements feature is enabled */}
+      {features.announcements && (
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Announcements</CardTitle>
+                <CardDescription>
+                  Post updates and communicate with participants.
+                </CardDescription>
               </div>
+              {announcements.length === 0 && (
+                <Button variant="secondary" size="sm" onClick={() => setIsAnnouncementFormOpen(true)}>
+                  <PlusIcon className="h-4 w-4" />
+                  Post Announcement
+                </Button>
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            {announcements.length > 0 ? (
+              <AnnouncementList
+                announcements={announcements}
+                onEdit={handleEditAnnouncement}
+                onRefresh={handleAnnouncementRefresh}
+              />
+            ) : (
+              <div className="flex min-h-[100px] items-center justify-center text-[var(--color-fg-muted)]">
+                <div className="text-center">
+                  <MegaphoneIcon className="mx-auto h-8 w-8 text-[var(--color-fg-subtle)]" />
+                  <p className="mt-2 text-sm">
+                    No announcements yet. Post updates to communicate with participants.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
-      {/* Milestones Section */}
-      <Card className="mb-6">
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>Milestones</CardTitle>
-              <CardDescription>
-                Define achievement moments to celebrate participant progress.
-              </CardDescription>
-            </div>
-            {milestones.length === 0 && (
-              <Button variant="secondary" size="sm" onClick={() => setIsMilestoneFormOpen(true)}>
-                <PlusIcon className="h-4 w-4" />
-                Add Milestone
-              </Button>
-            )}
-          </div>
-        </CardHeader>
-        <CardContent>
-          {milestones.length > 0 ? (
-            <MilestoneList
-              milestones={milestones}
-              sprints={sprints}
-              usages={usages}
-              onEdit={handleEditMilestone}
-              onRefresh={handleMilestoneRefresh}
-            />
-          ) : (
-            <div className="flex min-h-[100px] items-center justify-center text-[var(--color-fg-muted)]">
-              <div className="text-center">
-                <TrophyIcon className="mx-auto h-8 w-8 text-[var(--color-fg-subtle)]" />
-                <p className="mt-2 text-sm">
-                  No milestones yet. Add milestones to celebrate achievements.
-                </p>
+      {/* Milestones Section - Only show if milestones feature is enabled AND mode supports it */}
+      {features.milestones && isIndividualMode && (
+        <Card className="mb-6">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>Milestones</CardTitle>
+                <CardDescription>
+                  Define achievement moments to celebrate participant progress.
+                </CardDescription>
               </div>
+              {milestones.length === 0 && (
+                <Button variant="secondary" size="sm" onClick={() => setIsMilestoneFormOpen(true)}>
+                  <PlusIcon className="h-4 w-4" />
+                  Add Milestone
+                </Button>
+              )}
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            {milestones.length > 0 ? (
+              <MilestoneList
+                milestones={milestones}
+                sprints={sprints}
+                usages={usages}
+                onEdit={handleEditMilestone}
+                onRefresh={handleMilestoneRefresh}
+              />
+            ) : (
+              <div className="flex min-h-[100px] items-center justify-center text-[var(--color-fg-muted)]">
+                <div className="text-center">
+                  <TrophyIcon className="mx-auto h-8 w-8 text-[var(--color-fg-subtle)]" />
+                  <p className="mt-2 text-sm">
+                    No milestones yet. Add milestones to celebrate achievements.
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Assignments List with Drag-Drop */}
       <Card>
@@ -476,6 +524,7 @@ export function ChallengeDetailClient({
                       usage={usage}
                       index={index}
                       actionId={actionId}
+                      showQuizButton={features.micro_quizzes}
                       onEdit={() => setEditingUsage(usage)}
                       onQuiz={() => setQuizEditorUsage(usage)}
                       onToggleVisibility={() => handleToggleVisibility(usage)}
@@ -582,6 +631,7 @@ interface SortableAssignmentRowProps {
   usage: AssignmentUsageWithAssignment
   index: number
   actionId: string | null
+  showQuizButton: boolean
   onEdit: () => void
   onQuiz: () => void
   onToggleVisibility: () => void
@@ -592,6 +642,7 @@ function SortableAssignmentRow({
   usage,
   index,
   actionId,
+  showQuizButton,
   onEdit,
   onQuiz,
   onToggleVisibility,
@@ -671,15 +722,17 @@ function SortableAssignmentRow({
         >
           <SettingsIcon className="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onQuiz}
-          disabled={actionId === usage.id}
-          title="Manage quizzes"
-        >
-          <QuizIcon className="h-4 w-4" />
-        </Button>
+        {showQuizButton && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onQuiz}
+            disabled={actionId === usage.id}
+            title="Manage quizzes"
+          >
+            <QuizIcon className="h-4 w-4" />
+          </Button>
+        )}
         <Button
           variant="ghost"
           size="sm"
@@ -808,6 +861,22 @@ function LibraryIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z" />
+    </svg>
+  )
+}
+
+function ExternalLinkIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+    </svg>
+  )
+}
+
+function FolderIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
     </svg>
   )
 }
