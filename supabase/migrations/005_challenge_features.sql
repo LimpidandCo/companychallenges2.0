@@ -44,3 +44,4 @@ SET
   features = jsonb_set(c.features, '{milestones}', 'true'::jsonb)
 WHERE EXISTS (SELECT 1 FROM public.milestones m WHERE m.challenge_id = c.id);
 
+

@@ -77,3 +77,4 @@ export const DEFAULT_INFO_BUTTON_CONFIG: InfoButtonConfig = {
   position: 'bottom-right',
 }
 
+

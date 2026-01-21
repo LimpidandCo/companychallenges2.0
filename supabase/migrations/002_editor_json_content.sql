@@ -117,3 +117,4 @@ CREATE INDEX IF NOT EXISTS idx_assignments_content_json ON assignments USING GIN
 CREATE INDEX IF NOT EXISTS idx_assignments_instructions_json ON assignments USING GIN (instructions_json);
 CREATE INDEX IF NOT EXISTS idx_assignments_tags ON assignments USING GIN (tags);
 
+

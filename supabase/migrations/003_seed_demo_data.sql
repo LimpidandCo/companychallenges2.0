@@ -745,3 +745,4 @@ END $$;
 -- SELECT * FROM assignment_usages WHERE challenge_id IN (SELECT id FROM challenges WHERE slug = 'leadership-fundamentals-2026') ORDER BY position;
 -- SELECT * FROM milestones WHERE challenge_id IN (SELECT id FROM challenges WHERE slug = 'leadership-fundamentals-2026') ORDER BY position;
 
+
