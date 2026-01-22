@@ -342,7 +342,7 @@ export function AssignmentForm({
               {/* Content */}
               <InlineRichEditor
                 key={`content-${assignment?.id || 'new'}-${open}`}
-                label="Assignment Content"
+                label="Assignment"
                 value={contentHtml}
                 onChange={setContentHtml}
                 placeholder="The actual task and materials..."

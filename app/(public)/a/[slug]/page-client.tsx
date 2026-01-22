@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { useUser } from '@/components/providers/clerk-provider'
@@ -22,6 +22,9 @@ interface AssignmentPageClientProps {
   quizzes?: MicroQuiz[]
 }
 
+// LocalStorage key for tracking completions
+const getCompletionStorageKey = (challengeId: string) => `cc_completed_${challengeId}`
+
 /**
  * Assignment Page - Legacy Style Layout
  * 
@@ -29,6 +32,7 @@ interface AssignmentPageClientProps {
  * - Header inside frame (logo, challenge name, Complete button)
  * - Flexible content area with two columns
  * - Supports rich content: images, videos, embeds
+ * - Smooth transitions and completion confirmation
  */
 export function AssignmentPageClient({
   assignment,
@@ -45,6 +49,8 @@ export function AssignmentPageClient({
   const [hasAccess, setHasAccess] = useState(initialHasAccess)
   const [isCompleted, setIsCompleted] = useState(false)
   const [isMarkingComplete, setIsMarkingComplete] = useState(false)
+  const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [isExiting, setIsExiting] = useState(false)
   const hasTrackedView = useRef(false)
   const hasTrackedMediaPlay = useRef(false)
   const hasStartedProgress = useRef(false)
@@ -62,6 +68,24 @@ export function AssignmentPageClient({
   
   // Build back URL - only link to challenge if we have context
   const backUrl = challengeSlug ? `/c/${challengeSlug}/start` : null
+
+  // Check localStorage for existing completion on mount
+  useEffect(() => {
+    if (navContext?.challenge.id) {
+      try {
+        const key = getCompletionStorageKey(navContext.challenge.id)
+        const stored = localStorage.getItem(key)
+        if (stored) {
+          const completedIds: string[] = JSON.parse(stored)
+          if (completedIds.includes(assignment.id)) {
+            setIsCompleted(true)
+          }
+        }
+      } catch (e) {
+        // localStorage might not be available
+      }
+    }
+  }, [navContext?.challenge.id, assignment.id])
 
   // Track assignment view on mount
   useEffect(() => {
@@ -86,9 +110,39 @@ export function AssignmentPageClient({
     startAssignment(navContext.assignmentUsageId)
   }, [isSignedIn, navContext?.assignmentUsageId, isReleased, requiresPassword, hasAccess])
 
-  const handleComplete = async () => {
+  // Save completion to localStorage
+  const saveCompletionToStorage = useCallback((challengeId: string, assignmentId: string) => {
+    try {
+      const key = getCompletionStorageKey(challengeId)
+      const stored = localStorage.getItem(key)
+      const completedIds: string[] = stored ? JSON.parse(stored) : []
+      if (!completedIds.includes(assignmentId)) {
+        completedIds.push(assignmentId)
+        localStorage.setItem(key, JSON.stringify(completedIds))
+      }
+    } catch (e) {
+      // localStorage might not be available
+    }
+  }, [])
+
+  // Handle complete with confirmation
+  const handleCompleteClick = () => {
+    if (isCompleted) {
+      // Already completed, just navigate back
+      navigateBack()
+    } else {
+      // Show confirmation modal
+      setShowConfirmModal(true)
+    }
+  }
+
+  const confirmComplete = async () => {
     if (!navContext) return
     
+    setIsMarkingComplete(true)
+    setShowConfirmModal(false)
+    
+    // Track analytics
     trackAssignmentComplete(
       navContext.challenge.clientId,
       navContext.challenge.id,
@@ -96,14 +150,32 @@ export function AssignmentPageClient({
       navContext.sprintId
     )
     
+    // Save to localStorage (for collective mode / anonymous users)
+    saveCompletionToStorage(navContext.challenge.id, assignment.id)
+    
+    // If signed in, also save to database
     if (isSignedIn && navContext.assignmentUsageId) {
-      setIsMarkingComplete(true)
-      const result = await completeAssignment(navContext.assignmentUsageId)
-      if (result.success) {
-        setIsCompleted(true)
-      }
-      setIsMarkingComplete(false)
+      await completeAssignment(navContext.assignmentUsageId)
     }
+    
+    setIsCompleted(true)
+    setIsMarkingComplete(false)
+    
+    // Smooth exit transition then navigate
+    setTimeout(() => {
+      navigateBack()
+    }, 800)
+  }
+
+  const navigateBack = () => {
+    setIsExiting(true)
+    setTimeout(() => {
+      if (backUrl) {
+        router.push(backUrl)
+      } else {
+        router.back()
+      }
+    }, 300)
   }
 
   const handleMediaPlay = () => {
@@ -170,16 +242,20 @@ export function AssignmentPageClient({
   const hasVisual = assignment.visual_url
 
   return (
-    <div 
-      className="min-h-screen flex flex-col"
-      style={{ backgroundColor: brandColor }}
-    >
-      {/* Main Frame - Takes up full viewport with minimal margin */}
-      <div className="flex-1 flex flex-col m-3 sm:m-4 lg:m-5">
-        <div 
-          className="flex-1 flex flex-col bg-white rounded-lg shadow-2xl overflow-hidden"
-          style={{ border: `3px solid ${brandColor}` }}
-        >
+    <>
+      {/* Page wrapper with transitions */}
+      <div 
+        className={`min-h-screen flex flex-col transition-all duration-300 ease-out ${
+          isExiting ? 'opacity-0 scale-95' : 'opacity-100 scale-100 animate-fade-in'
+        }`}
+        style={{ backgroundColor: brandColor }}
+      >
+        {/* Main Frame - Takes up full viewport with minimal margin */}
+        <div className="flex-1 flex flex-col m-3 sm:m-4 lg:m-5">
+          <div 
+            className="flex-1 flex flex-col bg-white rounded-lg shadow-2xl overflow-hidden animate-slide-up"
+            style={{ border: `3px solid ${brandColor}` }}
+          >
           {/* Header - Legacy Style with Logo + Title + Complete Button */}
           <header className="flex-shrink-0 px-4 sm:px-6 lg:px-8 py-3 sm:py-4 border-b border-gray-100 flex items-center justify-between bg-white">
             <div className="flex items-center gap-3 sm:gap-4 min-w-0">
@@ -243,39 +319,23 @@ export function AssignmentPageClient({
               
               {/* Complete Button - Always visible, prominent */}
               {navContext && (
-                isSignedIn ? (
-                  isCompleted ? (
-                    <div 
-                      className="inline-flex items-center gap-2 rounded-lg px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-bold text-white shadow-md"
-                      style={{ backgroundColor: '#16a34a' }}
-                    >
-                      <CheckIcon className="h-4 w-4" />
-                      <span>Completed</span>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={handleComplete}
-                      disabled={isMarkingComplete}
-                      className="inline-flex items-center gap-2 rounded-lg px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-bold border-2 bg-white transition-all hover:shadow-lg disabled:opacity-70"
-                      style={{ borderColor: brandColor, color: brandColor }}
-                    >
-                      {isMarkingComplete && <SpinnerIcon className="h-4 w-4 animate-spin" />}
-                      Complete
-                    </button>
-                  )
+                isCompleted ? (
+                  <button
+                    onClick={navigateBack}
+                    className="inline-flex items-center gap-2 rounded-lg px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-bold text-white shadow-md transition-all hover:scale-105"
+                    style={{ backgroundColor: '#16a34a' }}
+                  >
+                    <CheckIcon className="h-4 w-4" />
+                    <span>Done</span>
+                  </button>
                 ) : (
                   <button
-                    onClick={() => {
-                      handleComplete()
-                      if (backUrl) {
-                        router.push(backUrl)
-                      } else {
-                        router.back()
-                      }
-                    }}
-                    className="inline-flex items-center gap-2 rounded-lg px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-bold border-2 bg-white transition-all hover:shadow-lg"
+                    onClick={handleCompleteClick}
+                    disabled={isMarkingComplete}
+                    className="inline-flex items-center gap-2 rounded-lg px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-bold border-2 bg-white transition-all hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-70"
                     style={{ borderColor: brandColor, color: brandColor }}
                   >
+                    {isMarkingComplete && <SpinnerIcon className="h-4 w-4 animate-spin" />}
                     Complete
                   </button>
                 )
@@ -413,6 +473,77 @@ export function AssignmentPageClient({
         </div>
       </div>
     </div>
+
+    {/* Completion Confirmation Modal */}
+    {showConfirmModal && (
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+        style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}
+      >
+        <div 
+          className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 animate-scale-in"
+          style={{ border: `3px solid ${brandColor}` }}
+        >
+          {/* Celebration Icon */}
+          <div className="flex justify-center mb-4">
+            <div 
+              className="w-16 h-16 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: `${brandColor}15` }}
+            >
+              <span className="text-3xl">🎉</span>
+            </div>
+          </div>
+          
+          <h3 className="text-xl font-bold text-center text-gray-900 mb-2">
+            Mark as Complete?
+          </h3>
+          <p className="text-center text-gray-600 mb-6">
+            Great job! Ready to mark &ldquo;{title}&rdquo; as done?
+          </p>
+          
+          <div className="flex gap-3">
+            <button
+              onClick={() => setShowConfirmModal(false)}
+              className="flex-1 px-4 py-3 rounded-xl font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 transition-all active:scale-95"
+            >
+              Not yet
+            </button>
+            <button
+              onClick={confirmComplete}
+              disabled={isMarkingComplete}
+              className="flex-1 px-4 py-3 rounded-xl font-semibold text-white transition-all hover:opacity-90 active:scale-95 disabled:opacity-70"
+              style={{ backgroundColor: brandColor }}
+            >
+              {isMarkingComplete ? (
+                <span className="flex items-center justify-center gap-2">
+                  <SpinnerIcon className="h-4 w-4 animate-spin" />
+                  Saving...
+                </span>
+              ) : (
+                "Yes, I'm done!"
+              )}
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* Completion Success Overlay */}
+    {isCompleted && isMarkingComplete === false && (
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in pointer-events-none"
+        style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
+      >
+        <div className="bg-white rounded-2xl shadow-2xl p-8 animate-bounce-in text-center">
+          <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#dcfce7' }}>
+            <CheckIcon className="h-10 w-10 text-green-600" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900">Completed!</h3>
+          <p className="text-gray-500 mt-1">Returning to assignments...</p>
+        </div>
+      </div>
+    )}
+    </>
   )
 }
 

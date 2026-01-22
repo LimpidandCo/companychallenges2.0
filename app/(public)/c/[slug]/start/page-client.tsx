@@ -1,13 +1,16 @@
 'use client'
 
 import Link from 'next/link'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { AuthGate } from '@/components/public/auth-gate'
 import { SupportModal } from '@/components/public/support-modal'
 import { PasswordGate } from '@/components/public/password-gate'
 import { useLabels } from '@/lib/hooks/use-labels'
 import type { Challenge, Assignment, AssignmentUsage, Sprint, ChallengeLabel, Milestone } from '@/lib/types/database'
 import { cn } from '@/lib/utils/cn'
+
+// LocalStorage key for tracking completions (matches assignment page)
+const getCompletionStorageKey = (challengeId: string) => `cc_completed_${challengeId}`
 
 interface AssignmentsGridClientProps {
   challenge: Challenge
@@ -41,19 +44,49 @@ export function AssignmentsGridClient({
   milestones = [],
   pendingCount,
   labels: initialLabels,
-  completedIds = [],
-  totalProgress = 0,
+  completedIds: serverCompletedIds = [],
+  totalProgress: serverTotalProgress = 0,
 }: AssignmentsGridClientProps) {
   const [selectedAssignment, setSelectedAssignment] = useState<{
     id: string
     title: string
   } | null>(null)
   const [activeSprintId, setActiveSprintId] = useState<string | null>(null)
+  const [localCompletedIds, setLocalCompletedIds] = useState<string[]>([])
+  const [isPageLoaded, setIsPageLoaded] = useState(false)
 
   const { getLabel } = useLabels({ 
     challengeId: challenge.id, 
     initialLabels 
   })
+
+  // Load completed IDs from localStorage on mount
+  useEffect(() => {
+    try {
+      const key = getCompletionStorageKey(challenge.id)
+      const stored = localStorage.getItem(key)
+      if (stored) {
+        const ids = JSON.parse(stored)
+        setLocalCompletedIds(ids)
+      }
+    } catch (e) {
+      // localStorage might not be available
+    }
+    // Trigger page load animation
+    setIsPageLoaded(true)
+  }, [challenge.id])
+
+  // Merge server and local completed IDs
+  const completedIds = useMemo(() => {
+    const merged = new Set([...serverCompletedIds, ...localCompletedIds])
+    return Array.from(merged)
+  }, [serverCompletedIds, localCompletedIds])
+
+  // Calculate progress from completed assignments
+  const totalProgress = useMemo(() => {
+    if (usages.length === 0) return 0
+    return Math.round((completedIds.length / usages.length) * 100)
+  }, [completedIds.length, usages.length])
 
   const title = challenge.show_public_title && challenge.public_title
     ? challenge.public_title
@@ -132,9 +165,15 @@ export function AssignmentsGridClient({
         </div>
       )}
 
-      <div className="min-h-screen flex flex-col" style={{ backgroundColor: `${brandColor}08` }}>
+      <div 
+        className={cn(
+          "min-h-screen flex flex-col transition-opacity duration-500",
+          isPageLoaded ? "opacity-100" : "opacity-0"
+        )} 
+        style={{ backgroundColor: `${brandColor}08` }}
+      >
         {/* Header */}
-        <header className="bg-white border-b shadow-sm">
+        <header className="bg-white border-b shadow-sm animate-slide-down">
           <div className="mx-auto max-w-7xl px-4 py-4 sm:px-6 lg:px-8">
             <div className="flex items-center justify-between">
               {/* Logo & Title */}
