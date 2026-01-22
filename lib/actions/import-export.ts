@@ -31,8 +31,8 @@ export async function exportAssignments(options?: {
         internal_title,
         public_title,
         subtitle,
-        instructions,
-        content,
+        instructions_html,
+        content_html,
         visual_url,
         media_url,
         content_type,
@@ -66,8 +66,10 @@ export async function exportAssignments(options?: {
       'Internal Title': a.internal_title,
       'Public Title': a.public_title || '',
       Subtitle: a.subtitle || '',
-      Instructions: stripHtml(a.instructions || ''),
-      Content: stripHtml(a.content || ''),
+      Instructions: stripHtml(a.instructions_html || ''),
+      'Instructions HTML': a.instructions_html || '',
+      Content: stripHtml(a.content_html || ''),
+      'Content HTML': a.content_html || '',
       'Visual URL': a.visual_url || '',
       'Media URL': a.media_url || '',
       'Content Type': a.content_type,
@@ -88,8 +90,10 @@ export async function exportAssignments(options?: {
       { wch: 40 }, // Internal Title
       { wch: 40 }, // Public Title
       { wch: 50 }, // Subtitle
-      { wch: 60 }, // Instructions
-      { wch: 60 }, // Content
+      { wch: 60 }, // Instructions (plain text)
+      { wch: 80 }, // Instructions HTML
+      { wch: 60 }, // Content (plain text)
+      { wch: 80 }, // Content HTML
       { wch: 50 }, // Visual URL
       { wch: 50 }, // Media URL
       { wch: 15 }, // Content Type
@@ -243,8 +247,10 @@ export async function getImportTemplate(): Promise<ExportResult> {
         'Internal Title': 'Example Assignment',
         'Public Title': 'Public Title (optional)',
         Subtitle: 'Brief teaser text (optional)',
-        Instructions: 'Step-by-step instructions (optional)',
-        Content: 'Main content or description (optional)',
+        Instructions: 'Plain text instructions (optional)',
+        'Instructions HTML': '<p>Rich text instructions with <strong>formatting</strong> (optional)</p>',
+        Content: 'Plain text content (optional)',
+        'Content HTML': '<p>Rich text content with <em>formatting</em> (optional)</p>',
         'Visual URL': 'https://example.com/image.jpg (optional)',
         'Media URL': 'https://youtube.com/watch?v=xxx (optional)',
         'Content Type': 'standard (standard, video, quiz, or announcement)',
@@ -262,7 +268,9 @@ export async function getImportTemplate(): Promise<ExportResult> {
       { wch: 40 }, // Public Title
       { wch: 50 }, // Subtitle
       { wch: 60 }, // Instructions
+      { wch: 80 }, // Instructions HTML
       { wch: 60 }, // Content
+      { wch: 80 }, // Content HTML
       { wch: 50 }, // Visual URL
       { wch: 50 }, // Media URL
       { wch: 40 }, // Content Type
@@ -305,12 +313,16 @@ function buildAssignmentData(row: Record<string, string>): Partial<AssignmentIns
     ? row['Tags'].split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
     : []
 
+  // Prefer HTML fields if available, fall back to plain text
+  const instructionsHtml = row['Instructions HTML']?.trim() || row['Instructions']?.trim() || null
+  const contentHtml = row['Content HTML']?.trim() || row['Content']?.trim() || null
+
   return {
     internal_title: row['Internal Title']?.trim() || 'Untitled',
     public_title: row['Public Title']?.trim() || null,
     subtitle: row['Subtitle']?.trim() || null,
-    instructions: row['Instructions']?.trim() || null,
-    content: row['Content']?.trim() || null,
+    instructions_html: instructionsHtml,
+    content_html: contentHtml,
     visual_url: row['Visual URL']?.trim() || null,
     media_url: row['Media URL']?.trim() || null,
     content_type: validContentTypes.includes(contentType) ? contentType as 'standard' | 'video' | 'quiz' | 'announcement' : 'standard',

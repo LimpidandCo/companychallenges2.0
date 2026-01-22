@@ -78,9 +78,9 @@ export async function verifyAssignmentPassword(
       return { success: true }
     }
 
-    // Verify password using database function
+    // Verify password using database function (normalize to lowercase for case-insensitive matching)
     const { data: isValid, error: verifyError } = await supabase.rpc('verify_password', {
-      password,
+      password: password.toLowerCase(),
       hash: assignment.password_hash
     })
 

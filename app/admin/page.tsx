@@ -9,251 +9,163 @@ export default async function AdminDashboard() {
   ])
 
   return (
-    <div className="p-6 lg:p-8 animate-fade-in">
-      {/* Header with greeting */}
-      <div className="mb-10">
-        <div className="flex items-center gap-3 mb-2">
-          <span className="text-3xl animate-float">👋</span>
-          <h1 className="text-3xl font-bold text-[var(--color-fg)] tracking-tight">
-            Welcome back!
-          </h1>
-        </div>
-        <p className="text-[var(--color-fg-muted)] text-lg">
-          Here's what's happening with your challenges today.
+    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+      {/* Clean Header */}
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold text-gray-900">
+          Dashboard
+        </h1>
+        <p className="text-gray-500 mt-1">
+          Manage your challenges and track engagement.
         </p>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4 animate-stagger mb-10">
+      {/* Stats Row */}
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 mb-8">
         <StatCard
-          title="Total Clients"
+          title="Clients"
           value={stats.totalClients}
-          description="Active organizations"
-          icon={<BuildingIconSmall />}
-          color="coral"
-          trend="+2 this month"
+          icon="🏢"
+          href="/admin/clients"
         />
         <StatCard
           title="Challenges"
           value={stats.activeChallenges}
-          description="Learning trajectories"
-          icon={<RocketIconSmall />}
-          color="teal"
+          icon="🚀"
+          href="/admin/challenges"
         />
         <StatCard
           title="Assignments"
           value={stats.totalAssignments}
-          description="Content units"
-          icon={<FileIconSmall />}
-          color="purple"
+          icon="📋"
+          href="/admin/assignments"
         />
         <StatCard
           title="Views"
           value={stats.thisMonthViews}
-          description="This month"
-          icon={<EyeIconSmall />}
-          color="amber"
-          trend="+12% vs last month"
+          icon="👁️"
+          label="This month"
         />
       </div>
 
-      {/* Two Column Layout */}
-      <div className="grid gap-6 lg:grid-cols-5">
-        {/* Quick Actions - Takes 3 columns */}
-        <div className="lg:col-span-3">
-          <Card className="overflow-hidden animate-slide-up delay-200">
-            <CardHeader className="border-b border-[var(--color-border)] bg-[var(--color-bg-subtle)]/50">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">⚡</span>
-                <CardTitle>Quick Actions</CardTitle>
-              </div>
-              <CardDescription>Jump right into your most common tasks</CardDescription>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="divide-y divide-[var(--color-border)]">
-                <QuickAction
-                  title="Create a Client"
-                  description="Add a new organization to the platform"
-                  href="/admin/clients"
-                  icon={<PlusCircleIcon />}
-                  color="coral"
-                />
-                <QuickAction
-                  title="Build a Challenge"
-                  description="Design a new learning trajectory"
-                  href="/admin/challenges"
-                  icon={<RocketIconSmall />}
-                  color="teal"
-                />
-                <QuickAction
-                  title="Add Assignment"
-                  description="Create reusable content for challenges"
-                  href="/admin/assignments"
-                  icon={<FileIconSmall />}
-                  color="purple"
-                />
-                <QuickAction
-                  title="View Analytics"
-                  description="Check engagement and performance metrics"
-                  href="/admin/analytics"
-                  icon={<ChartIconSmall />}
-                  color="amber"
-                />
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent Activity - Takes 2 columns */}
-        <div className="lg:col-span-2">
-          <Card className="h-full animate-slide-up delay-300">
-            <CardHeader>
-              <div className="flex items-center gap-2">
-                <span className="text-xl">🕐</span>
-                <CardTitle>Recent Activity</CardTitle>
-              </div>
-              <CardDescription>Latest changes in your workspace</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {activities.length > 0 ? (
-                <div className="space-y-4">
-                  {activities.map((activity, index) => (
-                    <ActivityItem key={activity.id} activity={activity} index={index} />
-                  ))}
-                </div>
-              ) : (
-                <EmptyActivity />
-              )}
-            </CardContent>
-          </Card>
+      {/* Quick Actions Grid */}
+      <div className="mb-8">
+        <h2 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h2>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <QuickActionCard
+            title="New Client"
+            description="Add an organization"
+            href="/admin/clients"
+            icon="➕"
+            color="bg-gradient-to-br from-orange-400 to-rose-400"
+          />
+          <QuickActionCard
+            title="New Challenge"
+            description="Create a learning journey"
+            href="/admin/challenges"
+            icon="🎯"
+            color="bg-gradient-to-br from-teal-400 to-cyan-400"
+          />
+          <QuickActionCard
+            title="New Assignment"
+            description="Build content"
+            href="/admin/assignments"
+            icon="📝"
+            color="bg-gradient-to-br from-violet-400 to-purple-400"
+          />
+          <QuickActionCard
+            title="Analytics"
+            description="View metrics"
+            href="/admin/analytics"
+            icon="📊"
+            color="bg-gradient-to-br from-amber-400 to-orange-400"
+          />
         </div>
       </div>
 
-      {/* Footer Tip */}
-      <div className="mt-8 p-5 rounded-2xl border border-[var(--color-border)] bg-[var(--color-bg-subtle)]/50 animate-slide-up delay-500">
-        <div className="flex items-start gap-4">
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-[var(--color-tertiary-subtle)] text-[var(--color-tertiary)]">
-            <SparklesIcon className="h-5 w-5" />
-          </div>
-          <div className="flex-1">
-            <p className="font-semibold text-[var(--color-fg)] mb-1">Pro tip</p>
-            <p className="text-sm text-[var(--color-fg-muted)]">
-              You can customize challenge URLs with unique slugs to make them memorable and on-brand for each client. 
-              Edit any challenge to update its public URL.
-            </p>
-          </div>
+      {/* Recent Activity */}
+      <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
+        <div className="px-5 py-4 border-b border-gray-100 bg-gray-50/50">
+          <h2 className="text-lg font-semibold text-gray-900">Recent Activity</h2>
+          <p className="text-sm text-gray-500">Latest changes in your workspace</p>
+        </div>
+        <div className="p-5">
+          {activities.length > 0 ? (
+            <div className="space-y-3">
+              {activities.map((activity, index) => (
+                <ActivityItem key={activity.id} activity={activity} index={index} />
+              ))}
+            </div>
+          ) : (
+            <EmptyActivity />
+          )}
         </div>
       </div>
     </div>
   )
 }
 
-// Color configs for stat cards
-const statColors = {
-  coral: {
-    bg: 'bg-gradient-to-br from-[#fff1ed] to-[#ffe4dc]',
-    icon: 'bg-[var(--color-accent)] text-white shadow-[0_4px_12px_-2px_rgba(255,107,74,0.4)]',
-    text: 'text-[var(--color-accent)]',
-  },
-  teal: {
-    bg: 'bg-gradient-to-br from-[#ecfdf5] to-[#d1fae5]',
-    icon: 'bg-[var(--color-secondary)] text-white shadow-[0_4px_12px_-2px_rgba(20,184,166,0.4)]',
-    text: 'text-[var(--color-secondary)]',
-  },
-  purple: {
-    bg: 'bg-gradient-to-br from-[#f5f3ff] to-[#ede9fe]',
-    icon: 'bg-[var(--color-tertiary)] text-white shadow-[0_4px_12px_-2px_rgba(167,139,250,0.4)]',
-    text: 'text-[var(--color-tertiary)]',
-  },
-  amber: {
-    bg: 'bg-gradient-to-br from-[#fffbeb] to-[#fef3c7]',
-    icon: 'bg-[var(--color-warning)] text-white shadow-[0_4px_12px_-2px_rgba(245,158,11,0.4)]',
-    text: 'text-[var(--color-warning)]',
-  },
-}
-
+// Simple Stat Card
 function StatCard({
   title,
   value,
-  description,
   icon,
-  color = 'coral',
-  trend,
+  href,
+  label,
 }: {
   title: string
   value: number
-  description: string
-  icon: React.ReactNode
-  color?: keyof typeof statColors
-  trend?: string
+  icon: string
+  href?: string
+  label?: string
 }) {
-  const colors = statColors[color]
-  
-  return (
-    <Card className="group overflow-hidden hover:shadow-[var(--shadow-lg)] transition-all duration-300 hover:-translate-y-1">
-      <CardContent className="p-5">
-        <div className="flex items-start justify-between mb-4">
-          <div className={`flex h-12 w-12 items-center justify-center rounded-2xl ${colors.icon} transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
-            {icon}
-          </div>
-          {trend && (
-            <span className="text-xs font-medium text-[var(--color-success)] bg-[var(--color-success-subtle)] px-2 py-1 rounded-full">
-              {trend}
-            </span>
-          )}
-        </div>
-        <div className="space-y-1">
-          <p className="text-sm font-medium text-[var(--color-fg-muted)]">{title}</p>
-          <p className="text-4xl font-bold text-[var(--color-fg)] tabular-nums tracking-tight">
-            {value.toLocaleString()}
-          </p>
-          <p className="text-xs text-[var(--color-fg-subtle)]">{description}</p>
-        </div>
-      </CardContent>
-    </Card>
+  const content = (
+    <div className="group rounded-xl border border-gray-200 bg-white p-5 transition-all hover:shadow-md hover:border-gray-300">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-2xl">{icon}</span>
+        {href && (
+          <span className="text-gray-400 group-hover:text-gray-600 group-hover:translate-x-1 transition-all">
+            →
+          </span>
+        )}
+      </div>
+      <p className="text-3xl font-bold text-gray-900 tabular-nums">
+        {value.toLocaleString()}
+      </p>
+      <p className="text-sm text-gray-500 mt-1">{label || title}</p>
+    </div>
   )
+  
+  if (href) {
+    return <Link href={href}>{content}</Link>
+  }
+  return content
 }
 
-function QuickAction({ 
+// Quick Action Card
+function QuickActionCard({ 
   title, 
   description, 
   href, 
-  icon, 
-  color = 'coral',
-  badge
+  icon,
+  color,
 }: { 
   title: string
   description: string
   href: string
-  icon: React.ReactNode
-  color?: keyof typeof statColors
-  badge?: string
+  icon: string
+  color: string
 }) {
-  const colors = statColors[color]
-  
   return (
     <Link
       href={href}
-      className="group flex items-center gap-4 p-5 transition-all duration-200 hover:bg-[var(--color-bg-subtle)]"
+      className="group relative overflow-hidden rounded-xl p-5 transition-all hover:shadow-lg hover:-translate-y-1"
     >
-      <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${colors.icon} transition-all duration-200 group-hover:scale-105`}>
-        {icon}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="font-semibold text-[var(--color-fg)] group-hover:text-[var(--color-accent)] transition-colors">
-            {title}
-          </p>
-          {badge && (
-            <span className="text-[10px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-full bg-[var(--color-accent-subtle)] text-[var(--color-accent)]">
-              {badge}
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-[var(--color-fg-muted)] truncate">{description}</p>
-      </div>
-      <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-[var(--color-fg-subtle)] transition-all duration-200 group-hover:translate-x-1 group-hover:text-[var(--color-accent)]">
-        <ArrowIcon className="h-5 w-5" />
+      <div className={`absolute inset-0 ${color} opacity-90`} />
+      <div className="relative">
+        <span className="text-3xl mb-3 block">{icon}</span>
+        <h3 className="font-semibold text-white mb-1">{title}</h3>
+        <p className="text-sm text-white/80">{description}</p>
       </div>
     </Link>
   )
@@ -268,42 +180,21 @@ function ActivityItem({
 }) {
   const timeAgo = getTimeAgo(activity.timestamp)
 
-  const iconConfig: Record<string, { icon: React.ReactNode; color: string; emoji: string }> = {
-    client_created: {
-      icon: <BuildingIconSmall />,
-      color: 'bg-[var(--color-accent-subtle)] text-[var(--color-accent)]',
-      emoji: '🏢'
-    },
-    challenge_created: {
-      icon: <RocketIconSmall />,
-      color: 'bg-[var(--color-secondary-subtle)] text-[var(--color-secondary)]',
-      emoji: '🚀'
-    },
-    challenge_archived: {
-      icon: <ArchiveIconSmall />,
-      color: 'bg-[var(--color-warning-subtle)] text-[var(--color-warning)]',
-      emoji: '📦'
-    },
-    assignment_created: {
-      icon: <FileIconSmall />,
-      color: 'bg-[var(--color-tertiary-subtle)] text-[var(--color-tertiary)]',
-      emoji: '📝'
-    },
+  const emojiMap: Record<string, string> = {
+    client_created: '🏢',
+    challenge_created: '🚀',
+    challenge_archived: '📦',
+    assignment_created: '📝',
   }
 
-  const config = iconConfig[activity.type] || iconConfig.assignment_created
+  const emoji = emojiMap[activity.type] || '📋'
 
   return (
-    <div 
-      className="group flex items-start gap-3 p-3 -mx-3 rounded-xl transition-colors hover:bg-[var(--color-bg-subtle)]"
-      style={{ animationDelay: `${index * 50}ms` }}
-    >
-      <div className={`flex h-9 w-9 items-center justify-center rounded-xl ${config.color} transition-transform duration-200 group-hover:scale-110`}>
-        {config.icon}
-      </div>
+    <div className="flex items-center gap-3 py-2">
+      <span className="text-lg">{emoji}</span>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-[var(--color-fg)] truncate">{activity.title}</p>
-        <p className="text-xs text-[var(--color-fg-subtle)]">{timeAgo}</p>
+        <p className="text-sm font-medium text-gray-900 truncate">{activity.title}</p>
+        <p className="text-xs text-gray-500">{timeAgo}</p>
       </div>
     </div>
   )
@@ -311,12 +202,10 @@ function ActivityItem({
 
 function EmptyActivity() {
   return (
-    <div className="flex flex-col items-center justify-center py-10 text-center">
-      <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-[var(--color-bg-muted)] mb-4 animate-float">
-        <span className="text-3xl">📭</span>
-      </div>
-      <h3 className="text-sm font-semibold text-[var(--color-fg)] mb-1">No activity yet</h3>
-      <p className="text-xs text-[var(--color-fg-muted)]">
+    <div className="flex flex-col items-center justify-center py-12 text-center">
+      <span className="text-4xl mb-3">📭</span>
+      <h3 className="text-sm font-semibold text-gray-900 mb-1">No activity yet</h3>
+      <p className="text-sm text-gray-500">
         Your recent changes will appear here
       </p>
     </div>

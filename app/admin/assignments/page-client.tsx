@@ -192,7 +192,7 @@ export function AssignmentsPageClient({
         <div>
           <h1 className="text-2xl font-semibold text-[var(--color-fg)]">Assignment Library</h1>
           <p className="mt-1 text-[var(--color-fg-muted)]">
-            Assignments saved for reuse across challenges. Create new assignments from the challenge page.
+            Reusable assignments that can be added to any challenge.
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -211,6 +211,15 @@ export function AssignmentsPageClient({
           >
             {isExporting ? <Spinner size="sm" className="mr-2" /> : <DownloadIcon className="h-4 w-4 mr-2" />}
             Export
+          </Button>
+          <Button
+            onClick={() => {
+              setEditingAssignment(null)
+              setIsFormOpen(true)
+            }}
+          >
+            <PlusIcon className="h-4 w-4 mr-2" />
+            Add Assignment
           </Button>
         </div>
       </div>
@@ -439,6 +448,14 @@ function DownloadIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+    </svg>
+  )
+}
+
+function PlusIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
     </svg>
   )
 }

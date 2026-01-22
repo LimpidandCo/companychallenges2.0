@@ -519,7 +519,7 @@ function AssignmentTile({
   const assignment = usage.assignment
   const displayTitle = usage.public_title_override || assignment.public_title || assignment.internal_title
   const subtitle = usage.subtitle_override || assignment.subtitle
-  const label = usage.label || `Day ${index}`
+  const label = usage.label || ''  // No default label - admins can customize per assignment
   const hasPassword = !!assignment.password_hash
   const isMilestone = usage.is_milestone
   const href = `/a/${assignment.slug}?from=${challengeSlug}`

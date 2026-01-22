@@ -52,63 +52,59 @@ export function ClientList({ clients, onEdit, onDelete }: ClientListProps) {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {deleteError && (
-        <div className="rounded-lg bg-[var(--color-error-subtle)] p-3 text-sm text-[var(--color-error)]">
+        <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
           {deleteError}
         </div>
       )}
 
-      <div className="divide-y divide-[var(--color-border)]">
+      <div className="grid gap-3">
         {clients.map((client) => (
           <Link
             key={client.id}
             href={`/admin/clients/${client.id}`}
-            className="flex items-center justify-between gap-4 px-4 py-4 hover:bg-[var(--color-bg-subtle)] transition-colors"
+            className="group flex items-center justify-between gap-4 p-4 rounded-xl border border-gray-200 bg-white hover:border-gray-300 hover:shadow-md transition-all"
           >
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="flex items-center gap-4 min-w-0">
               {client.logo_url ? (
                 <img
                   src={client.logo_url}
                   alt={`${client.name} logo`}
-                  className="h-10 w-10 rounded-lg object-contain bg-[var(--color-bg-muted)]"
+                  className="h-12 w-12 rounded-xl object-contain bg-gray-50 p-1"
                 />
               ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-[var(--color-bg-muted)] text-sm font-medium text-[var(--color-fg-muted)]">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-gray-100 to-gray-50 text-lg font-bold text-gray-400">
                   {client.name.charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="min-w-0">
-                <p className="font-medium text-[var(--color-fg)] truncate">{client.name}</p>
-                <p className="text-xs text-[var(--color-fg-subtle)]">
+                <p className="font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                  {client.name}
+                </p>
+                <p className="text-sm text-gray-500">
                   Created {formatDate(client.created_at)}
                 </p>
               </div>
             </div>
 
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <Button
-                variant="ghost"
-                size="sm"
+            <div className="flex items-center gap-2 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button
                 onClick={(e) => handleEdit(e, client)}
+                className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 Edit
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
+              </button>
+              <button
                 onClick={(e) => handleDelete(e, client)}
                 disabled={deletingId === client.id}
-                className="text-[var(--color-error)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-subtle)]"
+                className="px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
               >
-                {deletingId === client.id ? (
-                  <Spinner size="sm" />
-                ) : (
-                  'Delete'
-                )}
-              </Button>
-              <ChevronRightIcon className="h-5 w-5 text-[var(--color-fg-subtle)]" />
+                {deletingId === client.id ? <Spinner size="sm" /> : 'Delete'}
+              </button>
             </div>
+
+            <ChevronRightIcon className="h-5 w-5 text-gray-300 group-hover:text-gray-400 group-hover:translate-x-1 transition-all flex-shrink-0" />
           </Link>
         ))}
       </div>

@@ -86,9 +86,16 @@ async function getNextSprintPosition(challengeId: string): Promise<number> {
  * Create a new sprint
  */
 export async function createSprint(input: SprintInsert): Promise<SprintActionResult> {
+  let supabase
   try {
-    const supabase = createAdminClient()
+    supabase = createAdminClient()
+  } catch (err: unknown) {
+    const message = err instanceof Error ? err.message : 'Failed to connect to database'
+    console.error('Supabase client error:', message)
+    return { success: false, error: message }
+  }
 
+  try {
     // Get next position if not provided
     const position = input.position ?? await getNextSprintPosition(input.challenge_id)
 

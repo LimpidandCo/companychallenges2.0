@@ -67,14 +67,14 @@ export function TagInput({
         {value.map((tag) => (
           <span
             key={tag}
-            className="inline-flex items-center gap-1 rounded-lg bg-[var(--color-accent)] bg-opacity-10 px-2.5 py-1 text-sm font-medium text-[var(--color-accent)]"
+            className="inline-flex items-center gap-1 rounded-lg bg-gray-100 px-2.5 py-1 text-sm font-medium text-gray-700"
           >
             {tag}
             {!disabled && (
               <button
                 type="button"
                 onClick={() => removeTag(tag)}
-                className="hover:text-[var(--color-fg)] transition-colors"
+                className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <CloseIcon className="h-3.5 w-3.5" />
               </button>

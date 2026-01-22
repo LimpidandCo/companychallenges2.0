@@ -59,6 +59,8 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
   const [brandColor, setBrandColor] = useState(challenge?.brand_color ?? '#ff6b4a')
   const [descriptionHtml, setDescriptionHtml] = useState(challenge?.description_html ?? '')
   const [supportInfo, setSupportInfo] = useState(challenge?.support_info ?? '')
+  const [passwordInstructions, setPasswordInstructions] = useState(challenge?.password_instructions ?? '')
+  const [showPasswordInstructions, setShowPasswordInstructions] = useState(!!challenge?.password_instructions)
   const [features, setFeatures] = useState<ChallengeFeatures>(challenge?.features ?? defaultFeatures)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -76,6 +78,8 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
         setFolder(challenge.folder ?? '')
         setBrandColor(challenge.brand_color ?? '#ff6b4a')
         setSupportInfo(challenge.support_info ?? '')
+        setPasswordInstructions(challenge.password_instructions ?? '')
+        setShowPasswordInstructions(!!challenge.password_instructions)
         setFeatures(challenge.features ?? defaultFeatures)
         setError(null)
       } else {
@@ -87,6 +91,8 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
         setFolder('')
         setBrandColor('#ff6b4a')
         setSupportInfo('')
+        setPasswordInstructions('')
+        setShowPasswordInstructions(false)
         setFeatures(defaultFeatures)
         setError(null)
       }
@@ -110,6 +116,7 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
             folder: folder || null,
             brand_color: brandColor,
             support_info: supportInfo || null,
+            password_instructions: showPasswordInstructions ? passwordInstructions : null,
             features,
           })
         : await createChallenge({
@@ -121,6 +128,7 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
             folder: folder || null,
             brand_color: brandColor,
             support_info: supportInfo || null,
+            password_instructions: showPasswordInstructions ? passwordInstructions : null,
             features,
           })
 
@@ -275,6 +283,7 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
                   Challenge Description
                 </label>
                 <InlineRichEditor
+                  key={`desc-${challenge?.id || 'new'}-${open}`}
                   value={descriptionHtml}
                   onChange={setDescriptionHtml}
                   placeholder="Welcome message and overview for participants..."
@@ -289,12 +298,48 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
                   Support Info <span className="font-normal text-gray-500">(optional)</span>
                 </label>
                 <InlineRichEditor
+                  key={`support-${challenge?.id || 'new'}-${open}`}
                   value={supportInfo}
                   onChange={setSupportInfo}
                   placeholder="Contact info, help resources, tips..."
                   hint="Shown when participants click the info button"
                   minHeight="100px"
                 />
+              </div>
+
+              {/* Password Instructions */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordInstructions(!showPasswordInstructions)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      showPasswordInstructions ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        showPasswordInstructions ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <label className="text-sm font-medium text-gray-900">
+                    Include Password Instructions
+                  </label>
+                </div>
+                {showPasswordInstructions && (
+                  <div className="ml-14">
+                    <textarea
+                      value={passwordInstructions}
+                      onChange={(e) => setPasswordInstructions(e.target.value)}
+                      placeholder="e.g., Check your welcome email for the password, or contact support@company.com"
+                      className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none min-h-[80px]"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Shown on the challenge page when password-protected assignments exist
+                    </p>
+                  </div>
+                )}
               </div>
 
               {/* Folder */}

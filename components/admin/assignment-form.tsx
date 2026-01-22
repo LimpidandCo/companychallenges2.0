@@ -38,6 +38,7 @@ export function AssignmentForm({
   const [internalTitle, setInternalTitle] = useState(assignment?.internal_title ?? '')
   const [publicTitle, setPublicTitle] = useState(assignment?.public_title ?? '')
   const [subtitle, setSubtitle] = useState(assignment?.subtitle ?? '')
+  const [contentType, setContentType] = useState<'standard' | 'video' | 'quiz' | 'announcement'>(assignment?.content_type ?? 'standard')
   const [mediaUrl, setMediaUrl] = useState(assignment?.media_url ?? '')
   const [visualUrl, setVisualUrl] = useState(assignment?.visual_url ?? '')
   const [password, setPassword] = useState('')
@@ -62,6 +63,7 @@ export function AssignmentForm({
         setInternalTitle(assignment.internal_title ?? '')
         setPublicTitle(assignment.public_title ?? '')
         setSubtitle(assignment.subtitle ?? '')
+        setContentType(assignment.content_type ?? 'standard')
         setInstructionsHtml(assignment.instructions_html ?? '')
         setContentHtml(assignment.content_html ?? '')
         setMediaUrl(assignment.media_url ?? '')
@@ -75,6 +77,7 @@ export function AssignmentForm({
         setInternalTitle('')
         setPublicTitle('')
         setSubtitle('')
+        setContentType('standard')
         setInstructionsHtml('')
         setContentHtml('')
         setMediaUrl('')
@@ -134,6 +137,19 @@ export function AssignmentForm({
     e.preventDefault()
     if (!internalTitle.trim()) return
 
+    // Validate required fields
+    const strippedInstructions = instructionsHtml.replace(/<[^>]*>/g, '').trim()
+    const strippedContent = contentHtml.replace(/<[^>]*>/g, '').trim()
+    
+    if (!strippedInstructions) {
+      setError('Instructions are required')
+      return
+    }
+    if (!strippedContent) {
+      setError('Assignment content is required')
+      return
+    }
+
     setIsSubmitting(true)
     setError(null)
 
@@ -145,6 +161,7 @@ export function AssignmentForm({
           internal_title: internalTitle,
           public_title: publicTitle || null,
           subtitle: subtitle || null,
+          content_type: contentType,
           instructions_html: instructionsHtml || null,
           content_html: contentHtml || null,
           media_url: mediaUrl || null,
@@ -160,6 +177,7 @@ export function AssignmentForm({
             internal_title: internalTitle,
             public_title: publicTitle || null,
             subtitle: subtitle || null,
+            content_type: contentType,
             instructions_html: instructionsHtml || null,
             content_html: contentHtml || null,
             media_url: mediaUrl || null,
@@ -176,6 +194,7 @@ export function AssignmentForm({
           internal_title: internalTitle,
           public_title: publicTitle || null,
           subtitle: subtitle || null,
+          content_type: contentType,
           instructions_html: instructionsHtml || null,
           content_html: contentHtml || null,
           media_url: mediaUrl || null,
@@ -283,40 +302,54 @@ export function AssignmentForm({
                 />
               </div>
 
-              <Input
-                label="Subtitle"
-                value={subtitle}
-                onChange={(e) => setSubtitle(e.target.value)}
-                placeholder="Short teaser text"
-              />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Input
+                  label="Subtitle"
+                  value={subtitle}
+                  onChange={(e) => setSubtitle(e.target.value)}
+                  placeholder="Short teaser text"
+                />
+                <div className="space-y-1.5">
+                  <label className="block text-sm font-medium text-gray-900">
+                    Content Type
+                  </label>
+                  <select
+                    value={contentType}
+                    onChange={(e) => setContentType(e.target.value as 'standard' | 'video' | 'quiz' | 'announcement')}
+                    className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
+                  >
+                    <option value="standard">Standard</option>
+                    <option value="video">Video</option>
+                    <option value="quiz">Quiz</option>
+                    <option value="announcement">Announcement</option>
+                  </select>
+                  <p className="text-xs text-gray-500">Affects how assignment is displayed</p>
+                </div>
+              </div>
 
               {/* Instructions */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-900">
-                  Instructions <span className="font-normal text-gray-500">(left column)</span>
-                </label>
-                <InlineRichEditor
-                  value={instructionsHtml}
-                  onChange={setInstructionsHtml}
-                  placeholder="How to complete this assignment..."
-                  hint="Context and guidance for participants"
-                  minHeight="120px"
-                />
-              </div>
+              <InlineRichEditor
+                key={`instr-${assignment?.id || 'new'}-${open}`}
+                label="Instructions"
+                value={instructionsHtml}
+                onChange={setInstructionsHtml}
+                placeholder="How to complete this assignment..."
+                hint="Context and guidance for participants (left column on assignment page)"
+                minHeight="120px"
+                required
+              />
 
               {/* Content */}
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-gray-900">
-                  Content <span className="font-normal text-gray-500">(right column)</span>
-                </label>
-                <InlineRichEditor
-                  value={contentHtml}
-                  onChange={setContentHtml}
-                  placeholder="The actual task and materials..."
-                  hint="The main assignment content"
-                  minHeight="120px"
-                />
-              </div>
+              <InlineRichEditor
+                key={`content-${assignment?.id || 'new'}-${open}`}
+                label="Assignment Content"
+                value={contentHtml}
+                onChange={setContentHtml}
+                placeholder="The actual task and materials..."
+                hint="The main assignment content (right column on assignment page)"
+                minHeight="120px"
+                required
+              />
 
               {/* Media Section */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">

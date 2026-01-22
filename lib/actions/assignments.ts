@@ -204,12 +204,14 @@ async function generateUniqueSlug(baseName: string): Promise<string> {
 
 /**
  * Hash a password using the database function
+ * Passwords are normalized to lowercase for case-insensitive matching
  */
 async function hashPassword(password: string): Promise<string | null> {
   if (!password) return null
 
   const supabase = createAdminClient()
-  const { data, error } = await supabase.rpc('hash_password', { password })
+  // Normalize to lowercase for case-insensitive matching
+  const { data, error } = await supabase.rpc('hash_password', { password: password.toLowerCase() })
 
   if (error) {
     console.error('Error hashing password:', error)

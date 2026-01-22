@@ -169,6 +169,7 @@ export async function createChallenge(input: ChallengeInsert): Promise<Challenge
       description: input.description ?? null,
       brand_color: input.brand_color ?? null,
       support_info: input.support_info ?? null,
+      password_instructions: input.password_instructions ?? null,
       visual_url: input.visual_url ?? null,
       folder: input.folder ?? null,
       starts_at: input.starts_at ?? null,
@@ -219,6 +220,7 @@ export async function updateChallenge(id: string, input: ChallengeUpdate): Promi
     if (input.description !== undefined) updateData.description = input.description
     if (input.brand_color !== undefined) updateData.brand_color = input.brand_color
     if (input.support_info !== undefined) updateData.support_info = input.support_info
+    if (input.password_instructions !== undefined) updateData.password_instructions = input.password_instructions
     if (input.visual_url !== undefined) updateData.visual_url = input.visual_url
     if (input.is_archived !== undefined) updateData.is_archived = input.is_archived
     if (input.folder !== undefined) updateData.folder = input.folder

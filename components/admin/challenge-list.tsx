@@ -96,148 +96,128 @@ export function ChallengeList({ challenges, onEdit, onRefresh }: ChallengeListPr
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {error && (
-        <div className="rounded-[var(--radius-md)] bg-[var(--color-error-subtle)] p-3 text-sm text-[var(--color-error)]">
+        <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)]">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-subtle)]">
-              <th className="px-4 py-3 text-left text-sm font-medium text-[var(--color-fg-muted)]">
-                Challenge
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-[var(--color-fg-muted)]">
-                URL
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-[var(--color-fg-muted)]">
-                Client
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-[var(--color-fg-muted)]">
-                Status
-              </th>
-              <th className="px-4 py-3 text-right text-sm font-medium text-[var(--color-fg-muted)]">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--color-border)]">
-            {challenges.map((challenge) => (
-              <tr key={challenge.id} className="hover:bg-[var(--color-bg-subtle)]">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="h-8 w-8 rounded-[var(--radius-sm)]"
-                      style={{ backgroundColor: challenge.brand_color || '#6b7280' }}
-                    />
-                    <div>
-                      <p className="font-medium text-[var(--color-fg)]">
-                        {challenge.internal_name}
-                      </p>
-                      {challenge.public_title && (
-                        <p className="text-xs text-[var(--color-fg-subtle)]">
-                          {challenge.public_title}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <code className="text-xs font-mono text-[var(--color-fg-muted)] bg-[var(--color-bg-muted)] px-2 py-1 rounded max-w-[200px] truncate">
-                      /c/{challenge.slug}
-                    </code>
-                    <button
-                      onClick={() => copyUrl(challenge)}
-                      className="p-1 rounded hover:bg-[var(--color-bg-muted)] text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] transition-colors"
-                      title="Copy URL"
+      <div className="grid gap-3">
+        {challenges.map((challenge) => (
+          <div
+            key={challenge.id}
+            className={`group relative rounded-xl border bg-white p-4 transition-all hover:shadow-md ${
+              challenge.is_archived ? 'border-gray-200 opacity-70' : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-4">
+              {/* Left side - Challenge info */}
+              <div className="flex items-start gap-4 min-w-0 flex-1">
+                <div
+                  className="h-12 w-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm flex-shrink-0"
+                  style={{ backgroundColor: challenge.brand_color || '#6b7280' }}
+                >
+                  {challenge.internal_name.charAt(0).toUpperCase()}
+                </div>
+                
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Link 
+                      href={`/admin/challenges/${challenge.id}`}
+                      className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
                     >
-                      {copiedId === challenge.id ? (
-                        <CheckIcon className="h-4 w-4 text-green-500" />
-                      ) : (
-                        <CopyIcon className="h-4 w-4" />
-                      )}
-                    </button>
-                    <a
-                      href={getPublicUrl(challenge.slug)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="p-1 rounded hover:bg-[var(--color-bg-muted)] text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] transition-colors"
-                      title="Open in new tab"
-                    >
-                      <ExternalLinkIcon className="h-4 w-4" />
-                    </a>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-sm text-[var(--color-fg-muted)]">
-                    {challenge.client.name}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-2">
-                    <Badge variant={challenge.is_archived ? 'outline' : 'success'}>
-                      {challenge.is_archived ? 'Archived' : 'Live'}
-                    </Badge>
-                    {!challenge.is_archived && (
-                      <span className="relative flex h-2 w-2">
-                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                      {challenge.internal_name}
+                    </Link>
+                    {!challenge.is_archived ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                        <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                        Live
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-medium">
+                        Archived
                       </span>
                     )}
                   </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-1">
-                    <Link href={`/admin/challenges/${challenge.id}`}>
-                      <Button variant="ghost" size="sm">
-                        Manage
-                      </Button>
-                    </Link>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEdit(challenge)}
-                      disabled={actionId === challenge.id}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDuplicate(challenge)}
-                      disabled={actionId === challenge.id}
-                    >
-                      {actionId === challenge.id ? <Spinner size="sm" /> : 'Duplicate'}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleArchive(challenge)}
-                      disabled={actionId === challenge.id}
-                    >
-                      {challenge.is_archived ? 'Restore' : 'Archive'}
-                    </Button>
-                    {challenge.is_archived && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(challenge)}
-                        disabled={actionId === challenge.id}
-                        className="text-[var(--color-error)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-subtle)]"
+                  
+                  {challenge.public_title && (
+                    <p className="text-sm text-gray-500 truncate mt-0.5">{challenge.public_title}</p>
+                  )}
+                  
+                  <div className="flex items-center gap-3 mt-2 text-sm">
+                    <span className="text-gray-500">{challenge.client.name}</span>
+                    <span className="text-gray-300">•</span>
+                    <div className="flex items-center gap-1.5">
+                      <code className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                        /c/{challenge.slug}
+                      </code>
+                      <button
+                        onClick={() => copyUrl(challenge)}
+                        className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Copy URL"
                       >
-                        Delete
-                      </Button>
-                    )}
+                        {copiedId === challenge.id ? (
+                          <CheckIcon className="h-3.5 w-3.5 text-green-500" />
+                        ) : (
+                          <CopyIcon className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                      <a
+                        href={getPublicUrl(challenge.slug)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Preview"
+                      >
+                        <ExternalLinkIcon className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                </div>
+              </div>
+
+              {/* Right side - Actions */}
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Link href={`/admin/challenges/${challenge.id}`}>
+                  <button className="px-3 py-1.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors">
+                    Manage
+                  </button>
+                </Link>
+                <button
+                  onClick={() => onEdit(challenge)}
+                  disabled={actionId === challenge.id}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDuplicate(challenge)}
+                  disabled={actionId === challenge.id}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {actionId === challenge.id ? <Spinner size="sm" /> : 'Duplicate'}
+                </button>
+                <button
+                  onClick={() => handleArchive(challenge)}
+                  disabled={actionId === challenge.id}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {challenge.is_archived ? 'Restore' : 'Archive'}
+                </button>
+                {challenge.is_archived && (
+                  <button
+                    onClick={() => handleDelete(challenge)}
+                    disabled={actionId === challenge.id}
+                    className="px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                  >
+                    Delete
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )

@@ -9,6 +9,7 @@ import { DemoUserButton } from '@/components/admin/demo-user-button'
 const navigation = [
   { name: 'Dashboard', href: '/admin', icon: HomeIcon },
   { name: 'Clients', href: '/admin/clients', icon: BuildingIcon },
+  { name: 'Challenges', href: '/admin/challenges', icon: FlagIcon },
   { name: 'Assignments', href: '/admin/assignments', icon: FileTextIcon },
   { name: 'Analytics', href: '/admin/analytics', icon: ChartIcon },
   { name: 'Settings', href: '/admin/settings', icon: SettingsIcon },
