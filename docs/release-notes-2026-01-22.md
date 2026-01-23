@@ -1,8 +1,12 @@
-# Release Notes - January 22, 2026
+# Release Notes - January 22-23, 2026
 
 ## Summary
 
-This release addresses **all 20 items** from team feedback (14 "Must Have" + 2 "Should Have" + 3 "Nice to Have" + 1 UX Enhancement) and includes comprehensive **UI/UX improvements** across the admin panel.
+This release addresses **31 items** across two feedback cycles:
+- **Cycle 1:** 14 "Must Have" + 2 "Should Have" + 4 "Nice to Have" 
+- **Cycle 2:** 9 "Must Have" + 1 "Should Have" + 1 "Nice to Have"
+
+Includes comprehensive **UI/UX improvements** across the admin panel and public-facing pages.
 
 **✅ All items complete - no pending tasks.**
 
@@ -400,18 +404,149 @@ lib/actions/
 
 ---
 
+## 📋 Feedback Cycle 2 - January 23, 2026
+
+### 21. Database Migration Fix
+**Issue:** _"Could not find the 'password_instructions' column of 'challenges'"_
+
+**Resolution:** Applied database migration to add missing columns:
+- `contact_info TEXT`
+- `password_instructions TEXT`
+
+---
+
+### 22. Formatting Fixed (Bullet Points)
+**Issue:** _"Bullet points don't carry in live view"_
+
+**Resolution:** Enhanced CSS for list rendering:
+- Added explicit `list-style-type: disc` for unordered lists
+- Added `list-style-type: decimal` for ordered lists
+- Fixed prose styling in `content-renderer.tsx` and `globals.css`
+
+**Files Modified:**
+- `components/public/content-renderer.tsx`
+- `app/globals.css`
+
+---
+
+### 23. Completion Flow Fixed (Collective Mode)
+**Issue:** _"Complete button gives English popup in collective mode"_
+
+**Resolution:** 
+- Collective mode: No popup - completes silently and navigates back
+- Individual mode: Shows confirmation modal
+- Replaced "Done" text with green checkmark icon only
+- Removed "Review" text - just checkmark icon
+- Removed "Completed! Returning..." overlay
+
+**Files Modified:**
+- `app/(public)/a/[slug]/page-client.tsx`
+- `app/(public)/c/[slug]/start/page-client.tsx`
+
+---
+
+### 24. Assignment Library Selection Fixed
+**Issue:** _"Can't select assignment from library in challenge view"_
+
+**Resolution:** Verified library picker functionality and enhanced:
+- Added tag search capability (search by name OR tag)
+- Display tags on assignment cards in picker
+- Updated search placeholder text
+
+**Files Modified:**
+- `components/admin/assignment-picker.tsx`
+
+---
+
+### 25. Two-Step Delete Confirmation
+**Issue:** _"Can't delete assignments from library - should be 2 step"_
+
+**Resolution:** Implemented proper two-step delete dialog:
+1. Step 1: "Are you sure you want to proceed?"
+2. Step 2: "This action cannot be undone" with Permanently Delete button
+
+**Files Modified:**
+- `components/admin/assignment-list.tsx`
+
+---
+
+### 26. Sprint/Announcement Save Buttons
+**Issue:** _"No 'Save' option for new sprint/announcement"_
+
+**Resolution:** Updated form buttons with clear Save labeling:
+- Added Save icon to buttons
+- "Save Sprint" / "Save Changes"
+- "Save Announcement" / "Save Changes"
+
+**Files Modified:**
+- `components/admin/sprint-form.tsx`
+- `components/admin/announcement-form.tsx`
+
+---
+
+### 27. Required Fields Enforced
+**Issue:** _"Assignment title and visual should be required"_
+
+**Resolution:**
+- Public title now required with validation
+- Cover image now required with red asterisk indicator
+- Error messages for missing fields
+
+**Files Modified:**
+- `components/admin/assignment-form.tsx`
+
+---
+
+### 28. Cover Image + Video Coexistence
+**Issue:** _"Adding video overrides cover image"_
+
+**Resolution:** Both now display independently:
+- Cover image shows at top
+- Video shows below cover image
+- Removed `!hasMedia` condition from visual display
+
+**Files Modified:**
+- `app/(public)/a/[slug]/page-client.tsx`
+
+---
+
+### 29. More Fonts Added
+**Issue:** _"Font list is quite limited"_
+
+**Resolution:** Expanded font families from 9 to 30+:
+- System defaults (System UI)
+- Sans-serif (Arial, Helvetica, Roboto, Inter, Montserrat, Poppins, etc.)
+- Serif (Georgia, Times, Garamond, Playfair Display, Merriweather)
+- Monospace (Consolas, Monaco, Fira Code)
+- Display/Decorative fonts
+
+**Files Modified:**
+- `components/ui/inline-rich-editor.tsx`
+
+---
+
+### 30. Color Picker Position Fixed
+**Issue:** _"Color picker positioned outside editor window"_
+
+**Resolution:**
+- Changed container from `overflow-hidden` to `overflow-visible`
+- Responsive positioning: right-aligned on mobile, left-aligned on desktop
+
+**Files Modified:**
+- `components/ui/inline-rich-editor.tsx`
+
+---
+
 ## ✅ All Items Complete
 
-| Category | Items | Status |
-|----------|-------|--------|
-| Must Have | 14 | ✅ Complete |
-| Should Have | 2 | ✅ Complete |
-| Nice to Have | 3 | ✅ Complete |
-| UX Enhancements | 1 | ✅ Complete |
-| **Total** | **20** | **✅ All Done** |
+| Feedback Cycle | Must Have | Should Have | Nice to Have | Status |
+|----------------|-----------|-------------|--------------|--------|
+| Cycle 1 | 14 | 2 | 4 | ✅ Complete |
+| Cycle 2 | 9 | 1 | 1 | ✅ Complete |
+| **Total** | **23** | **3** | **5** | **✅ All Done** |
 
 ---
 
 *Release prepared by: AI Development Assistant*
-*Date: January 22, 2026*
+*Date: January 23, 2026*
 *Build Status: ✅ Passing*

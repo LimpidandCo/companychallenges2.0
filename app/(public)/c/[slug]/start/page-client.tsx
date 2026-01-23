@@ -614,15 +614,16 @@ function AssignmentTile({
 
         {/* Status Badges */}
         <div className="absolute top-3 left-3 right-3 flex items-start justify-between">
-          {/* Label Badge */}
-          <span 
-            className={cn(
-              'px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg',
-              isCompleted ? 'bg-green-500 text-white' : 'bg-white text-gray-900'
-            )}
-          >
-            {isCompleted ? '✓ Done' : label}
-          </span>
+          {/* Label Badge - show checkmark if completed, otherwise show custom label */}
+          {isCompleted ? (
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-green-500 text-white shadow-lg">
+              <CheckCircleIcon className="h-4 w-4" />
+            </span>
+          ) : label ? (
+            <span className="px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide shadow-lg bg-white text-gray-900">
+              {label}
+            </span>
+          ) : null}
 
           {/* Right badges */}
           <div className="flex gap-2">
@@ -672,8 +673,7 @@ function AssignmentTile({
         >
           {isCompleted ? (
             <span className="flex items-center justify-center gap-2">
-              <CheckCircleIcon className="h-4 w-4" />
-              Review
+              <CheckCircleIcon className="h-5 w-5" />
             </span>
           ) : (
             <span className="flex items-center justify-center gap-2">

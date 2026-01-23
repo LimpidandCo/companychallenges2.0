@@ -77,7 +77,9 @@ export function AssignmentPicker({
     return reusable.filter(
       (a) =>
         a.internal_title.toLowerCase().includes(query) ||
-        a.public_title?.toLowerCase().includes(query)
+        a.public_title?.toLowerCase().includes(query) ||
+        // Also search by tags
+        (a.tags && a.tags.some(tag => tag.toLowerCase().includes(query)))
     )
   }, [assignments, searchQuery])
 
@@ -149,7 +151,7 @@ export function AssignmentPicker({
           <DialogContent className="space-y-4">
             <Input
               type="search"
-              placeholder="Search assignments..."
+              placeholder="Search by name or tag..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -197,6 +199,20 @@ export function AssignmentPicker({
                                 <p className="text-xs text-[var(--color-fg-subtle)]">
                                   {assignment.public_title}
                                 </p>
+                              )}
+                              {assignment.tags && assignment.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {assignment.tags.slice(0, 3).map(tag => (
+                                    <span key={tag} className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {assignment.tags.length > 3 && (
+                                    <span className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-500 rounded">
+                                      +{assignment.tags.length - 3}
+                                    </span>
+                                  )}
+                                </div>
                               )}
                             </div>
                           </div>

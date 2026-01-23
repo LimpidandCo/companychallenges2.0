@@ -65,6 +65,8 @@ export function AssignmentPageClient({
   const passwordInstructions = navContext?.challenge.passwordInstructions
   const clientLogo = navContext?.client?.logoUrl
   const clientName = navContext?.client?.name
+  const challengeMode = navContext?.challenge.mode || 'collective'
+  const isIndividualMode = challengeMode === 'individual' || challengeMode === 'hybrid'
   
   // Build back URL - only link to challenge if we have context
   const backUrl = challengeSlug ? `/c/${challengeSlug}/start` : null
@@ -125,15 +127,39 @@ export function AssignmentPageClient({
     }
   }, [])
 
-  // Handle complete with confirmation
+  // Handle complete with confirmation (only for individual mode)
   const handleCompleteClick = () => {
     if (isCompleted) {
-      // Already completed, just navigate back
+      // Already completed, just navigate back silently (no popup)
       navigateBack()
-    } else {
-      // Show confirmation modal
+    } else if (isIndividualMode) {
+      // Show confirmation modal only for individual/hybrid mode
       setShowConfirmModal(true)
+    } else {
+      // Collective mode: complete silently without popup
+      completeAndNavigate()
     }
+  }
+
+  // Complete silently for collective mode (no popup)
+  const completeAndNavigate = async () => {
+    if (!navContext) return
+    
+    // Track analytics
+    trackAssignmentComplete(
+      navContext.challenge.clientId,
+      navContext.challenge.id,
+      assignment.id,
+      navContext.sprintId
+    )
+    
+    // Save to localStorage
+    saveCompletionToStorage(navContext.challenge.id, assignment.id)
+    
+    setIsCompleted(true)
+    
+    // Navigate back immediately
+    navigateBack()
   }
 
   const confirmComplete = async () => {
@@ -150,10 +176,10 @@ export function AssignmentPageClient({
       navContext.sprintId
     )
     
-    // Save to localStorage (for collective mode / anonymous users)
+    // Save to localStorage
     saveCompletionToStorage(navContext.challenge.id, assignment.id)
     
-    // If signed in, also save to database
+    // If signed in (individual mode), also save to database
     if (isSignedIn && navContext.assignmentUsageId) {
       await completeAssignment(navContext.assignmentUsageId)
     }
@@ -161,10 +187,8 @@ export function AssignmentPageClient({
     setIsCompleted(true)
     setIsMarkingComplete(false)
     
-    // Smooth exit transition then navigate
-    setTimeout(() => {
-      navigateBack()
-    }, 800)
+    // Navigate back immediately (no overlay popup)
+    navigateBack()
   }
 
   const navigateBack = () => {
@@ -322,11 +346,11 @@ export function AssignmentPageClient({
                 isCompleted ? (
                   <button
                     onClick={navigateBack}
-                    className="inline-flex items-center gap-2 rounded-lg px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-bold text-white shadow-md transition-all hover:scale-105"
+                    className="inline-flex items-center justify-center rounded-lg w-11 h-11 sm:w-12 sm:h-12 text-white shadow-md transition-all hover:scale-105"
                     style={{ backgroundColor: '#16a34a' }}
+                    title="Completed - click to go back"
                   >
-                    <CheckIcon className="h-4 w-4" />
-                    <span>Done</span>
+                    <CheckIcon className="h-5 w-5 sm:h-6 sm:w-6" />
                   </button>
                 ) : (
                   <button
@@ -336,7 +360,7 @@ export function AssignmentPageClient({
                     style={{ borderColor: brandColor, color: brandColor }}
                   >
                     {isMarkingComplete && <SpinnerIcon className="h-4 w-4 animate-spin" />}
-                    Complete
+                    <CheckCircleIcon className="h-4 w-4" />
                   </button>
                 )
               )}
@@ -378,8 +402,8 @@ export function AssignmentPageClient({
 
                 {/* Right Column: Visual/Media + Content */}
                 <div className="space-y-6">
-                  {/* Visual Image - Full width in column */}
-                  {hasVisual && !hasMedia && (
+                  {/* Visual/Cover Image - Always shown if present */}
+                  {hasVisual && (
                     <div className="rounded-xl overflow-hidden shadow-lg">
                       <img
                         src={assignment.visual_url!}
@@ -389,7 +413,7 @@ export function AssignmentPageClient({
                     </div>
                   )}
 
-                  {/* Video/Media - Responsive aspect ratio */}
+                  {/* Video/Media - Shown separately below the cover image */}
                   {hasMedia && (
                     <div className="rounded-xl overflow-hidden shadow-lg bg-black">
                       <div className="aspect-video">
@@ -528,21 +552,6 @@ export function AssignmentPageClient({
       </div>
     )}
 
-    {/* Completion Success Overlay */}
-    {isCompleted && isMarkingComplete === false && (
-      <div 
-        className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in pointer-events-none"
-        style={{ backgroundColor: 'rgba(0,0,0,0.3)' }}
-      >
-        <div className="bg-white rounded-2xl shadow-2xl p-8 animate-bounce-in text-center">
-          <div className="w-20 h-20 mx-auto rounded-full flex items-center justify-center mb-4" style={{ backgroundColor: '#dcfce7' }}>
-            <CheckIcon className="h-10 w-10 text-green-600" />
-          </div>
-          <h3 className="text-2xl font-bold text-gray-900">Completed!</h3>
-          <p className="text-gray-500 mt-1">Returning to assignments...</p>
-        </div>
-      </div>
-    )}
     </>
   )
 }
@@ -627,6 +636,14 @@ function CheckIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+    </svg>
+  )
+}
+
+function CheckCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
     </svg>
   )
 }

@@ -95,7 +95,21 @@ export function AssignmentForm({
     const file = e.target.files?.[0]
     if (!file) return
 
+    // Client-side validation for better UX
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml', 'image/heic', 'image/heif']
+    if (!allowedTypes.includes(file.type)) {
+      setError('Please upload a JPG, PNG, GIF, WebP, SVG, or HEIC image')
+      return
+    }
+
+    // Check file size (50MB limit)
+    if (file.size > 52428800) {
+      setError('Image is too large. Maximum size is 50MB')
+      return
+    }
+
     setIsUploadingVisual(true)
+    setError(null)
     try {
       const formData = new FormData()
       formData.append('file', file)
@@ -103,10 +117,11 @@ export function AssignmentForm({
       if (result.success) {
         setVisualUrl(result.url)
       } else {
-        setError(result.error || 'Upload failed')
+        setError(result.error || 'Failed to upload image')
       }
-    } catch {
-      setError('Upload failed')
+    } catch (err) {
+      console.error('Upload error:', err)
+      setError('Failed to upload image. Please try again.')
     } finally {
       setIsUploadingVisual(false)
     }
@@ -133,11 +148,31 @@ export function AssignmentForm({
     }
   }
 
+  // Handler for image uploads from the rich text editor
+  const handleEditorImageUpload = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const result = await uploadFile(formData, 'assignments')
+    if (result.success) {
+      return result.url
+    }
+    throw new Error(result.error || 'Upload failed')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!internalTitle.trim()) return
 
     // Validate required fields
+    if (!publicTitle.trim()) {
+      setError('Public title is required (this is what participants see)')
+      return
+    }
+    if (!visualUrl.trim()) {
+      setError('Cover image is required')
+      return
+    }
+    
     const strippedInstructions = instructionsHtml.replace(/<[^>]*>/g, '').trim()
     const strippedContent = contentHtml.replace(/<[^>]*>/g, '').trim()
     
@@ -299,6 +334,7 @@ export function AssignmentForm({
                   value={publicTitle}
                   onChange={(e) => setPublicTitle(e.target.value)}
                   placeholder="What participants see"
+                  required
                 />
               </div>
 
@@ -337,6 +373,7 @@ export function AssignmentForm({
                 hint="Context and guidance for participants (left column on assignment page)"
                 minHeight="120px"
                 required
+                onUploadImage={handleEditorImageUpload}
               />
 
               {/* Content */}
@@ -349,13 +386,16 @@ export function AssignmentForm({
                 hint="The main assignment content (right column on assignment page)"
                 minHeight="120px"
                 required
+                onUploadImage={handleEditorImageUpload}
               />
 
               {/* Media Section */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Cover Image */}
+                {/* Cover Image (Required) */}
                 <div className="space-y-2">
-                  <label className="text-sm font-medium text-gray-900">Cover Image</label>
+                  <label className="text-sm font-medium text-gray-900">
+                    Cover Image <span className="text-red-500">*</span>
+                  </label>
                   <div className={cn(
                     "aspect-video rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden relative",
                     visualUrl ? "border-blue-300 bg-gray-50" : "border-gray-200 bg-gray-50"
@@ -392,7 +432,7 @@ export function AssignmentForm({
                   <input
                     ref={visualInputRef}
                     type="file"
-                    accept="image/*"
+                    accept="image/jpeg,image/png,image/gif,image/webp,image/svg+xml,image/heic,image/heif,.jpg,.jpeg,.png,.gif,.webp,.svg,.heic,.heif"
                     onChange={handleVisualUpload}
                     className="hidden"
                   />

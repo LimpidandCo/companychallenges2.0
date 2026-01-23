@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button, Input, Spinner } from '@/components/ui'
 import { InlineRichEditor } from '@/components/ui/inline-rich-editor'
 import { createChallenge, updateChallenge } from '@/lib/actions/challenges'
+import { uploadFile } from '@/lib/actions/upload'
 import type { Challenge, Client, EditorContent, ChallengeFeatures, DEFAULT_CHALLENGE_FEATURES } from '@/lib/types/database'
 import { cn } from '@/lib/utils/cn'
 
@@ -98,6 +99,17 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
       }
     }
   }, [open, isEditing, challenge, resolvedClientId])
+
+  // Handler for image uploads from the rich text editor
+  const handleEditorImageUpload = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const result = await uploadFile(formData, 'challenges')
+    if (result.success) {
+      return result.url
+    }
+    throw new Error(result.error || 'Upload failed')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -289,6 +301,7 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
                   placeholder="Welcome message and overview for participants..."
                   hint="This appears on the challenge landing page"
                   minHeight="150px"
+                  onUploadImage={handleEditorImageUpload}
                 />
               </div>
 
@@ -304,6 +317,7 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
                   placeholder="Contact info, help resources, tips..."
                   hint="Shown when participants click the info button"
                   minHeight="100px"
+                  onUploadImage={handleEditorImageUpload}
                 />
               </div>
 

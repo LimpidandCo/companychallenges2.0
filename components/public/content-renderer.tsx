@@ -57,10 +57,13 @@ export function ContentRenderer({
         'prose-pre:bg-gray-100 prose-pre:rounded-xl prose-pre:overflow-x-auto prose-pre:p-4',
         // Blockquotes
         'prose-blockquote:border-l-4 prose-blockquote:border-[var(--color-accent)] prose-blockquote:pl-4 prose-blockquote:italic prose-blockquote:text-gray-600 prose-blockquote:not-italic',
-        // Lists - good spacing
-        'prose-ul:list-disc prose-ul:pl-6 prose-ul:my-4',
-        'prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-4',
-        'prose-li:text-gray-700 prose-li:my-1',
+        // Lists - explicit styling to ensure bullets/numbers always show
+        'prose-ul:list-disc prose-ul:pl-6 prose-ul:my-4 prose-ul:ml-4',
+        'prose-ol:list-decimal prose-ol:pl-6 prose-ol:my-4 prose-ol:ml-4',
+        'prose-li:text-gray-700 prose-li:my-1 prose-li:pl-1',
+        '[&_ul]:list-disc [&_ul]:pl-6 [&_ul]:ml-4 [&_ul]:my-4',
+        '[&_ol]:list-decimal [&_ol]:pl-6 [&_ol]:ml-4 [&_ol]:my-4',
+        '[&_li]:my-1 [&_li]:text-gray-700',
         // Images
         'prose-img:rounded-xl prose-img:shadow-lg prose-img:my-6',
         // Horizontal rules

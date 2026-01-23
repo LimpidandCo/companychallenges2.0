@@ -23,19 +23,45 @@ export interface InlineRichEditorProps {
   className?: string
   minHeight?: string
   required?: boolean
+  /** Optional image upload handler. When provided, enables file upload in addition to URL. */
+  onUploadImage?: (file: File) => Promise<string>
 }
 
 // Font options - common web-safe fonts plus some modern choices
 const FONT_FAMILIES = [
+  // System defaults
   { label: 'Default', value: '' },
+  { label: 'System UI', value: 'system-ui, -apple-system, BlinkMacSystemFont, sans-serif' },
+  // Sans-serif
   { label: 'Arial', value: 'Arial, sans-serif' },
+  { label: 'Verdana', value: 'Verdana, sans-serif' },
+  { label: 'Helvetica', value: 'Helvetica, Arial, sans-serif' },
+  { label: 'Trebuchet MS', value: 'Trebuchet MS, sans-serif' },
+  { label: 'Tahoma', value: 'Tahoma, sans-serif' },
+  { label: 'Open Sans', value: '"Open Sans", sans-serif' },
+  { label: 'Roboto', value: 'Roboto, sans-serif' },
+  { label: 'Lato', value: 'Lato, sans-serif' },
+  { label: 'Montserrat', value: 'Montserrat, sans-serif' },
+  { label: 'Poppins', value: 'Poppins, sans-serif' },
+  { label: 'Inter', value: 'Inter, sans-serif' },
+  // Serif
   { label: 'Georgia', value: 'Georgia, serif' },
   { label: 'Times New Roman', value: 'Times New Roman, serif' },
-  { label: 'Verdana', value: 'Verdana, sans-serif' },
-  { label: 'Trebuchet MS', value: 'Trebuchet MS, sans-serif' },
+  { label: 'Palatino', value: '"Palatino Linotype", Palatino, serif' },
+  { label: 'Book Antiqua', value: '"Book Antiqua", Palatino, serif' },
+  { label: 'Garamond', value: 'Garamond, serif' },
+  { label: 'Playfair Display', value: '"Playfair Display", serif' },
+  { label: 'Merriweather', value: 'Merriweather, serif' },
+  // Monospace
   { label: 'Courier New', value: 'Courier New, monospace' },
+  { label: 'Consolas', value: 'Consolas, monospace' },
+  { label: 'Monaco', value: 'Monaco, monospace' },
+  { label: 'Fira Code', value: '"Fira Code", monospace' },
+  // Display/Decorative
   { label: 'Impact', value: 'Impact, sans-serif' },
   { label: 'Comic Sans MS', value: 'Comic Sans MS, cursive' },
+  { label: 'Brush Script', value: '"Brush Script MT", cursive' },
+  { label: 'Lucida Handwriting', value: '"Lucida Handwriting", cursive' },
 ]
 
 // Font sizes
@@ -69,10 +95,15 @@ export function InlineRichEditor({
   className,
   minHeight = '150px',
   required = false,
+  onUploadImage,
 }: InlineRichEditorProps) {
   const [showColorPicker, setShowColorPicker] = useState(false)
   const [customColor, setCustomColor] = useState('#000000')
+  const [showImageMenu, setShowImageMenu] = useState(false)
+  const [isUploading, setIsUploading] = useState(false)
   const colorPickerRef = useRef<HTMLDivElement>(null)
+  const imageMenuRef = useRef<HTMLDivElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -139,11 +170,14 @@ export function InlineRichEditor({
     }
   }, [value, editor])
 
-  // Close color picker when clicking outside
+  // Close color picker and image menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (colorPickerRef.current && !colorPickerRef.current.contains(event.target as Node)) {
         setShowColorPicker(false)
+      }
+      if (imageMenuRef.current && !imageMenuRef.current.contains(event.target as Node)) {
+        setShowImageMenu(false)
       }
     }
     document.addEventListener('mousedown', handleClickOutside)
@@ -162,13 +196,52 @@ export function InlineRichEditor({
     editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
   }, [editor])
 
-  const addImage = useCallback(() => {
+  const addImageFromUrl = useCallback(() => {
     if (!editor) return
     const url = window.prompt('Enter image URL:')
     if (url) {
       editor.chain().focus().setImage({ src: url }).run()
     }
+    setShowImageMenu(false)
   }, [editor])
+
+  const handleImageFileSelect = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !editor || !onUploadImage) return
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file')
+      return
+    }
+
+    setIsUploading(true)
+    setShowImageMenu(false)
+
+    try {
+      const url = await onUploadImage(file)
+      editor.chain().focus().setImage({ src: url }).run()
+    } catch (error) {
+      console.error('Failed to upload image:', error)
+      alert('Failed to upload image. Please try again.')
+    } finally {
+      setIsUploading(false)
+      // Reset input so the same file can be selected again
+      if (imageInputRef.current) {
+        imageInputRef.current.value = ''
+      }
+    }
+  }, [editor, onUploadImage])
+
+  const handleImageButtonClick = useCallback(() => {
+    if (onUploadImage) {
+      // Show menu with upload and URL options
+      setShowImageMenu(!showImageMenu)
+    } else {
+      // Just prompt for URL
+      addImageFromUrl()
+    }
+  }, [onUploadImage, showImageMenu, addImageFromUrl])
 
   const setFontFamily = useCallback((fontFamily: string) => {
     if (!editor) return
@@ -201,7 +274,7 @@ export function InlineRichEditor({
         </label>
       )}
 
-      <div className="rounded-lg border border-gray-300 bg-white overflow-hidden focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
+      <div className="rounded-lg border border-gray-300 bg-white overflow-visible focus-within:border-blue-500 focus-within:ring-1 focus-within:ring-blue-500">
         {/* Toolbar Row 1: Formatting */}
         <div className="flex flex-wrap items-center gap-0.5 border-b border-gray-200 px-2 py-1.5 bg-gray-50">
           {/* Font Family */}
@@ -307,7 +380,7 @@ export function InlineRichEditor({
             </ToolbarButton>
             
             {showColorPicker && (
-              <div className="absolute top-full left-0 mt-1 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-3 w-48">
+              <div className="absolute top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-gray-200 p-3 w-48 right-0 md:left-0 md:right-auto">
                 <div className="grid grid-cols-4 gap-1 mb-2">
                   {COLOR_PRESETS.map((color) => (
                     <button
@@ -412,12 +485,50 @@ export function InlineRichEditor({
           >
             <LinkIcon className="h-4 w-4" />
           </ToolbarButton>
-          <ToolbarButton
-            onClick={addImage}
-            title="Insert Image (URL)"
-          >
-            <ImageIcon className="h-4 w-4" />
-          </ToolbarButton>
+          {/* Image Insert */}
+          <div className="relative" ref={imageMenuRef}>
+            <ToolbarButton
+              onClick={handleImageButtonClick}
+              title={onUploadImage ? "Insert Image" : "Insert Image (URL)"}
+            >
+              {isUploading ? (
+                <LoadingSpinner className="h-4 w-4" />
+              ) : (
+                <ImageIcon className="h-4 w-4" />
+              )}
+            </ToolbarButton>
+
+            {/* Hidden file input */}
+            <input
+              ref={imageInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={handleImageFileSelect}
+            />
+
+            {/* Image menu dropdown */}
+            {showImageMenu && onUploadImage && (
+              <div className="absolute top-full mt-1 z-50 bg-white rounded-lg shadow-lg border border-gray-200 py-1 w-40 left-0">
+                <button
+                  type="button"
+                  onClick={() => imageInputRef.current?.click()}
+                  className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <UploadIcon className="h-4 w-4" />
+                  Upload image
+                </button>
+                <button
+                  type="button"
+                  onClick={addImageFromUrl}
+                  className="w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                >
+                  <LinkIcon className="h-4 w-4" />
+                  From URL
+                </button>
+              </div>
+            )}
+          </div>
           <ToolbarButton
             onClick={() => editor?.chain().focus().toggleBlockquote().run()}
             active={editor?.isActive('blockquote')}
@@ -607,6 +718,23 @@ function ClearFormatIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9.75 14.25 12m0 0 2.25 2.25M14.25 12l2.25-2.25M14.25 12 12 14.25m-2.58 4.92-6.374-6.375a1.125 1.125 0 0 1 0-1.59L9.42 4.83c.21-.211.497-.33.795-.33H19.5a2.25 2.25 0 0 1 2.25 2.25v10.5a2.25 2.25 0 0 1-2.25 2.25h-9.284c-.298 0-.585-.119-.795-.33Z" />
+    </svg>
+  )
+}
+
+function UploadIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5m-13.5-9L12 3m0 0 4.5 4.5M12 3v13.5" />
+    </svg>
+  )
+}
+
+function LoadingSpinner({ className }: { className?: string }) {
+  return (
+    <svg className={cn(className, 'animate-spin')} fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
     </svg>
   )
 }

@@ -26,20 +26,27 @@ export async function uploadFile(
     }
 
     // Validate file type
-    const allowedTypes = [
+    const allowedImageTypes = [
       'image/jpeg',
       'image/png',
       'image/gif',
       'image/webp',
       'image/svg+xml',
+      'image/heic',
+      'image/heif',
+    ]
+    const allowedVideoTypes = [
       'video/mp4',
       'video/webm',
     ]
+    const allowedTypes = [...allowedImageTypes, ...allowedVideoTypes]
 
     if (!allowedTypes.includes(file.type)) {
+      // Provide a user-friendly error message
+      const friendlyTypes = 'JPG, PNG, GIF, WebP, SVG, HEIC, MP4, WebM'
       return {
         success: false,
-        error: `Invalid file type. Allowed: ${allowedTypes.join(', ')}`,
+        error: `Unsupported file format. Please use: ${friendlyTypes}`,
       }
     }
 
