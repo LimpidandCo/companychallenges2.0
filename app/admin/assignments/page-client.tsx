@@ -56,11 +56,19 @@ export function AssignmentsPageClient({
     router.refresh()
   }
 
-  // Export handlers
+  // Export handlers - respects current filters
   const handleExport = async () => {
     setIsExporting(true)
     try {
-      const result = await exportAssignments()
+      // Build export options based on current filters
+      const exportOptions: { tags?: string[] } = {}
+      
+      // If a tag filter is active, only export assignments with that tag
+      if (tagFilter) {
+        exportOptions.tags = [tagFilter]
+      }
+      
+      const result = await exportAssignments(exportOptions)
       if (result.success) {
         // Download the file
         const blob = new Blob([Buffer.from(result.data, 'base64')], {
@@ -69,7 +77,8 @@ export function AssignmentsPageClient({
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `assignments-export-${new Date().toISOString().split('T')[0]}.xlsx`
+        const filterSuffix = tagFilter ? `-${tagFilter}` : ''
+        a.download = `assignments-export${filterSuffix}-${new Date().toISOString().split('T')[0]}.xlsx`
         document.body.appendChild(a)
         a.click()
         document.body.removeChild(a)

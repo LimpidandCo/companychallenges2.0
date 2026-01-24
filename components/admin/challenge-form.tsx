@@ -113,6 +113,21 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate required fields
+    if (!internalName.trim()) {
+      setError('Name is required')
+      return
+    }
+    if (!publicTitle.trim()) {
+      setError('Public Title is required')
+      return
+    }
+    if (!descriptionHtml.trim()) {
+      setError('Challenge Description is required')
+      return
+    }
+    
     setIsSubmitting(true)
     setError(null)
 
@@ -247,6 +262,7 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
                   value={publicTitle}
                   onChange={(e) => setPublicTitle(e.target.value)}
                   placeholder="e.g. Leadership Development Program"
+                  required
                 />
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
@@ -292,7 +308,7 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
               {/* Description */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-900">
-                  Challenge Description
+                  Challenge Description <span className="text-red-500">*</span>
                 </label>
                 <InlineRichEditor
                   key={`desc-${challenge?.id || 'new'}-${open}`}
@@ -301,6 +317,7 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
                   placeholder="Welcome message and overview for participants..."
                   hint="This appears on the challenge landing page"
                   minHeight="150px"
+                  required
                   onUploadImage={handleEditorImageUpload}
                 />
               </div>

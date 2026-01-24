@@ -30,7 +30,7 @@ import {
   Badge,
   Spinner,
 } from '@/components/ui'
-import { AssignmentPicker, AssignmentUsageEditor, SprintForm, SprintList, AnnouncementForm, AnnouncementList, MilestoneForm, MilestoneList, MicroQuizEditor, AssignmentForm } from '@/components/admin'
+import { AssignmentPicker, AssignmentUsageEditor, SprintForm, SprintList, AnnouncementForm, AnnouncementList, MilestoneForm, MilestoneList, MicroQuizEditor, AssignmentForm, ChallengeForm } from '@/components/admin'
 import {
   addAssignmentToChallenge,
   removeAssignmentFromChallenge,
@@ -83,6 +83,7 @@ export function ChallengeDetailClient({
   const features = { ...DEFAULT_CHALLENGE_FEATURES, ...(challenge.features ?? {}) }
   const isIndividualMode = challenge.mode === 'individual' || challenge.mode === 'hybrid'
   const [isPickerOpen, setIsPickerOpen] = useState(false)
+  const [isChallengeFormOpen, setIsChallengeFormOpen] = useState(false)
   const [isAssignmentFormOpen, setIsAssignmentFormOpen] = useState(false)
   const [editingAssignment, setEditingAssignment] = useState<AssignmentWithUsages | null>(null)
   const [editingUsage, setEditingUsage] = useState<AssignmentUsageWithAssignment | null>(null)
@@ -292,6 +293,13 @@ export function ChallengeDetailClient({
           </div>
           
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsChallengeFormOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              <PencilIcon className="h-4 w-4" />
+              Edit Challenge
+            </button>
             <a
               href={`/c/${challenge.slug}`}
               target="_blank"
@@ -612,6 +620,18 @@ export function ChallengeDetailClient({
           setEditingAssignment(null)
         }}
         onSuccess={handleEditSuccess}
+      />
+
+      {/* Challenge Form Dialog */}
+      <ChallengeForm
+        clientId={challenge.client_id}
+        challenge={challenge}
+        open={isChallengeFormOpen}
+        onClose={() => setIsChallengeFormOpen(false)}
+        onSuccess={() => {
+          setIsChallengeFormOpen(false)
+          router.refresh()
+        }}
       />
     </div>
   )
@@ -942,6 +962,14 @@ function ExternalLinkIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
+    </svg>
+  )
+}
+
+function PencilIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
     </svg>
   )
 }

@@ -7,6 +7,7 @@ import { useUser } from '@/components/providers/clerk-provider'
 import { PasswordGate } from '@/components/public/password-gate'
 import { SupportModal } from '@/components/public/support-modal'
 import { InstructionsRenderer, AssignmentContentRenderer } from '@/components/public/content-renderer'
+import { MicroQuizList } from '@/components/public/micro-quiz'
 import { trackAssignmentView, trackAssignmentComplete, trackMediaPlay } from '@/lib/actions/analytics'
 import { startAssignment, completeAssignment } from '@/lib/actions/participants'
 import type { Assignment, MicroQuiz } from '@/lib/types/database'
@@ -50,6 +51,7 @@ export function AssignmentPageClient({
   const [isCompleted, setIsCompleted] = useState(false)
   const [isMarkingComplete, setIsMarkingComplete] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
+  const [showVideoModal, setShowVideoModal] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
   const hasTrackedView = useRef(false)
   const hasTrackedMediaPlay = useRef(false)
@@ -219,6 +221,7 @@ export function AssignmentPageClient({
       <PasswordGate
         assignmentId={assignment.id}
         assignmentTitle={title}
+        passwordInstructions={passwordInstructions}
         onSuccess={() => {
           setHasAccess(true)
           router.refresh()
@@ -341,26 +344,31 @@ export function AssignmentPageClient({
                 />
               )}
               
-              {/* Complete Button - Always visible, prominent */}
+              {/* Complete Button - Always visible, prominent, enlarged */}
               {navContext && (
                 isCompleted ? (
                   <button
                     onClick={navigateBack}
-                    className="inline-flex items-center justify-center rounded-lg w-11 h-11 sm:w-12 sm:h-12 text-white shadow-md transition-all hover:scale-105"
+                    className="inline-flex items-center gap-2 rounded-xl px-4 sm:px-5 py-2.5 sm:py-3 text-white shadow-lg transition-all hover:scale-105 font-semibold text-sm sm:text-base"
                     style={{ backgroundColor: '#16a34a' }}
                     title="Completed - click to go back"
                   >
                     <CheckIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                    <span className="hidden sm:inline">Done!</span>
                   </button>
                 ) : (
                   <button
                     onClick={handleCompleteClick}
                     disabled={isMarkingComplete}
-                    className="inline-flex items-center gap-2 rounded-lg px-5 sm:px-6 py-2.5 sm:py-3 text-sm font-bold border-2 bg-white transition-all hover:shadow-lg hover:scale-105 active:scale-95 disabled:opacity-70"
-                    style={{ borderColor: brandColor, color: brandColor }}
+                    className="inline-flex items-center gap-2 rounded-xl px-4 sm:px-6 py-2.5 sm:py-3 font-bold text-sm sm:text-base text-white shadow-lg transition-all hover:shadow-xl hover:scale-105 active:scale-95 disabled:opacity-70"
+                    style={{ backgroundColor: brandColor }}
                   >
-                    {isMarkingComplete && <SpinnerIcon className="h-4 w-4 animate-spin" />}
-                    <CheckCircleIcon className="h-4 w-4" />
+                    {isMarkingComplete ? (
+                      <SpinnerIcon className="h-5 w-5 animate-spin" />
+                    ) : (
+                      <CheckCircleIcon className="h-5 w-5 sm:h-6 sm:w-6" />
+                    )}
+                    <span className="hidden sm:inline">Complete</span>
                   </button>
                 )
               )}
@@ -413,50 +421,34 @@ export function AssignmentPageClient({
                     </div>
                   )}
 
-                  {/* Video/Media - Shown separately below the cover image */}
+                  {/* Video/Media - Button that opens modal */}
                   {hasMedia && (
-                    <div className="rounded-xl overflow-hidden shadow-lg bg-black">
-                      <div className="aspect-video">
-                        {isYouTubeUrl(assignment.media_url!) ? (
-                          <iframe
-                            src={getYouTubeEmbedUrl(assignment.media_url!)}
-                            className="h-full w-full"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowFullScreen
-                            onLoad={handleMediaPlay}
+                    <button
+                      onClick={() => setShowVideoModal(true)}
+                      className="group relative w-full rounded-xl overflow-hidden shadow-lg bg-gradient-to-br from-gray-900 to-gray-800 hover:shadow-xl transition-all duration-300"
+                    >
+                      <div className="aspect-video flex items-center justify-center">
+                        {/* Video Thumbnail or play button */}
+                        {isYouTubeUrl(assignment.media_url!) && getYouTubeThumbnail(assignment.media_url!) ? (
+                          <img 
+                            src={getYouTubeThumbnail(assignment.media_url!)!}
+                            alt="Video thumbnail"
+                            className="absolute inset-0 w-full h-full object-cover opacity-80 group-hover:opacity-60 transition-opacity"
                           />
-                        ) : isVimeoUrl(assignment.media_url!) ? (
-                          <iframe
-                            src={getVimeoEmbedUrl(assignment.media_url!)}
-                            className="h-full w-full"
-                            allow="autoplay; fullscreen; picture-in-picture"
-                            allowFullScreen
-                            onLoad={handleMediaPlay}
-                          />
-                        ) : isLoomUrl(assignment.media_url!) ? (
-                          <iframe
-                            src={getLoomEmbedUrl(assignment.media_url!)}
-                            className="h-full w-full"
-                            allowFullScreen
-                            onLoad={handleMediaPlay}
-                          />
-                        ) : isMiroUrl(assignment.media_url!) ? (
-                          <iframe
-                            src={getMiroEmbedUrl(assignment.media_url!)}
-                            className="h-full w-full"
-                            allowFullScreen
-                            onLoad={handleMediaPlay}
-                          />
-                        ) : (
-                          <video
-                            src={assignment.media_url!}
-                            controls
-                            className="h-full w-full"
-                            onPlay={handleMediaPlay}
-                          />
-                        )}
+                        ) : null}
+                        <div className="relative z-10 flex flex-col items-center gap-3">
+                          <div 
+                            className="w-16 h-16 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform"
+                            style={{ backgroundColor: brandColor }}
+                          >
+                            <PlayIcon className="h-8 w-8 text-white ml-1" />
+                          </div>
+                          <span className="text-white font-semibold text-sm opacity-90">
+                            Watch Video
+                          </span>
+                        </div>
                       </div>
-                    </div>
+                    </button>
                   )}
 
                   {/* Content Text */}
@@ -464,6 +456,14 @@ export function AssignmentPageClient({
                     <div className="prose prose-gray prose-lg max-w-none prose-headings:font-bold prose-headings:text-gray-900 prose-p:text-gray-700 prose-li:text-gray-700 prose-a:text-blue-600 prose-a:no-underline hover:prose-a:underline prose-img:rounded-xl prose-img:shadow-md">
                       <AssignmentContentRenderer assignment={assignment} />
                     </div>
+                  )}
+
+                  {/* Quiz Questions */}
+                  {quizzes && quizzes.length > 0 && (
+                    <MicroQuizList 
+                      quizzes={quizzes} 
+                      brandColor={brandColor}
+                    />
                   )}
 
                   {/* Empty state for right column */}
@@ -552,6 +552,69 @@ export function AssignmentPageClient({
       </div>
     )}
 
+    {/* Video Modal */}
+    {showVideoModal && assignment.media_url && (
+      <div 
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+        style={{ backgroundColor: 'rgba(0,0,0,0.9)' }}
+        onClick={() => setShowVideoModal(false)}
+      >
+        {/* Close button */}
+        <button
+          onClick={() => setShowVideoModal(false)}
+          className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 text-white transition-colors"
+        >
+          <CloseIcon className="h-6 w-6" />
+        </button>
+        
+        {/* Video container */}
+        <div 
+          className="w-full max-w-5xl aspect-video rounded-xl overflow-hidden shadow-2xl animate-scale-in"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {isYouTubeUrl(assignment.media_url) ? (
+            <iframe
+              src={`${getYouTubeEmbedUrl(assignment.media_url)}?autoplay=1`}
+              className="h-full w-full"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+              allowFullScreen
+              onLoad={handleMediaPlay}
+            />
+          ) : isVimeoUrl(assignment.media_url) ? (
+            <iframe
+              src={`${getVimeoEmbedUrl(assignment.media_url)}?autoplay=1`}
+              className="h-full w-full"
+              allow="autoplay; fullscreen; picture-in-picture"
+              allowFullScreen
+              onLoad={handleMediaPlay}
+            />
+          ) : isLoomUrl(assignment.media_url) ? (
+            <iframe
+              src={getLoomEmbedUrl(assignment.media_url)}
+              className="h-full w-full"
+              allowFullScreen
+              onLoad={handleMediaPlay}
+            />
+          ) : isMiroUrl(assignment.media_url) ? (
+            <iframe
+              src={getMiroEmbedUrl(assignment.media_url)}
+              className="h-full w-full"
+              allowFullScreen
+              onLoad={handleMediaPlay}
+            />
+          ) : (
+            <video
+              src={assignment.media_url}
+              controls
+              autoPlay
+              className="h-full w-full"
+              onPlay={handleMediaPlay}
+            />
+          )}
+        </div>
+      </div>
+    )}
+
     </>
   )
 }
@@ -576,7 +639,7 @@ function isMiroUrl(url: string): boolean {
   return url.includes('miro.com')
 }
 
-function getYouTubeEmbedUrl(url: string): string {
+function getYouTubeVideoId(url: string): string {
   let videoId = ''
   if (url.includes('youtube.com/watch')) {
     videoId = new URL(url).searchParams.get('v') || ''
@@ -585,7 +648,18 @@ function getYouTubeEmbedUrl(url: string): string {
   } else if (url.includes('youtube.com/embed/')) {
     videoId = url.split('youtube.com/embed/')[1]?.split('?')[0] || ''
   }
+  return videoId
+}
+
+function getYouTubeEmbedUrl(url: string): string {
+  const videoId = getYouTubeVideoId(url)
   return `https://www.youtube.com/embed/${videoId}`
+}
+
+function getYouTubeThumbnail(url: string): string | null {
+  const videoId = getYouTubeVideoId(url)
+  if (!videoId) return null
+  return `https://img.youtube.com/vi/${videoId}/maxresdefault.jpg`
 }
 
 function getVimeoEmbedUrl(url: string): string {
@@ -685,6 +759,22 @@ function BrandIconSmall({ className }: { className?: string }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="currentColor">
       <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-1-13h2v6h-2zm0 8h2v2h-2z"/>
+    </svg>
+  )
+}
+
+function PlayIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M8 5v14l11-7z"/>
+    </svg>
+  )
+}
+
+function CloseIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
     </svg>
   )
 }

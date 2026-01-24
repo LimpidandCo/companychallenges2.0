@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Button, Badge, Spinner, Dialog, DialogHeader, DialogTitle, DialogDescription, DialogContent, DialogFooter } from '@/components/ui'
+import { Button, Badge, Spinner, Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui'
 import { duplicateAssignment, deleteAssignment } from '@/lib/actions/assignments'
 import { UsedInDialog } from './used-in-dialog'
 import { VariantEditor } from './variant-editor'
@@ -287,7 +287,8 @@ export function AssignmentList({ assignments, onEdit, onRefresh, onTagClick }: A
           </DialogDescription>
         </DialogHeader>
 
-        <DialogContent>
+        {/* Note: SimpleDialog already wraps in DialogContent, so we use a div here */}
+        <div className="py-4">
           {deleteStep === 1 ? (
             <div className="space-y-4">
               <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
@@ -316,7 +317,7 @@ export function AssignmentList({ assignments, onEdit, onRefresh, onTagClick }: A
               </div>
             </div>
           )}
-        </DialogContent>
+        </div>
 
         <DialogFooter>
           <Button variant="secondary" onClick={handleDeleteCancel} disabled={isDeleting}>

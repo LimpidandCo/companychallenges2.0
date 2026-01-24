@@ -1,7 +1,7 @@
 'use client'
 
 import { useCallback, useState, useEffect, useRef } from 'react'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, Extension } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
@@ -13,6 +13,55 @@ import { FontFamily } from '@tiptap/extension-font-family'
 import { Highlight } from '@tiptap/extension-highlight'
 import { Underline } from '@tiptap/extension-underline'
 import { cn } from '@/lib/utils/cn'
+
+// Custom FontSize extension - TipTap doesn't have one built in
+const FontSize = Extension.create({
+  name: 'fontSize',
+
+  addOptions() {
+    return {
+      types: ['textStyle'],
+    }
+  },
+
+  addGlobalAttributes() {
+    return [
+      {
+        types: this.options.types,
+        attributes: {
+          fontSize: {
+            default: null,
+            parseHTML: element => element.style.fontSize?.replace(/['"]+/g, ''),
+            renderHTML: attributes => {
+              if (!attributes.fontSize) {
+                return {}
+              }
+              return {
+                style: `font-size: ${attributes.fontSize}`,
+              }
+            },
+          },
+        },
+      },
+    ]
+  },
+
+  addCommands() {
+    return {
+      setFontSize: (fontSize: string) => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize })
+          .run()
+      },
+      unsetFontSize: () => ({ chain }) => {
+        return chain()
+          .setMark('textStyle', { fontSize: null })
+          .removeEmptyTextStyle()
+          .run()
+      },
+    }
+  },
+})
 
 export interface InlineRichEditorProps {
   value?: string
@@ -66,12 +115,18 @@ const FONT_FAMILIES = [
 
 // Font sizes
 const FONT_SIZES = [
-  { label: 'Small', value: '12px' },
-  { label: 'Normal', value: '14px' },
-  { label: 'Medium', value: '16px' },
-  { label: 'Large', value: '18px' },
-  { label: 'X-Large', value: '24px' },
-  { label: 'XX-Large', value: '32px' },
+  { label: 'Default', value: '' },
+  { label: '10px', value: '10px' },
+  { label: '12px', value: '12px' },
+  { label: '14px', value: '14px' },
+  { label: '16px', value: '16px' },
+  { label: '18px', value: '18px' },
+  { label: '20px', value: '20px' },
+  { label: '24px', value: '24px' },
+  { label: '28px', value: '28px' },
+  { label: '32px', value: '32px' },
+  { label: '36px', value: '36px' },
+  { label: '48px', value: '48px' },
 ]
 
 // Preset colors for quick selection
@@ -116,6 +171,7 @@ export function InlineRichEditor({
       TextStyle,
       Color,
       FontFamily,
+      FontSize,
       Underline,
       Highlight.configure({
         multicolor: true,
@@ -187,7 +243,10 @@ export function InlineRichEditor({
   const setLink = useCallback(() => {
     if (!editor) return
     const previousUrl = editor.getAttributes('link').href || ''
-    const url = window.prompt('Enter URL:', previousUrl)
+    const url = window.prompt(
+      'Enter URL:\n\n• External: https://example.com\n• Internal assignment: /a/assignment-slug\n• Internal challenge: /c/challenge-slug',
+      previousUrl
+    )
     if (url === null) return
     if (url === '') {
       editor.chain().focus().unsetLink().run()
@@ -254,7 +313,13 @@ export function InlineRichEditor({
 
   const setFontSize = useCallback((size: string) => {
     if (!editor) return
-    editor.chain().focus().setMark('textStyle', { fontSize: size }).run()
+    if (size) {
+      // Use our custom FontSize extension command
+      ;(editor.chain().focus() as any).setFontSize(size).run()
+    } else {
+      // Reset to default
+      ;(editor.chain().focus() as any).unsetFontSize().run()
+    }
   }, [editor])
 
   const setTextColor = useCallback((color: string) => {
@@ -293,10 +358,10 @@ export function InlineRichEditor({
 
           {/* Font Size */}
           <select
+            value={editor?.getAttributes('textStyle').fontSize || ''}
             onChange={(e) => setFontSize(e.target.value)}
             className="h-7 rounded border border-gray-200 bg-white px-1.5 text-xs text-gray-700 focus:border-blue-500 focus:outline-none"
             title="Font Size"
-            defaultValue="14px"
           >
             {FONT_SIZES.map((size) => (
               <option key={size.value} value={size.value}>

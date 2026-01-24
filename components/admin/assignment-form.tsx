@@ -354,12 +354,17 @@ export function AssignmentForm({
                     onChange={(e) => setContentType(e.target.value as 'standard' | 'video' | 'quiz' | 'announcement')}
                     className="w-full h-10 px-3 rounded-lg border border-gray-200 bg-white text-gray-900 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none"
                   >
-                    <option value="standard">Standard</option>
-                    <option value="video">Video</option>
-                    <option value="quiz">Quiz</option>
-                    <option value="announcement">Announcement</option>
+                    <option value="standard">📄 Standard</option>
+                    <option value="video">🎬 Video</option>
+                    <option value="quiz">❓ Quiz</option>
+                    <option value="announcement">📢 Announcement</option>
                   </select>
-                  <p className="text-xs text-gray-500">Affects how assignment is displayed</p>
+                  <p className="text-xs text-gray-500">
+                    {contentType === 'standard' && 'Regular assignment with instructions and content'}
+                    {contentType === 'video' && 'Video-focused assignment - emphasize the video URL'}
+                    {contentType === 'quiz' && 'Quiz-based assignment - add quiz questions below'}
+                    {contentType === 'announcement' && 'Informational content - no completion required'}
+                  </p>
                 </div>
               </div>
 
@@ -469,14 +474,20 @@ export function AssignmentForm({
               {/* Password */}
               <div className="space-y-2">
                 <label className="text-sm font-medium text-gray-900">
-                  Password Protection <span className="font-normal text-gray-500">(optional)</span>
+                  Password Protection <span className="font-normal text-gray-500">(optional, gamification)</span>
                 </label>
                 <Input
-                  type="password"
+                  type="text"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder={hasPassword ? "Enter new password to change" : "Set a password"}
+                  autoComplete="off"
+                  data-1p-ignore
+                  data-lpignore="true"
                 />
+                <p className="text-xs text-gray-500">
+                  Password is visible because it's for gamification, not security. Case-insensitive.
+                </p>
                 {isEditing && hasPassword && (
                   <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600">
                     <input

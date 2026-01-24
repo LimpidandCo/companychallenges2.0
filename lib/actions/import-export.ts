@@ -15,9 +15,12 @@ export type ImportResult =
 
 /**
  * Export assignments to Excel file
+ * Supports filtering by IDs, tags, or challenge
  */
 export async function exportAssignments(options?: {
   assignmentIds?: string[]
+  tags?: string[]
+  challengeId?: string
   includeUsages?: boolean
 }): Promise<ExportResult> {
   try {
@@ -39,7 +42,10 @@ export async function exportAssignments(options?: {
         is_reusable,
         tags,
         created_at,
-        updated_at
+        updated_at,
+        assignment_usages!left (
+          challenge_id
+        )
       `)
       .order('internal_title', { ascending: true })
 
@@ -55,12 +61,33 @@ export async function exportAssignments(options?: {
       return { success: false, error: error.message }
     }
 
-    if (!assignments || assignments.length === 0) {
-      return { success: false, error: 'No assignments to export' }
+    // Apply client-side filters for tags and challenge (Supabase doesn't support contains on arrays well)
+    let filteredAssignments = assignments || []
+
+    // Filter by tags (any match)
+    if (options?.tags && options.tags.length > 0) {
+      const lowerTags = options.tags.map(t => t.toLowerCase())
+      filteredAssignments = filteredAssignments.filter(a =>
+        a.tags && a.tags.some((tag: string) => lowerTags.includes(tag.toLowerCase()))
+      )
+    }
+
+    // Filter by challenge ID
+    if (options?.challengeId) {
+      filteredAssignments = filteredAssignments.filter(a =>
+        a.assignment_usages?.some((u: { challenge_id: string }) => u.challenge_id === options.challengeId)
+      )
+    }
+
+    // Remove the usages from export data
+    const cleanedAssignments = filteredAssignments.map(({ assignment_usages, ...rest }) => rest)
+
+    if (!cleanedAssignments || cleanedAssignments.length === 0) {
+      return { success: false, error: 'No assignments match the filter criteria' }
     }
 
     // Transform data for Excel
-    const exportData = assignments.map((a) => ({
+    const exportData = cleanedAssignments.map((a) => ({
       ID: a.id,
       Slug: a.slug,
       'Internal Title': a.internal_title,

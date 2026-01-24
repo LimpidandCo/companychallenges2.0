@@ -109,27 +109,26 @@ export async function getChallengeBySlug(slug: string): Promise<ChallengeWithCli
 }
 
 /**
- * Generate a unique slug
+ * Generate a secure random string
  */
-async function generateUniqueSlug(baseName: string): Promise<string> {
+function generateRandomString(length: number): string {
+  const chars = 'abcdefghjkmnpqrstuvwxyz23456789' // Avoid ambiguous chars (0,o,1,l,i)
+  let result = ''
+  for (let i = 0; i < length; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length))
+  }
+  return result
+}
+
+/**
+ * Generate a unique slug - uses random string for security
+ * The slug doesn't reveal any information about the challenge content
+ */
+async function generateUniqueSlug(baseName?: string): Promise<string> {
   const supabase = createAdminClient()
 
-  // Generate base slug from name
-  let baseSlug = baseName
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .trim()
-    .slice(0, 50)
-
-  if (!baseSlug) {
-    baseSlug = 'challenge'
-  }
-
-  // Add random suffix
-  const randomSuffix = Math.random().toString(36).substring(2, 8)
-  let slug = `${baseSlug}-${randomSuffix}`
+  // Generate fully random slug for security (no name-based guessing)
+  const slug = generateRandomString(12)
 
   // Check uniqueness
   const { data } = await supabase

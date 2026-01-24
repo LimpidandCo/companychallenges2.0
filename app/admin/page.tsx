@@ -1,6 +1,10 @@
 import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui'
 import { getDashboardStats, getRecentActivity } from '@/lib/actions/dashboard'
+import { RefreshButton } from './refresh-button'
+
+export const dynamic = 'force-dynamic' // Always fetch fresh data
+export const revalidate = 0 // Disable caching
 
 export default async function AdminDashboard() {
   const [stats, activities] = await Promise.all([
@@ -8,16 +12,26 @@ export default async function AdminDashboard() {
     getRecentActivity(5),
   ])
 
+  const lastUpdated = new Date().toLocaleTimeString()
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Clean Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">
-          Dashboard
-        </h1>
-        <p className="text-gray-500 mt-1">
-          Manage your challenges and track engagement.
-        </p>
+      <div className="mb-8 flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            Dashboard
+          </h1>
+          <p className="text-gray-500 mt-1">
+            Manage your challenges and track engagement.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-400">
+            Updated {lastUpdated}
+          </span>
+          <RefreshButton />
+        </div>
       </div>
 
       {/* Stats Row */}

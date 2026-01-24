@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogContent,
   DialogFooter,
   Spinner,
 } from '@/components/ui'
@@ -96,6 +95,8 @@ export function AssignmentPicker({
   const handleLink = () => {
     if (selectedId) {
       onSelect(selectedId)
+      // Close dialog - parent's onSelect handler will refresh the page
+      handleClose()
     }
   }
 
@@ -148,7 +149,7 @@ export function AssignmentPicker({
             </DialogDescription>
           </DialogHeader>
 
-          <DialogContent className="space-y-4">
+          <div className="py-4 space-y-4">
             <Input
               type="search"
               placeholder="Search by name or tag..."
@@ -250,7 +251,7 @@ export function AssignmentPicker({
                 </div>
               )}
             </div>
-          </DialogContent>
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
@@ -276,17 +277,22 @@ export function AssignmentPicker({
             </DialogDescription>
           </DialogHeader>
 
-          <DialogContent className="space-y-4">
+          <div className="py-4 space-y-4">
             {/* Link option */}
-            <button
+            <Button
               type="button"
               onClick={handleLink}
               disabled={loading || isCreatingVersion}
-              className="w-full rounded-xl border-2 border-[var(--color-border)] p-4 text-left transition-colors hover:border-[var(--color-primary)] hover:bg-[var(--color-bg-subtle)]"
+              className="w-full rounded-xl border-2 border-[var(--color-border)] p-4 h-auto text-left transition-colors hover:border-[var(--color-primary)] hover:bg-[var(--color-bg-subtle)] justify-start"
+              variant="ghost"
             >
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-[var(--color-primary)] bg-opacity-10 p-2">
-                  <LinkIcon className="h-5 w-5 text-[var(--color-primary)]" />
+              <div className="flex items-start gap-3 w-full">
+                <div className="rounded-lg bg-[var(--color-primary)] bg-opacity-10 p-2 shrink-0">
+                  {loading ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <LinkIcon className="h-5 w-5 text-[var(--color-primary)]" />
+                  )}
                 </div>
                 <div>
                   <h4 className="font-semibold text-[var(--color-fg)]">Link (shared)</h4>
@@ -295,7 +301,7 @@ export function AssignmentPicker({
                   </p>
                 </div>
               </div>
-            </button>
+            </Button>
 
             {/* Create version option */}
             <div className="rounded-xl border-2 border-[var(--color-border)] p-4">
@@ -338,7 +344,7 @@ export function AssignmentPicker({
                 </div>
               </div>
             </div>
-          </DialogContent>
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={handleBack} disabled={loading || isCreatingVersion}>

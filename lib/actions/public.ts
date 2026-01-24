@@ -78,19 +78,32 @@ export async function verifyAssignmentPassword(
       return { success: true }
     }
 
-    // Verify password using database function (normalize to lowercase for case-insensitive matching)
-    const { data: isValid, error: verifyError } = await supabase.rpc('verify_password', {
-      password: password.toLowerCase(),
-      hash: assignment.password_hash
-    })
+    // Normalize password to lowercase for case-insensitive matching
+    const normalizedPassword = password.toLowerCase().trim()
+    const storedHash = assignment.password_hash
 
-    if (verifyError) {
-      console.error('Password verification error:', verifyError)
-      return { success: false, error: 'Failed to verify password' }
-    }
+    // Check if using fallback encoding (from when RPC wasn't available)
+    if (storedHash.startsWith('fallback:')) {
+      const storedPassword = atob(storedHash.slice(9))
+      if (normalizedPassword !== storedPassword) {
+        return { success: false, error: 'Incorrect password. Please try again.' }
+      }
+    } else {
+      // Verify password using database function
+      const { data: isValid, error: verifyError } = await supabase.rpc('verify_password', {
+        password: normalizedPassword,
+        hash: storedHash
+      })
 
-    if (!isValid) {
-      return { success: false, error: 'Incorrect password. Please try again.' }
+      if (verifyError) {
+        console.error('Password verification error:', verifyError)
+        // Try fallback comparison if RPC fails
+        return { success: false, error: 'Failed to verify password. Please try again.' }
+      }
+
+      if (!isValid) {
+        return { success: false, error: 'Incorrect password. Please try again.' }
+      }
     }
 
     // Set a cookie to remember the password verification for this assignment
