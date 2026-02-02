@@ -145,18 +145,6 @@ export function SupportModal({
             </div>
           )}
         </div>
-
-        {/* Footer with close button */}
-        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
-          <button
-            onClick={handleClose}
-            className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-colors"
-            style={{ backgroundColor: brandColor }}
-            type="button"
-          >
-            Got it
-          </button>
-        </div>
       </div>
     </div>
   ) : null
