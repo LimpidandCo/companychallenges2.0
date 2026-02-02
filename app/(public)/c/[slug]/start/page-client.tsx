@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useState, useMemo, useEffect } from 'react'
 import { AuthGate } from '@/components/public/auth-gate'
 import { SupportModal } from '@/components/public/support-modal'
@@ -48,10 +48,14 @@ export function AssignmentsGridClient({
   completedIds: serverCompletedIds = [],
 }: AssignmentsGridClientProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  
+  // Read sprint ID from URL params (for returning from assignment)
+  const urlSprintId = searchParams.get('sprint')
   
   // View state: 'sprints' shows sprint cards, 'assignments' shows assignment grid
-  const [currentView, setCurrentView] = useState<'sprints' | 'assignments'>('sprints')
-  const [selectedSprintId, setSelectedSprintId] = useState<string | null>(null)
+  const [currentView, setCurrentView] = useState<'sprints' | 'assignments'>(urlSprintId ? 'assignments' : 'sprints')
+  const [selectedSprintId, setSelectedSprintId] = useState<string | null>(urlSprintId)
   
   // Password modal state
   const [passwordModalSprint, setPasswordModalSprint] = useState<Sprint | null>(null)
@@ -85,7 +89,25 @@ export function AssignmentsGridClient({
       // localStorage might not be available
     }
     setIsPageLoaded(true)
-  }, [challenge.id])
+    
+    // If returning from assignment with sprint param, verify sprint is accessible
+    if (urlSprintId) {
+      const sprint = sprints.find(s => s.id === urlSprintId)
+      if (sprint) {
+        // Check if sprint requires password and is not unlocked
+        if (sprint.password_hash) {
+          const unlockedKey = `cc_unlocked_sprints_${challenge.id}`
+          const unlockedStored = localStorage.getItem(unlockedKey)
+          const unlockedSprints: string[] = unlockedStored ? JSON.parse(unlockedStored) : []
+          if (!unlockedSprints.includes(urlSprintId)) {
+            // Sprint needs password, show sprints view
+            setCurrentView('sprints')
+            setSelectedSprintId(null)
+          }
+        }
+      }
+    }
+  }, [challenge.id, urlSprintId, sprints])
 
   // Merge server and local completed IDs
   const completedIds = useMemo(() => {
@@ -152,12 +174,27 @@ export function AssignmentsGridClient({
     })
   }, [showMilestones, milestones, totalProgress])
 
+  // Check if a sprint is unlocked (password already entered)
+  const isSprintUnlocked = (sprintId: string): boolean => {
+    try {
+      const key = `cc_unlocked_sprints_${challenge.id}`
+      const stored = localStorage.getItem(key)
+      if (stored) {
+        const unlockedSprints: string[] = JSON.parse(stored)
+        return unlockedSprints.includes(sprintId)
+      }
+    } catch {
+      // localStorage might not be available
+    }
+    return false
+  }
+
   // Handle sprint card click
   const handleSprintClick = async (sprint: Sprint) => {
     const sprintUsages = sprintMap.get(sprint.id) || []
     
-    // If sprint has password, show password modal
-    if (sprint.password_hash) {
+    // If sprint has password AND is not already unlocked, show password modal
+    if (sprint.password_hash && !isSprintUnlocked(sprint.id)) {
       setPasswordModalSprint(sprint)
       return
     }

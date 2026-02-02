@@ -90,8 +90,12 @@ export function AssignmentPageClient({
   const challengeMode = navContext?.challenge.mode || 'collective'
   const isIndividualMode = challengeMode === 'individual' || challengeMode === 'hybrid'
   
-  // Build back URL - only link to challenge if we have context
-  const backUrl = challengeSlug ? `/${challengeSlug}/start` : null
+  // Build back URL - include sprint ID so user returns to sprint's assignments view
+  const backUrl = challengeSlug 
+    ? navContext?.sprintId 
+      ? `/${challengeSlug}/start?sprint=${navContext.sprintId}` 
+      : `/${challengeSlug}/start`
+    : null
 
   // Check localStorage for existing completion on mount
   useEffect(() => {
