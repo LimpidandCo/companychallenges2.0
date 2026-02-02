@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   DndContext,
   closestCenter,
@@ -39,10 +39,10 @@ export function MicroQuizList({ quizzes, onEdit, onRefresh }: MicroQuizListProps
   const [actionId, setActionId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
 
-  // Sync state when quizzes prop changes
-  if (quizzes !== items && JSON.stringify(quizzes) !== JSON.stringify(items)) {
+  // Sync state when quizzes prop changes - must use useEffect, not during render
+  useEffect(() => {
     setItems(quizzes)
-  }
+  }, [quizzes])
 
   const sensors = useSensors(
     useSensor(PointerSensor),

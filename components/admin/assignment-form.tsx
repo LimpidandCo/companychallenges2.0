@@ -45,7 +45,7 @@ export function AssignmentForm({
   const [visualUrl, setVisualUrl] = useState(assignment?.visual_url ?? '')
   const [password, setPassword] = useState(decodePassword(assignment?.password_hash ?? null))
   const [passwordRemember, setPasswordRemember] = useState(assignment?.password_remember ?? false)
-  const [saveForFutureReference, setSaveForFutureReference] = useState(true)
+  const [saveForFutureReference, setSaveForFutureReference] = useState(assignment?.is_reusable ?? true)
   const [tags, setTags] = useState<string[]>(assignment?.tags ?? [])
 
   // HTML content state (simplified - just use HTML, no JSON)
@@ -73,7 +73,7 @@ export function AssignmentForm({
         // Show the actual password (decoded from storage)
         setPassword(decodePassword(assignment.password_hash ?? null))
         setPasswordRemember(assignment.password_remember ?? false)
-        setSaveForFutureReference(true)
+        setSaveForFutureReference(assignment.is_reusable ?? true)
         setTags(assignment.tags ?? [])
         setError(null)
       } else {
@@ -556,18 +556,18 @@ export function AssignmentForm({
                 </div>
               </div>
 
-              {/* Library toggle */}
-              {!isEditing && (
-                <label className="flex items-center gap-2 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={saveForFutureReference}
-                    onChange={(e) => setSaveForFutureReference(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600"
-                  />
-                  <span className="text-sm text-gray-600">Save to library for reuse</span>
-                </label>
-              )}
+              {/* Library toggle - available for both new and existing assignments */}
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={saveForFutureReference}
+                  onChange={(e) => setSaveForFutureReference(e.target.checked)}
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                />
+                <span className="text-sm text-gray-600">
+                  {isEditing ? 'Keep in library' : 'Save to library for reuse'}
+                </span>
+              </label>
             </div>
 
             {/* Footer */}

@@ -45,13 +45,19 @@ export function MicroQuizForm({
   // Reset form when quiz changes
   useEffect(() => {
     if (quiz) {
-      setQuestion(quiz.question)
-      setQuizType(quiz.quiz_type)
-      setOptions(quiz.options ?? ['', ''])
+      setQuestion(quiz.question ?? '')
+      setQuizType(quiz.quiz_type ?? 'reflection')
+      // Ensure options is always an array with at least 2 items
+      const quizOptions = Array.isArray(quiz.options) && quiz.options.length >= 2 
+        ? quiz.options 
+        : ['', '']
+      setOptions(quizOptions)
       setScaleMin(quiz.scale_min ?? 1)
       setScaleMax(quiz.scale_max ?? 5)
-      setScaleLabelMin(quiz.scale_labels?.min ?? '')
-      setScaleLabelMax(quiz.scale_labels?.max ?? '')
+      // Safely access scale_labels which could be null or have unexpected structure
+      const labels = quiz.scale_labels as { min?: string; max?: string } | null
+      setScaleLabelMin(labels?.min ?? '')
+      setScaleLabelMax(labels?.max ?? '')
     } else {
       setQuestion('')
       setQuizType('reflection')
