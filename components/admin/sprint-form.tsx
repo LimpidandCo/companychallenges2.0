@@ -14,6 +14,7 @@ import {
 } from '@/components/ui'
 import { InlineRichEditor } from '@/components/ui/inline-rich-editor'
 import { createSprint, updateSprint } from '@/lib/actions/sprints'
+import { decodePassword } from '@/lib/utils/password'
 import { uploadFile } from '@/lib/actions/upload'
 import type { Sprint, SprintInsert, SprintUpdate } from '@/lib/types/database'
 
@@ -37,14 +38,11 @@ export function SprintForm({ challengeId, sprint, open, onClose, onSuccess }: Sp
   const [description, setDescription] = useState(sprint?.description ?? '')
   const [descriptionHtml, setDescriptionHtml] = useState(sprint?.description_html ?? '')
   const [coverImageUrl, setCoverImageUrl] = useState(sprint?.cover_image_url ?? '')
-  const [password, setPassword] = useState('')
-  const [removePassword, setRemovePassword] = useState(false)
+  const [password, setPassword] = useState(decodePassword(sprint?.password_hash ?? null))
   const [introVideoUrl, setIntroVideoUrl] = useState(sprint?.intro_video_url ?? '')
   const [recapVideoUrl, setRecapVideoUrl] = useState(sprint?.recap_video_url ?? '')
   const [startsAt, setStartsAt] = useState(sprint?.starts_at?.slice(0, 16) ?? '')
   const [endsAt, setEndsAt] = useState(sprint?.ends_at?.slice(0, 16) ?? '')
-
-  const hasPassword = !!sprint?.password_hash
 
   // Reset form when dialog opens
   useEffect(() => {
@@ -54,8 +52,8 @@ export function SprintForm({ challengeId, sprint, open, onClose, onSuccess }: Sp
       setDescription(sprint?.description ?? '')
       setDescriptionHtml(sprint?.description_html ?? '')
       setCoverImageUrl(sprint?.cover_image_url ?? '')
-      setPassword('')
-      setRemovePassword(false)
+      // Show the actual password (decoded from storage)
+      setPassword(decodePassword(sprint?.password_hash ?? null))
       setIntroVideoUrl(sprint?.intro_video_url ?? '')
       setRecapVideoUrl(sprint?.recap_video_url ?? '')
       setStartsAt(sprint?.starts_at?.slice(0, 16) ?? '')
@@ -106,8 +104,8 @@ export function SprintForm({ challengeId, sprint, open, onClose, onSuccess }: Sp
           description: description.trim() || null,
           description_html: descriptionHtml.trim() || null,
           cover_image_url: coverImageUrl.trim() || null,
-          // If removePassword is checked, pass null to clear; otherwise pass new password or undefined to keep
-          password: removePassword ? null : (password.trim() || undefined),
+          // Pass password value directly - empty string clears it
+          password: password.trim() || null,
           intro_video_url: introVideoUrl.trim() || null,
           recap_video_url: recapVideoUrl.trim() || null,
           starts_at: startsAt ? new Date(startsAt).toISOString() : null,
@@ -267,50 +265,34 @@ export function SprintForm({ challengeId, sprint, open, onClose, onSuccess }: Sp
           {/* Password */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-[var(--color-fg)]">
-              Password Protection
+              Password
             </label>
             
-            {/* Show indicator when password is set */}
-            {hasPassword && !password && !removePassword && (
-              <div className="flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm text-green-700">
-                <LockIcon className="h-4 w-4" />
-                <span>Password is set</span>
-              </div>
-            )}
-            
-            <Input
-              type="text"
-              value={password}
-              onChange={(e) => {
-                setPassword(e.target.value)
-                if (e.target.value) setRemovePassword(false)
-              }}
-              placeholder={hasPassword && !removePassword ? 'Enter new password to change' : 'Set a password'}
-              disabled={loading || removePassword}
-              autoComplete="off"
-              data-1p-ignore
-              data-lpignore="true"
-            />
-            <p className="text-xs text-[var(--color-fg-subtle)]">
-              Password is visible for gamification. Case-insensitive.
-            </p>
-            
-            {/* Option to remove existing password */}
-            {isEditing && hasPassword && (
-              <label className="flex items-center gap-2 cursor-pointer text-sm text-[var(--color-fg-subtle)]">
-                <input
-                  type="checkbox"
-                  checked={removePassword}
-                  onChange={(e) => {
-                    setRemovePassword(e.target.checked)
-                    if (e.target.checked) setPassword('')
-                  }}
-                  className="h-4 w-4 rounded border-gray-300"
+            <div className="flex items-center gap-2">
+              <Input
+                type="text"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder=""
+                disabled={loading}
+                autoComplete="off"
+                data-1p-ignore
+                data-lpignore="true"
+                className="flex-1"
+              />
+              {/* Clear password button */}
+              {password && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setPassword('')}
                   disabled={loading}
-                />
-                Remove existing password
-              </label>
-            )}
+                >
+                  ✕
+                </Button>
+              )}
+            </div>
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2">

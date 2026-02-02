@@ -82,14 +82,25 @@ export async function verifyAssignmentPassword(
     const normalizedPassword = password.toLowerCase().trim()
     const storedHash = assignment.password_hash
 
-    // Check if using fallback encoding (from when RPC wasn't available)
-    if (storedHash.startsWith('fallback:')) {
-      const storedPassword = atob(storedHash.slice(9))
+    // Check password format and verify accordingly
+    if (storedHash.startsWith('plain:')) {
+      // New plaintext format (for gamification - passwords are visible)
+      const storedPassword = storedHash.slice(6)
       if (normalizedPassword !== storedPassword) {
-        return { success: false, error: 'Incorrect password. Please try again.' }
+        return { success: false, error: '✕' }
+      }
+    } else if (storedHash.startsWith('fallback:')) {
+      // Legacy base64 encoded format
+      try {
+        const storedPassword = atob(storedHash.slice(9))
+        if (normalizedPassword !== storedPassword) {
+          return { success: false, error: '✕' }
+        }
+      } catch {
+        return { success: false, error: '✕' }
       }
     } else {
-      // Verify password using database function
+      // Legacy hashed format - verify using database function
       const { data: isValid, error: verifyError } = await supabase.rpc('verify_password', {
         password: normalizedPassword,
         hash: storedHash
@@ -97,12 +108,11 @@ export async function verifyAssignmentPassword(
 
       if (verifyError) {
         console.error('Password verification error:', verifyError)
-        // Try fallback comparison if RPC fails
-        return { success: false, error: 'Failed to verify password. Please try again.' }
+        return { success: false, error: '✕' }
       }
 
       if (!isValid) {
-        return { success: false, error: 'Incorrect password. Please try again.' }
+        return { success: false, error: '✕' }
       }
     }
 
@@ -183,14 +193,25 @@ export async function verifySprintPassword(
     const normalizedPassword = password.toLowerCase().trim()
     const storedHash = sprint.password_hash
 
-    // Check if using fallback encoding (from when RPC wasn't available)
-    if (storedHash.startsWith('fallback:')) {
-      const storedPassword = atob(storedHash.slice(9))
+    // Check password format and verify accordingly
+    if (storedHash.startsWith('plain:')) {
+      // New plaintext format (for gamification - passwords are visible)
+      const storedPassword = storedHash.slice(6)
       if (normalizedPassword !== storedPassword) {
-        return { success: false, error: 'Incorrect password. Please try again.' }
+        return { success: false, error: '✕' }
+      }
+    } else if (storedHash.startsWith('fallback:')) {
+      // Legacy base64 encoded format
+      try {
+        const storedPassword = atob(storedHash.slice(9))
+        if (normalizedPassword !== storedPassword) {
+          return { success: false, error: '✕' }
+        }
+      } catch {
+        return { success: false, error: '✕' }
       }
     } else {
-      // Verify password using database function
+      // Legacy hashed format - verify using database function
       const { data: isValid, error: verifyError } = await supabase.rpc('verify_password', {
         password: normalizedPassword,
         hash: storedHash
@@ -198,11 +219,11 @@ export async function verifySprintPassword(
 
       if (verifyError) {
         console.error('Sprint password verification error:', verifyError)
-        return { success: false, error: 'Failed to verify password. Please try again.' }
+        return { success: false, error: '✕' }
       }
 
       if (!isValid) {
-        return { success: false, error: 'Incorrect password. Please try again.' }
+        return { success: false, error: '✕' }
       }
     }
 

@@ -185,6 +185,19 @@ export function AssignmentsGridClient({
       const result = await verifySprintPassword(passwordModalSprint.id, password)
       
       if (result.success) {
+        // Store unlocked sprint in localStorage so assignments in this sprint are also unlocked
+        try {
+          const key = `cc_unlocked_sprints_${challenge.id}`
+          const stored = localStorage.getItem(key)
+          const unlockedSprints: string[] = stored ? JSON.parse(stored) : []
+          if (!unlockedSprints.includes(passwordModalSprint.id)) {
+            unlockedSprints.push(passwordModalSprint.id)
+            localStorage.setItem(key, JSON.stringify(unlockedSprints))
+          }
+        } catch {
+          // localStorage might not be available
+        }
+        
         const sprintUsages = sprintMap.get(passwordModalSprint.id) || []
         setPasswordModalSprint(null)
         
@@ -198,10 +211,10 @@ export function AssignmentsGridClient({
           setCurrentView('assignments')
         }
       } else {
-        setPasswordError(result.error || 'Incorrect password')
+        setPasswordError(result.error || '✕')
       }
     } catch {
-      setPasswordError('Failed to verify password')
+      setPasswordError('✕')
     } finally {
       setIsVerifying(false)
     }
@@ -766,7 +779,6 @@ function SprintPasswordGate({
         <h2 className="text-xl font-bold text-gray-900 mb-1">
           {sprint.name}
         </h2>
-        <p className="text-gray-500">Password</p>
       </div>
 
       {passwordInstructions && (
@@ -783,7 +795,7 @@ function SprintPasswordGate({
           type="text"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="Password"
+          placeholder="••••••••"
           autoFocus
           autoComplete="off"
           data-1p-ignore
@@ -798,24 +810,24 @@ function SprintPasswordGate({
         />
         
         {error && (
-          <p className="mt-2 text-center text-sm text-red-600">{error}</p>
+          <p className="mt-2 text-center text-sm text-red-600">✕</p>
         )}
 
         <div className="mt-4 flex gap-3">
           <button
             type="button"
             onClick={onClose}
-            className="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors"
+            className="flex-1 rounded-xl border border-gray-200 py-3 font-semibold text-gray-600 hover:bg-gray-50 transition-colors flex items-center justify-center"
           >
-            Cancel
+            <XIcon className="h-5 w-5" />
           </button>
           <button
             type="submit"
             disabled={isVerifying || !password.trim()}
-            className="flex-1 rounded-xl py-3 text-sm font-semibold text-white transition-colors disabled:opacity-50"
+            className="flex-1 rounded-xl py-3 font-semibold text-white transition-colors disabled:opacity-50 flex items-center justify-center"
             style={{ backgroundColor: brandColor }}
           >
-            {isVerifying ? 'Verifying...' : <UnlockIcon className="h-5 w-5 mx-auto" />}
+            {isVerifying ? <Spinner className="h-5 w-5" /> : <UnlockIcon className="h-5 w-5" />}
           </button>
         </div>
       </form>
@@ -1181,6 +1193,23 @@ function InfoIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+    </svg>
+  )
+}
+
+function XIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+    </svg>
+  )
+}
+
+function Spinner({ className }: { className?: string }) {
+  return (
+    <svg className={cn("animate-spin", className)} fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
     </svg>
   )
 }

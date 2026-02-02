@@ -203,36 +203,7 @@ async function generateUniqueSlug(baseName?: string): Promise<string> {
   return slug
 }
 
-/**
- * Hash a password using the database function
- * Passwords are normalized to lowercase for case-insensitive matching
- * If the RPC function doesn't exist, falls back to storing password directly (not recommended for production)
- */
-async function hashPassword(password: string): Promise<string> {
-  if (!password) return ''
-
-  const supabase = createAdminClient()
-  // Normalize to lowercase for case-insensitive matching
-  const normalizedPassword = password.toLowerCase().trim()
-  
-  try {
-    const { data, error } = await supabase.rpc('hash_password', { password: normalizedPassword })
-
-    if (error) {
-      // If RPC function doesn't exist, use a simple hash fallback
-      // This happens when the database migration hasn't created the function
-      console.warn('hash_password RPC not available, using fallback:', error.message)
-      // Simple base64 encoding as fallback (NOT secure, but allows functionality)
-      return `fallback:${btoa(normalizedPassword)}`
-    }
-
-    return data || ''
-  } catch (err) {
-    console.error('Error in hashPassword:', err)
-    // Fallback for any other errors
-    return `fallback:${btoa(normalizedPassword)}`
-  }
-}
+import { encodePassword } from '@/lib/utils/password'
 
 /**
  * Create a new assignment
@@ -242,7 +213,7 @@ export async function createAssignment(input: AssignmentInsert): Promise<Assignm
     const supabase = createAdminClient()
 
     const slug = input.slug || await generateUniqueSlug(input.internal_title)
-    const passwordHash = input.password ? await hashPassword(input.password) : null
+    const passwordHash = input.password ? encodePassword(input.password) : null
 
     const { data, error } = await supabase
       .from('assignments')
@@ -296,7 +267,7 @@ export async function createAssignmentForChallenge(
     const supabase = createAdminClient()
 
     const slug = input.slug || await generateUniqueSlug(input.internal_title)
-    const passwordHash = input.password ? await hashPassword(input.password) : null
+    const passwordHash = input.password ? encodePassword(input.password) : null
 
     // Create the assignment
     const { data: assignment, error: assignmentError } = await supabase
@@ -396,12 +367,12 @@ export async function updateAssignment(id: string, input: AssignmentUpdate): Pro
     if (input.tags !== undefined) updateData.tags = input.tags
     if (input.password_remember !== undefined) updateData.password_remember = input.password_remember
 
-    // Handle password update
+    // Handle password update (stored in reversible format for gamification)
     if (input.password !== undefined) {
       if (input.password === null || input.password === '') {
         updateData.password_hash = null
       } else {
-        updateData.password_hash = await hashPassword(input.password)
+        updateData.password_hash = encodePassword(input.password)
       }
     }
 

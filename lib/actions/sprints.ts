@@ -82,25 +82,7 @@ async function getNextSprintPosition(challengeId: string): Promise<number> {
   return 0
 }
 
-/**
- * Hash a password for sprint protection
- */
-async function hashSprintPassword(password: string, supabase: ReturnType<typeof createAdminClient>): Promise<string | null> {
-  if (!password) return null
-  
-  const normalizedPassword = password.toLowerCase().trim()
-  
-  try {
-    const { data, error } = await supabase.rpc('hash_password', { password: normalizedPassword })
-    if (error) {
-      console.warn('hash_password RPC not available, using fallback:', error.message)
-      return `fallback:${btoa(normalizedPassword)}`
-    }
-    return data || null
-  } catch {
-    return `fallback:${btoa(normalizedPassword)}`
-  }
-}
+import { encodePassword } from '@/lib/utils/password'
 
 /**
  * Generate unique slug for sprint
@@ -134,8 +116,8 @@ export async function createSprint(input: SprintInsert): Promise<SprintActionRes
     // Generate slug
     const slug = input.slug || generateSprintSlug()
     
-    // Hash password if provided
-    const passwordHash = input.password ? await hashSprintPassword(input.password, supabase) : null
+    // Encode password if provided (stored in reversible format for gamification)
+    const passwordHash = input.password ? encodePassword(input.password) : null
 
     const { data, error } = await supabase
       .from('sprints')
@@ -197,12 +179,13 @@ export async function updateSprint(id: string, input: SprintUpdate): Promise<Spr
     if (input.starts_at !== undefined) updateData.starts_at = input.starts_at
     if (input.ends_at !== undefined) updateData.ends_at = input.ends_at
     
-    // Handle password update
+    // Handle password update (stored in reversible format for gamification)
     if (input.password !== undefined) {
       if (input.password === null || input.password === '') {
         updateData.password_hash = null
       } else {
-        updateData.password_hash = await hashSprintPassword(input.password, supabase)
+        const encoded = encodePassword(input.password)
+        updateData.password_hash = encoded || null
       }
     }
 

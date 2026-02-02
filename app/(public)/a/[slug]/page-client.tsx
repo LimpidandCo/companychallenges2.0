@@ -49,6 +49,26 @@ export function AssignmentPageClient({
   const { isSignedIn } = useUser()
   const [hasAccess, setHasAccess] = useState(initialHasAccess)
   const [isCompleted, setIsCompleted] = useState(false)
+  
+  // Check if parent sprint has been unlocked (if so, skip assignment password gate)
+  useEffect(() => {
+    if (hasAccess || !requiresPassword) return
+    if (!navContext?.sprintId || !navContext?.challenge.id) return
+    
+    try {
+      const key = `cc_unlocked_sprints_${navContext.challenge.id}`
+      const stored = localStorage.getItem(key)
+      if (stored) {
+        const unlockedSprints: string[] = JSON.parse(stored)
+        if (unlockedSprints.includes(navContext.sprintId)) {
+          // Sprint was unlocked, so this assignment is accessible
+          setHasAccess(true)
+        }
+      }
+    } catch {
+      // localStorage might not be available
+    }
+  }, [hasAccess, requiresPassword, navContext?.sprintId, navContext?.challenge.id])
   const [isMarkingComplete, setIsMarkingComplete] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showVideoModal, setShowVideoModal] = useState(false)

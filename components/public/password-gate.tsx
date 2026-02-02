@@ -42,7 +42,6 @@ export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, passwor
     e.preventDefault()
 
     if (!password.trim()) {
-      setError('Please enter a password')
       return
     }
 
@@ -93,10 +92,10 @@ export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, passwor
             <LockIcon className="h-10 w-10 text-[var(--color-accent)]" />
           </div>
 
-          {/* Title - Simplified */}
-          <h1 className="mb-6 text-center text-2xl font-bold text-[var(--color-fg)]">
-            Password
-          </h1>
+          {/* Lock icon as title */}
+          <div className="mb-6 text-center">
+            <LockIcon className="h-8 w-8 mx-auto text-[var(--color-fg-subtle)]" />
+          </div>
 
           {/* Password Instructions - Only show if provided */}
           {passwordInstructions && (
@@ -120,7 +119,7 @@ export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, passwor
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Password"
+                  placeholder="••••••••"
                   disabled={isPending || !!retryAfter}
                   className={cn(
                     'w-full rounded-2xl border-[1.5px] bg-[var(--color-bg)] px-5 py-4 pr-20 text-[var(--color-fg)] placeholder-[var(--color-fg-subtle)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2',
@@ -138,7 +137,7 @@ export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, passwor
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     className="p-1 rounded hover:bg-gray-100 transition-colors"
-                    title={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label="Toggle visibility"
                   >
                     {showPassword ? (
                       <EyeOffIcon className="h-4 w-4 text-[var(--color-fg-subtle)]" />
@@ -164,7 +163,7 @@ export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, passwor
               <div className="text-center text-sm text-[var(--color-fg-muted)] py-2">
                 <span className="inline-flex items-center gap-2">
                   <ClockIcon className="h-4 w-4" />
-                  Wait <span className="font-bold text-[var(--color-fg)] tabular-nums">{retryAfter}</span> seconds
+                  <span className="font-bold text-[var(--color-fg)] tabular-nums">{retryAfter}s</span>
                 </span>
               </div>
             )}

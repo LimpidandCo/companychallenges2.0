@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -78,6 +78,23 @@ export function ChallengeDetailClient({
   const [sprints, setSprints] = useState(initialSprints)
   const [announcements, setAnnouncements] = useState(initialAnnouncements)
   const [milestones, setMilestones] = useState(initialMilestones)
+
+  // Sync state with props when they change (after router.refresh())
+  useEffect(() => {
+    setUsages(initialUsages)
+  }, [initialUsages])
+
+  useEffect(() => {
+    setSprints(initialSprints)
+  }, [initialSprints])
+
+  useEffect(() => {
+    setAnnouncements(initialAnnouncements)
+  }, [initialAnnouncements])
+
+  useEffect(() => {
+    setMilestones(initialMilestones)
+  }, [initialMilestones])
 
   // Feature flags from challenge settings (merge with defaults for missing keys)
   const features = { ...DEFAULT_CHALLENGE_FEATURES, ...(challenge.features ?? {}) }

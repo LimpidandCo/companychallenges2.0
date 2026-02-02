@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { Button, Input, Spinner, TagInput } from '@/components/ui'
 import { InlineRichEditor } from '@/components/ui/inline-rich-editor'
 import { createAssignment, updateAssignment, createAssignmentForChallenge } from '@/lib/actions/assignments'
+import { decodePassword } from '@/lib/utils/password'
 import { uploadFile } from '@/lib/actions/upload'
 import type { Assignment, AssignmentWithUsages, EditorContent } from '@/lib/types/database'
 import { cn } from '@/lib/utils/cn'
@@ -42,9 +43,8 @@ export function AssignmentForm({
   const [contentType, setContentType] = useState<'standard' | 'video' | 'quiz' | 'announcement'>(assignment?.content_type ?? 'standard')
   const [mediaUrl, setMediaUrl] = useState(assignment?.media_url ?? '')
   const [visualUrl, setVisualUrl] = useState(assignment?.visual_url ?? '')
-  const [password, setPassword] = useState('')
+  const [password, setPassword] = useState(decodePassword(assignment?.password_hash ?? null))
   const [passwordRemember, setPasswordRemember] = useState(assignment?.password_remember ?? false)
-  const [removePassword, setRemovePassword] = useState(false)
   const [saveForFutureReference, setSaveForFutureReference] = useState(true)
   const [tags, setTags] = useState<string[]>(assignment?.tags ?? [])
 
@@ -57,7 +57,6 @@ export function AssignmentForm({
   const [isUploadingMedia, setIsUploadingMedia] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const hasPassword = assignment?.password_hash !== null
 
   useEffect(() => {
     if (open) {
@@ -71,9 +70,9 @@ export function AssignmentForm({
         setContentHtml(assignment.content_html ?? '')
         setMediaUrl(assignment.media_url ?? '')
         setVisualUrl(assignment.visual_url ?? '')
-        setPassword('')
+        // Show the actual password (decoded from storage)
+        setPassword(decodePassword(assignment.password_hash ?? null))
         setPasswordRemember(assignment.password_remember ?? false)
-        setRemovePassword(false)
         setSaveForFutureReference(true)
         setTags(assignment.tags ?? [])
         setError(null)
@@ -89,7 +88,6 @@ export function AssignmentForm({
         setVisualUrl('')
         setPassword('')
         setPasswordRemember(false)
-        setRemovePassword(false)
         setSaveForFutureReference(true)
         setTags([])
         setError(null)
@@ -208,8 +206,8 @@ export function AssignmentForm({
           content_html: contentHtml || null,
           media_url: mediaUrl || null,
           visual_url: visualUrl || null,
-          // If removePassword is checked, pass null to remove; otherwise pass new password or undefined to keep existing
-          password: removePassword ? null : (password || undefined),
+          // Pass password value directly - empty string clears it
+          password: password.trim() || null,
           password_remember: passwordRemember,
           is_reusable: saveForFutureReference,
           tags,
@@ -534,38 +532,28 @@ export function AssignmentForm({
                 <label className="text-sm font-medium text-gray-900">
                   Password Protection <span className="font-normal text-gray-500">(optional, gamification)</span>
                 </label>
-                <Input
-                  type="text"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder={hasPassword ? "Enter new password to change" : "Set a password"}
-                  autoComplete="off"
-                  data-1p-ignore
-                  data-lpignore="true"
-                />
-                <p className="text-xs text-gray-500">
-                  Password is visible because it&apos;s for gamification, not security. Case-insensitive.
-                </p>
-                <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600">
-                  <input
-                    type="checkbox"
-                    checked={passwordRemember}
-                    onChange={(e) => setPasswordRemember(e.target.checked)}
-                    className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="text"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder=""
+                    autoComplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
+                    className="flex-1"
                   />
-                  Remember password for session (uncheck to always require)
-                </label>
-                {isEditing && hasPassword && (
-                  <label className="flex items-center gap-2 cursor-pointer text-sm text-gray-600">
-                    <input
-                      type="checkbox"
-                      checked={removePassword}
-                      onChange={(e) => setRemovePassword(e.target.checked)}
-                      className="h-4 w-4 rounded border-gray-300"
-                    />
-                    Remove existing password
-                  </label>
-                )}
+                  {password && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setPassword('')}
+                    >
+                      ✕
+                    </Button>
+                  )}
+                </div>
               </div>
 
               {/* Library toggle */}
