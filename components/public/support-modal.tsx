@@ -1,6 +1,7 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import { ContentRenderer } from './content-renderer'
 
 interface SupportModalProps {
@@ -26,10 +27,139 @@ export function SupportModal({
   title = 'Support',
 }: SupportModalProps) {
   const [isOpen, setIsOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  // Ensure we only render portal on client
+  useEffect(() => {
+    setMounted(true)
+    return () => setMounted(false)
+  }, [])
+
+  // Handle escape key
+  useEffect(() => {
+    if (!isOpen) return
+    
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setIsOpen(false)
+      }
+    }
+    
+    document.addEventListener('keydown', handleEscape)
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden'
+    
+    return () => {
+      document.removeEventListener('keydown', handleEscape)
+      document.body.style.overflow = ''
+    }
+  }, [isOpen])
+
+  const handleClose = useCallback(() => {
+    setIsOpen(false)
+  }, [])
+
+  const handleBackdropClick = useCallback((e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClose()
+    }
+  }, [handleClose])
 
   // Don't render if there's nothing to show
   const hasContent = supportInfo || contactInfo || passwordInstructions
   if (!hasContent) return null
+
+  const modalContent = isOpen ? (
+    <div 
+      className="fixed inset-0 flex items-center justify-center p-4"
+      style={{ zIndex: 9999 }}
+      onClick={handleBackdropClick}
+    >
+      {/* Backdrop */}
+      <div 
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity duration-200"
+        style={{ zIndex: 9999 }}
+      />
+      
+      {/* Modal Content */}
+      <div 
+        className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl overflow-hidden transform transition-all duration-200"
+        style={{ zIndex: 10000 }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Header */}
+        <div 
+          className="flex items-center justify-between px-6 py-4 border-b border-gray-100"
+          style={{ backgroundColor: `${brandColor}08` }}
+        >
+          <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+          <button
+            onClick={handleClose}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
+            aria-label="Close"
+            type="button"
+          >
+            <XIcon className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="p-6 max-h-[60vh] overflow-y-auto space-y-5">
+          {/* Support Info - Rich Content */}
+          {supportInfo && (
+            <div>
+              <ContentRenderer 
+                html={supportInfo} 
+                variant="default"
+              />
+            </div>
+          )}
+
+          {/* Contact Info Section */}
+          {contactInfo && (
+            <div className="rounded-xl bg-gray-50 p-4">
+              <div className="flex items-center gap-2 mb-2">
+                <ContactIcon className="h-4 w-4 text-gray-500" />
+                <h3 className="text-sm font-semibold text-gray-700">Contact</h3>
+              </div>
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">{contactInfo}</p>
+            </div>
+          )}
+
+          {/* Password Instructions Section */}
+          {passwordInstructions && (
+            <div 
+              className="rounded-xl p-4 border"
+              style={{ 
+                borderColor: `${brandColor}30`,
+                backgroundColor: `${brandColor}08`
+              }}
+            >
+              <div className="flex items-center gap-2 mb-2">
+                <LockIcon className="h-4 w-4" style={{ color: brandColor }} />
+                <h3 className="text-sm font-semibold" style={{ color: brandColor }}>
+                  Password Access
+                </h3>
+              </div>
+              <p className="text-sm text-gray-600 whitespace-pre-wrap">{passwordInstructions}</p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer with close button */}
+        <div className="px-6 py-4 border-t border-gray-100 bg-gray-50">
+          <button
+            onClick={handleClose}
+            className="w-full px-4 py-2.5 rounded-xl text-sm font-medium text-white transition-colors"
+            style={{ backgroundColor: brandColor }}
+            type="button"
+          >
+            Got it
+          </button>
+        </div>
+      </div>
+    </div>
+  ) : null
 
   return (
     <>
@@ -43,6 +173,7 @@ export function SupportModal({
             color: brandColor 
           }}
           aria-label="Support information"
+          type="button"
         >
           <InfoIcon className="h-5 w-5" />
         </button>
@@ -54,86 +185,15 @@ export function SupportModal({
             backgroundColor: `${brandColor}15`,
             color: brandColor 
           }}
+          type="button"
         >
           <InfoIcon className="h-4 w-4" />
           {label}
         </button>
       )}
 
-      {/* Modal */}
-      {isOpen && (
-        <div 
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
-          onClick={() => setIsOpen(false)}
-        >
-          {/* Backdrop */}
-          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
-          
-          {/* Modal Content */}
-          <div 
-            className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl animate-pop-in overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Header */}
-            <div 
-              className="flex items-center justify-between px-6 py-4 border-b border-gray-100"
-              style={{ backgroundColor: `${brandColor}08` }}
-            >
-              <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="flex h-8 w-8 items-center justify-center rounded-full text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-                aria-label="Close"
-              >
-                <XIcon className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Content */}
-            <div className="p-6 max-h-[60vh] overflow-y-auto space-y-5">
-              {/* Support Info - Rich Content */}
-              {supportInfo && (
-                <div>
-                  <ContentRenderer 
-                    html={supportInfo} 
-                    variant="default"
-                  />
-                </div>
-              )}
-
-              {/* Contact Info Section */}
-              {contactInfo && (
-                <div className="rounded-xl bg-gray-50 p-4">
-                  <div className="flex items-center gap-2 mb-2">
-                    <ContactIcon className="h-4 w-4 text-gray-500" />
-                    <h3 className="text-sm font-semibold text-gray-700">Contact</h3>
-                  </div>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{contactInfo}</p>
-                </div>
-              )}
-
-              {/* Password Instructions Section */}
-              {passwordInstructions && (
-                <div 
-                  className="rounded-xl p-4 border"
-                  style={{ 
-                    borderColor: `${brandColor}30`,
-                    backgroundColor: `${brandColor}08`
-                  }}
-                >
-                  <div className="flex items-center gap-2 mb-2">
-                    <LockIcon className="h-4 w-4" style={{ color: brandColor }} />
-                    <h3 className="text-sm font-semibold" style={{ color: brandColor }}>
-                      Password Access
-                    </h3>
-                  </div>
-                  <p className="text-sm text-gray-600 whitespace-pre-wrap">{passwordInstructions}</p>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Portal the modal to document body */}
+      {mounted && modalContent && createPortal(modalContent, document.body)}
     </>
   )
 }
