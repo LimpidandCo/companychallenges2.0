@@ -163,7 +163,7 @@ export function SprintForm({ challengeId, sprint, open, onClose, onSuccess }: Sp
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-4 py-4 max-h-[60vh] overflow-y-auto px-1">
           {error && (
             <div className="rounded-[var(--radius-md)] bg-[var(--color-error-subtle)] p-3 text-sm text-[var(--color-error)]">
               {error}

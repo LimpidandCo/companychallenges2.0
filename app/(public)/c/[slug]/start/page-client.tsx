@@ -392,11 +392,10 @@ export function AssignmentsGridClient({
                   </div>
                 )}
                 
-                {(challenge.support_info || challenge.contact_info || challenge.password_instructions) && (
+                {(challenge.support_info || challenge.contact_info) && (
                   <SupportModal 
                     supportInfo={challenge.support_info}
                     contactInfo={challenge.contact_info}
-                    passwordInstructions={challenge.password_instructions}
                     brandColor={brandColor}
                     variant="icon"
                   />
@@ -645,7 +644,23 @@ function SprintCard({
           : 'border-gray-200 hover:border-gray-300'
       )}
     >
-      {/* Progress bar at top */}
+      {/* Cover Image */}
+      {sprint.cover_image_url && (
+        <div className="relative h-32 sm:h-40 overflow-hidden">
+          <img 
+            src={sprint.cover_image_url} 
+            alt={sprint.name}
+            className={cn(
+              "w-full h-full object-cover",
+              isLocked && "opacity-50 grayscale"
+            )}
+          />
+          {/* Gradient overlay */}
+          <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
+        </div>
+      )}
+
+      {/* Progress bar */}
       {showProgress && !isLocked && (
         <div className="h-1.5 bg-gray-100">
           <div 
@@ -681,14 +696,8 @@ function SprintCard({
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Mission label + status */}
+            {/* Status badges */}
             <div className="flex items-center gap-2 mb-1">
-              <span 
-                className="text-xs font-bold uppercase tracking-wider"
-                style={{ color: isLocked ? '#9ca3af' : brandColor }}
-              >
-                {missionLabel} {index}
-              </span>
               {hasPassword && !isLocked && (
                 <span className="flex items-center gap-1 text-xs text-amber-600 bg-amber-50 px-2 py-0.5 rounded-full">
                   <LockIcon className="h-3 w-3" />

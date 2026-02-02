@@ -99,12 +99,11 @@ export function ChallengePageClient({
                   </Link>
                 )}
 
-                {/* Info Button */}
-                {(challenge.support_info || challenge.contact_info || challenge.password_instructions) && (
+                {/* Info Button - Support info only, not password instructions */}
+                {(challenge.support_info || challenge.contact_info) && (
                   <SupportModal 
                     supportInfo={challenge.support_info}
                     contactInfo={challenge.contact_info}
-                    passwordInstructions={challenge.password_instructions}
                     brandColor={brandColor}
                     variant="icon"
                   />

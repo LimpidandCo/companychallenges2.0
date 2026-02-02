@@ -357,12 +357,11 @@ export function AssignmentPageClient({
 
             {/* Right side: Support + Complete */}
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
-              {/* Support Modal */}
-              {(supportInfo || contactInfo || passwordInstructions) && (
+              {/* Support Modal - Support info only, not password instructions */}
+              {(supportInfo || contactInfo) && (
                 <SupportModal 
                   supportInfo={supportInfo}
                   contactInfo={contactInfo}
-                  passwordInstructions={passwordInstructions}
                   brandColor={brandColor}
                   variant="icon"
                 />

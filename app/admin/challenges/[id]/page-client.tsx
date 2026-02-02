@@ -391,12 +391,10 @@ export function ChallengeDetailClient({
                   Organize assignments into themed phases. Drag to reorder.
                 </CardDescription>
               </div>
-              {sprints.length === 0 && (
-                <Button variant="secondary" size="sm" onClick={() => setIsSprintFormOpen(true)}>
-                  <PlusIcon className="h-4 w-4" />
-                  Create Sprint
-                </Button>
-              )}
+              <Button variant="secondary" size="sm" onClick={() => setIsSprintFormOpen(true)}>
+                <PlusIcon className="h-4 w-4" />
+                Create Sprint
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -433,12 +431,10 @@ export function ChallengeDetailClient({
                   Post updates and communicate with participants.
                 </CardDescription>
               </div>
-              {announcements.length === 0 && (
-                <Button variant="secondary" size="sm" onClick={() => setIsAnnouncementFormOpen(true)}>
-                  <PlusIcon className="h-4 w-4" />
-                  Post Announcement
-                </Button>
-              )}
+              <Button variant="secondary" size="sm" onClick={() => setIsAnnouncementFormOpen(true)}>
+                <PlusIcon className="h-4 w-4" />
+                Post Announcement
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
@@ -473,12 +469,10 @@ export function ChallengeDetailClient({
                   Define achievement moments to celebrate participant progress.
                 </CardDescription>
               </div>
-              {milestones.length === 0 && (
-                <Button variant="secondary" size="sm" onClick={() => setIsMilestoneFormOpen(true)}>
-                  <PlusIcon className="h-4 w-4" />
-                  Add Milestone
-                </Button>
-              )}
+              <Button variant="secondary" size="sm" onClick={() => setIsMilestoneFormOpen(true)}>
+                <PlusIcon className="h-4 w-4" />
+                Add Milestone
+              </Button>
             </div>
           </CardHeader>
           <CardContent>
