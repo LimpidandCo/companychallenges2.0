@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils/cn'
 interface PasswordGateProps {
   assignmentId: string
   assignmentTitle: string
+  passwordInstructions?: string
   onSuccess: () => void
   analyticsContext?: {
     clientId: string
@@ -15,7 +16,7 @@ interface PasswordGateProps {
   }
 }
 
-export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, analyticsContext }: PasswordGateProps) {
+export function PasswordGate({ assignmentId, assignmentTitle, passwordInstructions, onSuccess, analyticsContext }: PasswordGateProps) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [retryAfter, setRetryAfter] = useState<number | null>(null)
@@ -95,10 +96,16 @@ export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, analyti
           <h1 className="mb-2 text-center text-2xl font-bold text-[var(--color-fg)]">
             Password Required
           </h1>
-          <p className="mb-8 text-center text-[var(--color-fg-muted)]">
+          <p className="mb-4 text-center text-[var(--color-fg-muted)]">
             Enter the password to unlock{' '}
             <span className="font-semibold text-[var(--color-fg)]">{assignmentTitle}</span>
           </p>
+          {passwordInstructions && (
+            <p className="mb-8 text-center text-sm text-[var(--color-fg-subtle)] italic">
+              {passwordInstructions}
+            </p>
+          )}
+          {!passwordInstructions && <div className="mb-4" />}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
