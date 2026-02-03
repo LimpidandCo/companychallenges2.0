@@ -277,22 +277,16 @@ function serializeTextNode(node: TextNode, indent: string = ""): string {
   // Check if the block is empty (no content and no inline children with content)
   const isEmpty = !content || content.trim() === ""
 
+  // If empty, render as <br/> tag
+  if (isEmpty) {
+    return `${indent}<br />\n`
+  }
+
   // Build the HTML element
   const classAttr = allClasses ? ` class="${allClasses}"` : ""
 
   // Use appropriate HTML tag
   const tag = type === "code" ? "pre" : type
-
-  // For empty paragraphs, use &nbsp; to preserve the line space
-  // This ensures blank lines show up in the rendered output
-  if (isEmpty && type === "p") {
-    return `${indent}<${tag}${classAttr}${styleAttr}>&nbsp;</${tag}>\n`
-  }
-
-  // If empty and not a paragraph, render as <br/>
-  if (isEmpty) {
-    return `${indent}<br />\n`
-  }
 
   return `${indent}<${tag}${classAttr}${styleAttr}>${content}</${tag}>\n`
 }

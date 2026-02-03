@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
@@ -30,7 +30,7 @@ import {
   Badge,
   Spinner,
 } from '@/components/ui'
-import { AssignmentPicker, AssignmentUsageEditor, SprintForm, SprintList, AnnouncementForm, AnnouncementList, MilestoneForm, MilestoneList, MicroQuizEditor, AssignmentForm, ChallengeForm } from '@/components/admin'
+import { AssignmentPicker, AssignmentUsageEditor, SprintForm, SprintList, AnnouncementForm, AnnouncementList, MilestoneForm, MilestoneList, MicroQuizEditor, AssignmentForm } from '@/components/admin'
 import {
   addAssignmentToChallenge,
   removeAssignmentFromChallenge,
@@ -45,7 +45,6 @@ import type {
   Announcement,
   Milestone,
 } from '@/lib/types/database'
-import { DEFAULT_CHALLENGE_FEATURES } from '@/lib/types/database'
 
 interface ChallengeDetailClientProps {
   challenge: ChallengeWithClient
@@ -78,31 +77,8 @@ export function ChallengeDetailClient({
   const [sprints, setSprints] = useState(initialSprints)
   const [announcements, setAnnouncements] = useState(initialAnnouncements)
   const [milestones, setMilestones] = useState(initialMilestones)
-
-  // Sync state with props when they change (after router.refresh())
-  useEffect(() => {
-    setUsages(initialUsages)
-  }, [initialUsages])
-
-  useEffect(() => {
-    setSprints(initialSprints)
-  }, [initialSprints])
-
-  useEffect(() => {
-    setAnnouncements(initialAnnouncements)
-  }, [initialAnnouncements])
-
-  useEffect(() => {
-    setMilestones(initialMilestones)
-  }, [initialMilestones])
-
-  // Feature flags from challenge settings (merge with defaults for missing keys)
-  const features = { ...DEFAULT_CHALLENGE_FEATURES, ...(challenge.features ?? {}) }
-  const isIndividualMode = challenge.mode === 'individual' || challenge.mode === 'hybrid'
   const [isPickerOpen, setIsPickerOpen] = useState(false)
-  const [isChallengeFormOpen, setIsChallengeFormOpen] = useState(false)
   const [isAssignmentFormOpen, setIsAssignmentFormOpen] = useState(false)
-  const [editingAssignment, setEditingAssignment] = useState<AssignmentWithUsages | null>(null)
   const [editingUsage, setEditingUsage] = useState<AssignmentUsageWithAssignment | null>(null)
   const [isSprintFormOpen, setIsSprintFormOpen] = useState(false)
   const [editingSprint, setEditingSprint] = useState<Sprint | null>(null)
@@ -221,28 +197,6 @@ export function ChallengeDetailClient({
     }
   }
 
-  const handleSprintChange = async (usageId: string, sprintId: string | null) => {
-    setActionId(usageId)
-
-    try {
-      const result = await updateAssignmentUsage(usageId, {
-        sprint_id: sprintId,
-      })
-
-      if (result.success) {
-        setUsages(usages.map((u) =>
-          u.id === usageId ? { ...u, sprint_id: sprintId } : u
-        ))
-      } else {
-        setError(result.error ?? 'Failed to assign sprint')
-      }
-    } catch (err) {
-      setError('Failed to assign sprint')
-    } finally {
-      setActionId(null)
-    }
-  }
-
   const handleEditSuccess = () => {
     router.refresh()
   }
@@ -290,98 +244,95 @@ export function ChallengeDetailClient({
   }
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-      {/* Compact Header */}
-      <div className="mb-8">
-        <nav className="flex items-center gap-2 text-sm text-gray-500 mb-3">
-          <Link href="/admin/clients" className="hover:text-gray-900 transition-colors">
+    <div className="p-6 lg:p-8">
+      {/* Header with breadcrumb */}
+      <div className="mb-6">
+        <nav className="mb-2 text-sm text-[var(--color-fg-muted)]">
+          <Link href="/admin/clients" className="hover:text-[var(--color-primary)]">
             Clients
           </Link>
-          <ChevronIcon className="h-4 w-4 text-gray-300" />
-          <Link href={`/admin/clients/${challenge.client_id}`} className="hover:text-gray-900 transition-colors">
+          <span className="mx-2">/</span>
+          <Link href={`/admin/clients/${challenge.client_id}`} className="hover:text-[var(--color-primary)]">
             {challenge.client.name}
           </Link>
-          <ChevronIcon className="h-4 w-4 text-gray-300" />
-          <span className="text-gray-900 font-medium">{challenge.internal_name}</span>
+          <span className="mx-2">/</span>
+          <span className="text-[var(--color-fg)]">{challenge.internal_name}</span>
         </nav>
-        
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <div 
-              className="h-14 w-14 rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg"
-              style={{ backgroundColor: challenge.brand_color || '#3b82f6' }}
-            >
-              {challenge.internal_name.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">
-                {challenge.internal_name}
-              </h1>
-              <div className="flex items-center gap-3 mt-1 text-sm text-gray-500">
-                <code className="px-2 py-0.5 bg-gray-100 rounded font-mono text-gray-700">
-                  /{challenge.slug}
-                </code>
-                {challenge.folder && (
-                  <span className="flex items-center gap-1">
-                    <FolderIcon className="h-3.5 w-3.5" />
-                    {challenge.folder}
-                  </span>
-                )}
-              </div>
-            </div>
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-semibold text-[var(--color-fg)]">
+              {challenge.internal_name}
+            </h1>
+            {challenge.public_title && (
+              <p className="mt-1 text-[var(--color-fg-muted)]">
+                {challenge.public_title}
+              </p>
+            )}
           </div>
-          
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setIsChallengeFormOpen(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
-            >
-              <PencilIcon className="h-4 w-4" />
-              Edit Challenge
-            </button>
-            <a
-              href={`/${challenge.slug}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold text-white shadow-lg transition-all hover:shadow-xl hover:-translate-y-0.5"
-              style={{ backgroundColor: challenge.brand_color || '#3b82f6' }}
-            >
-              <ExternalLinkIcon className="h-4 w-4" />
-              Preview
-            </a>
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={() => setIsAssignmentFormOpen(true)}>
+              <PlusIcon className="h-4 w-4" />
+              Create New
+            </Button>
+            <Button variant="secondary" onClick={() => setIsPickerOpen(true)}>
+              <LibraryIcon className="h-4 w-4" />
+              From Library
+            </Button>
           </div>
         </div>
       </div>
 
       {error && (
-        <div className="mb-6 rounded-xl bg-red-50 border border-red-100 p-4 flex items-center justify-between">
-          <span className="text-sm text-red-700">{error}</span>
+        <div className="mb-6 rounded-[var(--radius-md)] bg-[var(--color-error-subtle)] p-4 text-sm text-[var(--color-error)]">
+          {error}
           <button
             onClick={() => setError(null)}
-            className="text-red-500 hover:text-red-700 p-1"
+            className="ml-2 underline hover:no-underline"
           >
-            <CloseIcon className="h-4 w-4" />
+            Dismiss
           </button>
         </div>
       )}
 
-      {/* Quick Stats Row */}
-      <div className="mb-8 flex items-center gap-6 py-4 px-6 rounded-2xl bg-gradient-to-r from-gray-50 to-white border border-gray-100">
-        <StatPill label="Assignments" value={usages.length} icon="📋" />
-        <div className="h-8 w-px bg-gray-200" />
-        <StatPill label="Visible" value={usages.filter(u => u.is_visible).length} icon="👁️" />
-        <div className="h-8 w-px bg-gray-200" />
-        <StatPill label="Sprints" value={sprints.length} icon="🏃" />
-        {features.milestones && (
-          <>
-            <div className="h-8 w-px bg-gray-200" />
-            <StatPill label="Milestones" value={milestones.length} icon="🏆" />
-          </>
-        )}
+      {/* Challenge Info Cards */}
+      <div className="mb-6 grid gap-4 sm:grid-cols-4">
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-[var(--color-fg)]">
+              {usages.length}
+            </div>
+            <div className="text-sm text-[var(--color-fg-muted)]">Assignments</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-[var(--color-fg)]">
+              {sprints.length}
+            </div>
+            <div className="text-sm text-[var(--color-fg-muted)]">Sprints</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div className="text-2xl font-bold text-[var(--color-fg)]">
+              {usages.filter((u) => u.is_visible).length}
+            </div>
+            <div className="text-sm text-[var(--color-fg-muted)]">Visible</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardContent className="pt-4">
+            <div
+              className="h-6 w-6 rounded-full border border-[var(--color-border)]"
+              style={{ backgroundColor: challenge.brand_color ?? '#3b82f6' }}
+            />
+            <div className="mt-1 text-sm text-[var(--color-fg-muted)]">Brand Color</div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Sprints Section - Only show if sprint_structure feature is enabled */}
-      {features.sprint_structure && (
+      {/* Sprints Section */}
+      {(sprints.length > 0 || true) && (
         <Card className="mb-6">
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -391,10 +342,12 @@ export function ChallengeDetailClient({
                   Organize assignments into themed phases. Drag to reorder.
                 </CardDescription>
               </div>
-              <Button variant="secondary" size="sm" onClick={() => setIsSprintFormOpen(true)}>
-                <PlusIcon className="h-4 w-4" />
-                Create Sprint
-              </Button>
+              {sprints.length === 0 && (
+                <Button variant="secondary" size="sm" onClick={() => setIsSprintFormOpen(true)}>
+                  <PlusIcon className="h-4 w-4" />
+                  Create Sprint
+                </Button>
+              )}
             </div>
           </CardHeader>
           <CardContent>
@@ -402,7 +355,6 @@ export function ChallengeDetailClient({
               <SprintList
                 sprints={sprints}
                 usages={usages}
-                challengeSlug={challenge.slug}
                 onEdit={handleEditSprint}
                 onRefresh={handleSprintRefresh}
               />
@@ -420,176 +372,144 @@ export function ChallengeDetailClient({
         </Card>
       )}
 
-      {/* Announcements Section - Only show if announcements feature is enabled */}
-      {features.announcements && (
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Announcements</CardTitle>
-                <CardDescription>
-                  Post updates and communicate with participants.
-                </CardDescription>
-              </div>
+      {/* Announcements Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Announcements</CardTitle>
+              <CardDescription>
+                Post updates and communicate with participants.
+              </CardDescription>
+            </div>
+            {announcements.length === 0 && (
               <Button variant="secondary" size="sm" onClick={() => setIsAnnouncementFormOpen(true)}>
                 <PlusIcon className="h-4 w-4" />
                 Post Announcement
               </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {announcements.length > 0 ? (
-              <AnnouncementList
-                announcements={announcements}
-                onEdit={handleEditAnnouncement}
-                onRefresh={handleAnnouncementRefresh}
-              />
-            ) : (
-              <div className="flex min-h-[100px] items-center justify-center text-[var(--color-fg-muted)]">
-                <div className="text-center">
-                  <MegaphoneIcon className="mx-auto h-8 w-8 text-[var(--color-fg-subtle)]" />
-                  <p className="mt-2 text-sm">
-                    No announcements yet. Post updates to communicate with participants.
-                  </p>
-                </div>
-              </div>
             )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Milestones Section - Only show if milestones feature is enabled AND mode supports it */}
-      {features.milestones && isIndividualMode && (
-        <Card className="mb-6">
-          <CardHeader>
-            <div className="flex items-center justify-between">
-              <div>
-                <CardTitle>Milestones</CardTitle>
-                <CardDescription>
-                  Define achievement moments to celebrate participant progress.
-                </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          {announcements.length > 0 ? (
+            <AnnouncementList
+              announcements={announcements}
+              onEdit={handleEditAnnouncement}
+              onRefresh={handleAnnouncementRefresh}
+            />
+          ) : (
+            <div className="flex min-h-[100px] items-center justify-center text-[var(--color-fg-muted)]">
+              <div className="text-center">
+                <MegaphoneIcon className="mx-auto h-8 w-8 text-[var(--color-fg-subtle)]" />
+                <p className="mt-2 text-sm">
+                  No announcements yet. Post updates to communicate with participants.
+                </p>
               </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Milestones Section */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Milestones</CardTitle>
+              <CardDescription>
+                Define achievement moments to celebrate participant progress.
+              </CardDescription>
+            </div>
+            {milestones.length === 0 && (
               <Button variant="secondary" size="sm" onClick={() => setIsMilestoneFormOpen(true)}>
                 <PlusIcon className="h-4 w-4" />
                 Add Milestone
               </Button>
+            )}
+          </div>
+        </CardHeader>
+        <CardContent>
+          {milestones.length > 0 ? (
+            <MilestoneList
+              milestones={milestones}
+              sprints={sprints}
+              usages={usages}
+              onEdit={handleEditMilestone}
+              onRefresh={handleMilestoneRefresh}
+            />
+          ) : (
+            <div className="flex min-h-[100px] items-center justify-center text-[var(--color-fg-muted)]">
+              <div className="text-center">
+                <TrophyIcon className="mx-auto h-8 w-8 text-[var(--color-fg-subtle)]" />
+                <p className="mt-2 text-sm">
+                  No milestones yet. Add milestones to celebrate achievements.
+                </p>
+              </div>
             </div>
-          </CardHeader>
-          <CardContent>
-            {milestones.length > 0 ? (
-              <MilestoneList
-                milestones={milestones}
-                sprints={sprints}
-                usages={usages}
-                onEdit={handleEditMilestone}
-                onRefresh={handleMilestoneRefresh}
-              />
-            ) : (
-              <div className="flex min-h-[100px] items-center justify-center text-[var(--color-fg-muted)]">
-                <div className="text-center">
-                  <TrophyIcon className="mx-auto h-8 w-8 text-[var(--color-fg-subtle)]" />
-                  <p className="mt-2 text-sm">
-                    No milestones yet. Add milestones to celebrate achievements.
-                  </p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Assignments List with Drag-Drop */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Assignments</CardTitle>
+          <CardDescription>
+            Drag to reorder. Click settings to configure visibility and scheduling.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="p-0">
+          {usages.length > 0 ? (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={usages.map((u) => u.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <div className="divide-y divide-[var(--color-border)]">
+                  {usages.map((usage, index) => (
+                    <SortableAssignmentRow
+                      key={usage.id}
+                      usage={usage}
+                      index={index}
+                      actionId={actionId}
+                      onEdit={() => setEditingUsage(usage)}
+                      onQuiz={() => setQuizEditorUsage(usage)}
+                      onToggleVisibility={() => handleToggleVisibility(usage)}
+                      onRemove={() => handleRemoveAssignment(usage.id, usage.assignment.internal_title)}
+                    />
+                  ))}
+                </div>
+              </SortableContext>
+            </DndContext>
+          ) : (
+            <div className="flex min-h-[200px] items-center justify-center text-[var(--color-fg-muted)]">
+              <div className="text-center">
+                <FileTextIcon className="mx-auto h-12 w-12 text-[var(--color-fg-subtle)]" />
+                <h3 className="mt-4 text-lg font-medium text-[var(--color-fg)]">
+                  No assignments yet
+                </h3>
+                <p className="mt-1 text-sm">
+                  Create a new assignment or pick from your library.
+                </p>
+                <div className="mt-4 flex justify-center gap-2">
+                  <Button variant="secondary" onClick={() => setIsAssignmentFormOpen(true)}>
+                    <PlusIcon className="h-4 w-4" />
+                    Create New
+                  </Button>
+                  <Button variant="secondary" onClick={() => setIsPickerOpen(true)}>
+                    <LibraryIcon className="h-4 w-4" />
+                    From Library
+                  </Button>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Assignments Section */}
-      <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden">
-        {/* Section Header */}
-        <div className="flex items-center justify-between p-5 border-b border-gray-100 bg-gray-50/50">
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Assignments</h2>
-            <p className="text-sm text-gray-500 mt-0.5">Drag to reorder • Click to edit</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button 
-              variant="secondary" 
-              size="sm"
-              onClick={() => setIsPickerOpen(true)}
-              className="rounded-lg"
-            >
-              <LibraryIcon className="h-4 w-4" />
-              Library
-            </Button>
-            <Button 
-              size="sm"
-              onClick={() => setIsAssignmentFormOpen(true)}
-              className="rounded-lg"
-            >
-              <PlusIcon className="h-4 w-4" />
-              Create New
-            </Button>
-          </div>
-        </div>
-
-        {/* Assignments List */}
-        {usages.length > 0 ? (
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
-            <SortableContext
-              items={usages.map((u) => u.id)}
-              strategy={verticalListSortingStrategy}
-            >
-              <div className="divide-y divide-gray-100">
-                {usages.map((usage, index) => (
-                  <SortableAssignmentRow
-                    key={usage.id}
-                    usage={usage}
-                    index={index}
-                    actionId={actionId}
-                    showQuizButton={usage.assignment.content_type === 'quiz'}
-                    challengeSlug={challenge.slug}
-                    brandColor={challenge.brand_color || '#3b82f6'}
-                    sprints={sprints}
-                    onEditSettings={() => setEditingUsage(usage)}
-                    onEditContent={() => {
-                      const fullAssignment = allAssignments.find(a => a.id === usage.assignment_id)
-                      if (fullAssignment) {
-                        setEditingAssignment(fullAssignment)
-                        setIsAssignmentFormOpen(true)
-                      }
-                    }}
-                    onQuiz={() => setQuizEditorUsage(usage)}
-                    onToggleVisibility={() => handleToggleVisibility(usage)}
-                    onRemove={() => handleRemoveAssignment(usage.id, usage.assignment.internal_title)}
-                    onSprintChange={(sprintId) => handleSprintChange(usage.id, sprintId)}
-                  />
-                ))}
-              </div>
-            </SortableContext>
-          </DndContext>
-        ) : (
-          <div className="flex flex-col items-center justify-center py-16 px-4">
-            <div className="h-16 w-16 rounded-2xl bg-gray-100 flex items-center justify-center mb-4">
-              <span className="text-3xl">📋</span>
             </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              No assignments yet
-            </h3>
-            <p className="text-sm text-gray-500 mb-6 text-center max-w-sm">
-              Create new assignments or pick existing ones from your library.
-            </p>
-            <div className="flex gap-3">
-              <Button variant="secondary" onClick={() => setIsPickerOpen(true)}>
-                <LibraryIcon className="h-4 w-4" />
-                From Library
-              </Button>
-              <Button onClick={() => setIsAssignmentFormOpen(true)}>
-                <PlusIcon className="h-4 w-4" />
-                Create New
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Assignment Picker Dialog */}
       <AssignmentPicker
@@ -648,41 +568,11 @@ export function ChallengeDetailClient({
 
       {/* Assignment Form Dialog */}
       <AssignmentForm
-        assignment={editingAssignment}
-        challengeId={editingAssignment ? undefined : challenge.id}
+        challengeId={challenge.id}
         open={isAssignmentFormOpen}
-        onClose={() => {
-          setIsAssignmentFormOpen(false)
-          setEditingAssignment(null)
-        }}
+        onClose={() => setIsAssignmentFormOpen(false)}
         onSuccess={handleEditSuccess}
       />
-
-      {/* Challenge Form Dialog */}
-      <ChallengeForm
-        clientId={challenge.client_id}
-        challenge={challenge}
-        open={isChallengeFormOpen}
-        onClose={() => setIsChallengeFormOpen(false)}
-        onSuccess={() => {
-          setIsChallengeFormOpen(false)
-          router.refresh()
-        }}
-      />
-    </div>
-  )
-}
-
-// Helper Components
-
-function StatPill({ label, value, icon }: { label: string; value: number; icon: string }) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="text-xl">{icon}</span>
-      <div>
-        <div className="text-2xl font-bold text-gray-900">{value}</div>
-        <div className="text-xs text-gray-500 uppercase tracking-wide">{label}</div>
-      </div>
     </div>
   )
 }
@@ -692,32 +582,20 @@ interface SortableAssignmentRowProps {
   usage: AssignmentUsageWithAssignment
   index: number
   actionId: string | null
-  showQuizButton: boolean
-  challengeSlug: string
-  brandColor: string
-  sprints: Sprint[]
-  onEditSettings: () => void
-  onEditContent: () => void
+  onEdit: () => void
   onQuiz: () => void
   onToggleVisibility: () => void
   onRemove: () => void
-  onSprintChange: (sprintId: string | null) => void
 }
 
 function SortableAssignmentRow({
   usage,
   index,
   actionId,
-  showQuizButton,
-  challengeSlug,
-  brandColor,
-  sprints,
-  onEditSettings,
-  onEditContent,
+  onEdit,
   onQuiz,
   onToggleVisibility,
   onRemove,
-  onSprintChange,
 }: SortableAssignmentRowProps) {
   const {
     attributes,
@@ -731,177 +609,106 @@ function SortableAssignmentRow({
   const style = {
     transform: CSS.Transform.toString(transform),
     transition,
+    opacity: isDragging ? 0.5 : 1,
   }
 
   const assignment = usage.assignment
-  const isHidden = !usage.is_visible
-  const isScheduled = usage.release_at && new Date(usage.release_at) > new Date()
-  const assignedSprint = sprints.find(s => s.id === usage.sprint_id)
+  const badge = CONTENT_TYPE_BADGES[assignment.content_type] ?? CONTENT_TYPE_BADGES.standard
 
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className={`group flex items-center gap-4 px-5 py-4 transition-all ${
-        isDragging ? 'opacity-50 bg-blue-50' : 'hover:bg-gray-50'
-      } ${isHidden ? 'opacity-60' : ''}`}
+      className="flex items-center justify-between p-4 hover:bg-[var(--color-bg-subtle)]"
     >
-      {/* Drag Handle */}
-      <button
-        {...attributes}
-        {...listeners}
-        className="cursor-grab p-1 text-gray-300 hover:text-gray-400 active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <GripIcon className="h-5 w-5" />
-      </button>
+      <div className="flex items-center gap-4">
+        {/* Drag Handle */}
+        <button
+          {...attributes}
+          {...listeners}
+          className="cursor-grab p-1 text-[var(--color-fg-subtle)] hover:text-[var(--color-fg-muted)] active:cursor-grabbing"
+          title="Drag to reorder"
+        >
+          <GripIcon className="h-5 w-5" />
+        </button>
 
-      {/* Order Number */}
-      <div 
-        className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white shadow-sm"
-        style={{ backgroundColor: brandColor }}
-      >
-        {index + 1}
-      </div>
-
-      {/* Assignment Info */}
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="font-semibold text-gray-900 truncate">
-            {assignment.internal_title}
-          </span>
-          {usage.label && (
-            <span 
-              className="px-2 py-0.5 rounded-full text-xs font-medium text-white"
-              style={{ backgroundColor: brandColor }}
-            >
-              {usage.label}
-            </span>
-          )}
-          {assignment.content_type !== 'standard' && (
-            <span className="px-2 py-0.5 rounded bg-gray-100 text-xs font-medium text-gray-600">
-              {assignment.content_type}
-            </span>
-          )}
-          {isHidden && (
-            <span className="px-2 py-0.5 rounded bg-gray-200 text-xs font-medium text-gray-500">
-              Hidden
-            </span>
-          )}
-          {isScheduled && (
-            <span className="px-2 py-0.5 rounded bg-amber-100 text-xs font-medium text-amber-700">
-              Scheduled
-            </span>
-          )}
-          {usage.is_milestone && (
-            <span className="px-2 py-0.5 rounded bg-green-100 text-xs font-medium text-green-700">
-              🏆 Milestone
-            </span>
-          )}
-          {assignedSprint && (
-            <span className="px-2 py-0.5 rounded bg-purple-100 text-xs font-medium text-purple-700">
-              📦 {assignedSprint.name}
-            </span>
-          )}
+        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--color-bg-subtle)] text-sm font-medium text-[var(--color-fg-muted)]">
+          {index + 1}
         </div>
-        {assignment.public_title && (
-          <p className="text-sm text-gray-500 truncate mt-0.5">{assignment.public_title}</p>
-        )}
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="font-medium text-[var(--color-fg)]">
+              {assignment.internal_title}
+            </span>
+            <Badge variant={badge.variant}>{badge.label}</Badge>
+            {!usage.is_visible && (
+              <Badge variant="outline">Hidden</Badge>
+            )}
+            {usage.release_at && new Date(usage.release_at) > new Date() && (
+              <Badge variant="warning">Scheduled</Badge>
+            )}
+            {usage.is_milestone && (
+              <Badge variant="success">Milestone</Badge>
+            )}
+          </div>
+          <div className="flex items-center gap-2 text-xs text-[var(--color-fg-subtle)]">
+            {assignment.public_title && (
+              <span>{assignment.public_title}</span>
+            )}
+            {usage.label && (
+              <span className="text-[var(--color-primary)]">{usage.label}</span>
+            )}
+          </div>
+        </div>
       </div>
-
-      {/* Actions - Always visible for clarity */}
       <div className="flex items-center gap-1">
-        {/* Sprint selector dropdown */}
-        {sprints.length > 0 && (
-          <select
-            value={usage.sprint_id || ''}
-            onChange={(e) => onSprintChange(e.target.value || null)}
-            disabled={actionId === usage.id}
-            className="h-8 px-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 disabled:opacity-50"
-            title="Assign to sprint"
-          >
-            <option value="">No Sprint</option>
-            {sprints.map(s => (
-              <option key={s.id} value={s.id}>{s.name}</option>
-            ))}
-          </select>
-        )}
-        <ActionButton onClick={onEditContent} title="Edit content" disabled={actionId === usage.id}>
-          <EditIcon className="h-4 w-4" />
-        </ActionButton>
-        <ActionButton onClick={onEditSettings} title="Settings" disabled={actionId === usage.id}>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onEdit}
+          disabled={actionId === usage.id}
+          title="Edit settings"
+        >
           <SettingsIcon className="h-4 w-4" />
-        </ActionButton>
-        {showQuizButton && (
-          <ActionButton onClick={onQuiz} title="Quizzes" disabled={actionId === usage.id}>
-            <QuizIcon className="h-4 w-4" />
-          </ActionButton>
-        )}
-        <ActionButton
-          onClick={() => {
-            const url = `${window.location.origin}/${assignment.slug}`
-            navigator.clipboard.writeText(url)
-          }}
-          title="Copy link"
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onQuiz}
           disabled={actionId === usage.id}
+          title="Manage quizzes"
         >
-          <CopyIcon className="h-4 w-4" />
-        </ActionButton>
-        <a
-          href={`/${assignment.slug}?from=${challengeSlug}`}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-600"
-          title="Preview"
-        >
-          <ExternalLinkIcon className="h-4 w-4" />
-        </a>
-        <ActionButton 
-          onClick={onToggleVisibility} 
-          title={usage.is_visible ? 'Hide' : 'Show'}
+          <QuizIcon className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onToggleVisibility}
           disabled={actionId === usage.id}
+          title={usage.is_visible ? 'Hide assignment' : 'Show assignment'}
         >
-          {usage.is_visible ? <EyeIcon className="h-4 w-4" /> : <EyeOffIcon className="h-4 w-4" />}
-        </ActionButton>
-        <ActionButton 
-          onClick={onRemove} 
-          title="Remove" 
+          {usage.is_visible ? (
+            <EyeIcon className="h-4 w-4" />
+          ) : (
+            <EyeOffIcon className="h-4 w-4" />
+          )}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={onRemove}
           disabled={actionId === usage.id}
-          danger
+          className="text-[var(--color-error)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-subtle)]"
+          title="Remove from challenge"
         >
-          {actionId === usage.id ? <Spinner size="sm" /> : <TrashIcon className="h-4 w-4" />}
-        </ActionButton>
+          {actionId === usage.id ? (
+            <Spinner size="sm" />
+          ) : (
+            <TrashIcon className="h-4 w-4" />
+          )}
+        </Button>
       </div>
     </div>
-  )
-}
-
-function ActionButton({ 
-  onClick, 
-  title, 
-  disabled, 
-  danger, 
-  children 
-}: { 
-  onClick: () => void
-  title: string
-  disabled?: boolean
-  danger?: boolean
-  children: React.ReactNode 
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className={`inline-flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-50 ${
-        danger 
-          ? 'text-gray-400 hover:bg-red-50 hover:text-red-600' 
-          : 'text-gray-400 hover:bg-gray-100 hover:text-gray-600'
-      }`}
-    >
-      {children}
-    </button>
   )
 }
 
@@ -919,14 +726,6 @@ function GripIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
-    </svg>
-  )
-}
-
-function EditIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
     </svg>
   )
 }
@@ -1009,54 +808,6 @@ function LibraryIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 21v-8.25M15.75 21v-8.25M8.25 21v-8.25M3 9l9-6 9 6m-1.5 12V10.332A48.36 48.36 0 0 0 12 9.75c-2.551 0-5.056.2-7.5.582V21M3 21h18M12 6.75h.008v.008H12V6.75Z" />
-    </svg>
-  )
-}
-
-function ChevronIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="m9 18 6-6-6-6" />
-    </svg>
-  )
-}
-
-function CloseIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
-    </svg>
-  )
-}
-
-function ExternalLinkIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 003 8.25v10.5A2.25 2.25 0 005.25 21h10.5A2.25 2.25 0 0018 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-    </svg>
-  )
-}
-
-function PencilIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
-    </svg>
-  )
-}
-
-function FolderIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
-    </svg>
-  )
-}
-
-function CopyIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
     </svg>
   )
 }

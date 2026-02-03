@@ -1,58 +1,33 @@
 'use client'
 
+import { ClerkProvider as BaseClerkProvider } from '@clerk/nextjs'
 import { ReactNode } from 'react'
 
 interface ClerkProviderProps {
   children: ReactNode
 }
 
-// Simplified provider - just passes through children
-// Admin auth is handled by /lib/auth/admin-auth.ts
+// Demo mode controlled by environment variable (set NEXT_PUBLIC_DEMO_MODE=true to bypass auth)
+const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
+
 export function ClerkProvider({ children }: ClerkProviderProps) {
-  return <>{children}</>
-}
-
-// Mock user type
-interface MockUser {
-  id: string
-  firstName: string
-  lastName: string
-  fullName: string
-  imageUrl: string | null
-  emailAddresses: { emailAddress: string }[]
-  primaryEmailAddress: { emailAddress: string } | null
-  passwordEnabled: boolean
-  twoFactorEnabled: boolean
-  externalAccounts: { id: string; provider: string; emailAddress: string }[]
-  update: (data: Partial<{ firstName: string; lastName: string }>) => Promise<void>
-}
-
-// Mock user hook for components that still use it
-export function useUser(): { isLoaded: boolean; isSignedIn: boolean; user: MockUser | null } {
-  return {
-    isLoaded: true,
-    isSignedIn: false,
-    user: null,
+  // Demo mode: skip Clerk entirely
+  if (isDemoMode) {
+    return <>{children}</>
   }
-}
 
-// Mock auth hook
-export function useMockAuth() {
-  return {
-    isLoaded: true,
-    isSignedIn: false,
-    user: null,
-    signIn: () => {},
-    signOut: () => {},
+  // Check if Clerk is configured (client-side check)
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
+
+  if (!publishableKey) {
+    // Clerk not configured, render children without provider
+    return <>{children}</>
   }
+
+  return (
+    <BaseClerkProvider publishableKey={publishableKey}>
+      {children}
+    </BaseClerkProvider>
+  )
 }
 
-// Mock SignInButton component
-export function SignInButton({ children }: { children: ReactNode; mode?: string }) {
-  return <>{children}</>
-}
-
-// Mock UserButton component  
-export function UserButton({ afterSignOutUrl }: { afterSignOutUrl?: string }) {
-  return null
-}

@@ -721,9 +721,7 @@ function ColorPicker({
   icon,
 }: ColorPickerProps) {
   const [isOpen, setIsOpen] = useState(false)
-  const [position, setPosition] = useState<'left' | 'right'>('left')
   const containerRef = useRef<HTMLDivElement>(null)
-  const dropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -734,22 +732,6 @@ function ColorPicker({
     document.addEventListener('mousedown', handleClickOutside)
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [])
-
-  // Calculate best position when opening
-  useEffect(() => {
-    if (isOpen && containerRef.current) {
-      const buttonRect = containerRef.current.getBoundingClientRect()
-      const dropdownWidth = 140 // Approximate width of dropdown (4 cols * ~32px + padding)
-      const viewportWidth = window.innerWidth
-      
-      // Check if dropdown would overflow on the right
-      if (buttonRect.left + dropdownWidth > viewportWidth - 20) {
-        setPosition('right')
-      } else {
-        setPosition('left')
-      }
-    }
-  }, [isOpen])
 
   return (
     <div ref={containerRef} className="relative">
@@ -776,13 +758,7 @@ function ColorPicker({
       </button>
 
       {isOpen && (
-        <div 
-          ref={dropdownRef}
-          className={cn(
-            "absolute top-full z-50 mt-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-2 shadow-lg",
-            position === 'left' ? 'left-0' : 'right-0'
-          )}
-        >
+        <div className="absolute top-full left-0 z-50 mt-1 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-elevated)] p-2 shadow-lg">
           <div className="grid grid-cols-4 gap-1">
             {colors.map((c) => (
               <button

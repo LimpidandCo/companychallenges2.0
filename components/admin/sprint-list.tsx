@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import Link from 'next/link'
 import {
   DndContext,
   closestCenter,
@@ -26,12 +25,11 @@ import type { Sprint, AssignmentUsageWithAssignment } from '@/lib/types/database
 interface SprintListProps {
   sprints: Sprint[]
   usages: AssignmentUsageWithAssignment[]
-  challengeSlug: string
   onEdit: (sprint: Sprint) => void
   onRefresh: () => void
 }
 
-export function SprintList({ sprints, usages, challengeSlug, onEdit, onRefresh }: SprintListProps) {
+export function SprintList({ sprints, usages, onEdit, onRefresh }: SprintListProps) {
   const [items, setItems] = useState(sprints)
   const [actionId, setActionId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -137,7 +135,6 @@ export function SprintList({ sprints, usages, challengeSlug, onEdit, onRefresh }
               <SortableSprintItem
                 key={sprint.id}
                 sprint={sprint}
-                challengeSlug={challengeSlug}
                 assignmentCount={getAssignmentCount(sprint.id)}
                 actionId={actionId}
                 onEdit={() => onEdit(sprint)}
@@ -153,7 +150,6 @@ export function SprintList({ sprints, usages, challengeSlug, onEdit, onRefresh }
 
 interface SortableSprintItemProps {
   sprint: Sprint
-  challengeSlug: string
   assignmentCount: number
   actionId: string | null
   onEdit: () => void
@@ -162,7 +158,6 @@ interface SortableSprintItemProps {
 
 function SortableSprintItem({
   sprint,
-  challengeSlug,
   assignmentCount,
   actionId,
   onEdit,
@@ -221,7 +216,7 @@ function SortableSprintItem({
             <span>{assignmentCount} assignment{assignmentCount !== 1 ? 's' : ''}</span>
             {sprint.starts_at && (
               <span>
-                Starts: {formatDate(sprint.starts_at)}
+                Starts: {new Date(sprint.starts_at).toLocaleDateString()}
               </span>
             )}
           </div>
@@ -229,14 +224,6 @@ function SortableSprintItem({
       </div>
 
       <div className="flex items-center gap-1">
-        <Link
-          href={`/${challengeSlug}/start`}
-          target="_blank"
-          className="inline-flex items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] hover:bg-[var(--color-bg-subtle)]"
-        >
-          <PreviewIcon className="h-4 w-4" />
-          Preview
-        </Link>
         <Button
           variant="ghost"
           size="sm"
@@ -265,18 +252,4 @@ function GripIcon({ className }: { className?: string }) {
       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
     </svg>
   )
-}
-
-function PreviewIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
-    </svg>
-  )
-}
-
-function formatDate(isoString: string): string {
-  const date = new Date(isoString)
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec']
-  return `${months[date.getMonth()]} ${date.getDate()}, ${date.getFullYear()}`
 }
