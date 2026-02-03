@@ -1,25 +1,58 @@
 'use client'
 
 import { ReactNode } from 'react'
-import { MockAuthProvider, DevAuthToolbar } from './mock-auth-provider'
-
-// Re-export mock hooks as if they were Clerk hooks
-export { useMockUser as useUser, useMockAuth, MockSignInButton as SignInButton, MockUserButton as UserButton } from './mock-auth-provider'
 
 interface ClerkProviderProps {
   children: ReactNode
 }
 
-// For now, always use MockAuthProvider instead of real Clerk
-// To enable real Clerk, set NEXT_PUBLIC_USE_CLERK=true
-const useRealClerk = process.env.NEXT_PUBLIC_USE_CLERK === 'true'
-
+// Simplified provider - just passes through children
+// Admin auth is handled by /lib/auth/admin-auth.ts
 export function ClerkProvider({ children }: ClerkProviderProps) {
-  // Always use mock for now
-  return (
-    <MockAuthProvider>
-      {children}
-      <DevAuthToolbar />
-    </MockAuthProvider>
-  )
+  return <>{children}</>
+}
+
+// Mock user type
+interface MockUser {
+  id: string
+  firstName: string
+  lastName: string
+  fullName: string
+  imageUrl: string | null
+  emailAddresses: { emailAddress: string }[]
+  primaryEmailAddress: { emailAddress: string } | null
+  passwordEnabled: boolean
+  twoFactorEnabled: boolean
+  externalAccounts: { id: string; provider: string; emailAddress: string }[]
+  update: (data: Partial<{ firstName: string; lastName: string }>) => Promise<void>
+}
+
+// Mock user hook for components that still use it
+export function useUser(): { isLoaded: boolean; isSignedIn: boolean; user: MockUser | null } {
+  return {
+    isLoaded: true,
+    isSignedIn: false,
+    user: null,
+  }
+}
+
+// Mock auth hook
+export function useMockAuth() {
+  return {
+    isLoaded: true,
+    isSignedIn: false,
+    user: null,
+    signIn: () => {},
+    signOut: () => {},
+  }
+}
+
+// Mock SignInButton component
+export function SignInButton({ children }: { children: ReactNode; mode?: string }) {
+  return <>{children}</>
+}
+
+// Mock UserButton component  
+export function UserButton({ afterSignOutUrl }: { afterSignOutUrl?: string }) {
+  return null
 }
