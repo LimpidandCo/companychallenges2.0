@@ -1,9 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button, Input, Spinner, RichTextEditor } from '@/components/ui'
+import Link from 'next/link'
+import { Button, Input, Spinner } from '@/components/ui'
+import { InlineRichEditor } from '@/components/ui/inline-rich-editor'
 import { createChallenge, updateChallenge } from '@/lib/actions/challenges'
-import type { Challenge, Client } from '@/lib/types/database'
+import { uploadFile } from '@/lib/actions/upload'
+import type { Challenge, Client, EditorContent, ChallengeFeatures, DEFAULT_CHALLENGE_FEATURES } from '@/lib/types/database'
 import { cn } from '@/lib/utils/cn'
 
 interface ChallengeFormProps {
@@ -15,15 +18,33 @@ interface ChallengeFormProps {
   onSuccess?: (challenge: Challenge) => void
 }
 
-const COLOR_PRESETS = [
-  { value: '#ff6b4a', name: 'Coral' },
-  { value: '#14b8a6', name: 'Teal' },
-  { value: '#a78bfa', name: 'Lavender' },
-  { value: '#3b82f6', name: 'Blue' },
-  { value: '#f59e0b', name: 'Amber' },
-  { value: '#10b981', name: 'Emerald' },
-  { value: '#ec4899', name: 'Pink' },
-  { value: '#6366f1', name: 'Indigo' },
+// Default features for new challenges
+const defaultFeatures: ChallengeFeatures = {
+  announcements: true,
+  host_videos: true,
+  sprint_structure: true,
+  time_based_unlocks: true,
+  milestones: false,
+  reveal_moments: false,
+  micro_quizzes: false,
+  progress_tracking: false,
+  collective_progress: false,
+  session_persistence: false,
+  private_views: false,
+}
+
+// Brand color presets
+const BRAND_COLOR_PRESETS = [
+  '#ff6b4a', // Coral Orange
+  '#f97316', // Orange
+  '#eab308', // Yellow
+  '#22c55e', // Green
+  '#14b8a6', // Teal
+  '#06b6d4', // Cyan
+  '#3b82f6', // Blue
+  '#8b5cf6', // Violet
+  '#ec4899', // Pink
+  '#ef4444', // Red
 ]
 
 export function ChallengeForm({ challenge, clientId, clients, open, onClose, onSuccess }: ChallengeFormProps) {
@@ -35,28 +56,81 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
   const [internalName, setInternalName] = useState(challenge?.internal_name ?? '')
   const [publicTitle, setPublicTitle] = useState(challenge?.public_title ?? '')
   const [showPublicTitle, setShowPublicTitle] = useState(challenge?.show_public_title ?? true)
-  const [description, setDescription] = useState(challenge?.description ?? '')
-  const [brandColor, setBrandColor] = useState(challenge?.brand_color ?? '#6366f1')
   const [folder, setFolder] = useState(challenge?.folder ?? '')
+  const [customSlug, setCustomSlug] = useState(challenge?.slug ?? '')
+  const [brandColor, setBrandColor] = useState(challenge?.brand_color ?? '#ff6b4a')
+  const [descriptionHtml, setDescriptionHtml] = useState(challenge?.description_html ?? '')
+  const [supportInfo, setSupportInfo] = useState(challenge?.support_info ?? '')
+  const [passwordInstructions, setPasswordInstructions] = useState(challenge?.password_instructions ?? '')
+  const [showPasswordInstructions, setShowPasswordInstructions] = useState(!!challenge?.password_instructions)
+  const [features, setFeatures] = useState<ChallengeFeatures>(challenge?.features ?? defaultFeatures)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  // Reset form state when modal opens
   useEffect(() => {
-    if (open && !isEditing) {
-      setSelectedClientId(resolvedClientId)
-      setInternalName('')
-      setPublicTitle('')
-      setShowPublicTitle(true)
-      setDescription('')
-      setBrandColor('#6366f1')
-      setFolder('')
-      setError(null)
+    if (open) {
+      if (isEditing && challenge) {
+        setSelectedClientId(challenge.client_id)
+        setInternalName(challenge.internal_name ?? '')
+        setPublicTitle(challenge.public_title ?? '')
+        setShowPublicTitle(challenge.show_public_title ?? true)
+        setDescriptionHtml(challenge.description_html ?? '')
+        setFolder(challenge.folder ?? '')
+        setCustomSlug(challenge.slug ?? '')
+        setBrandColor(challenge.brand_color ?? '#ff6b4a')
+        setSupportInfo(challenge.support_info ?? '')
+        setPasswordInstructions(challenge.password_instructions ?? '')
+        setShowPasswordInstructions(!!challenge.password_instructions)
+        setFeatures(challenge.features ?? defaultFeatures)
+        setError(null)
+      } else {
+        setSelectedClientId(resolvedClientId)
+        setInternalName('')
+        setPublicTitle('')
+        setShowPublicTitle(true)
+        setDescriptionHtml('')
+        setFolder('')
+        setCustomSlug('')
+        setBrandColor('#ff6b4a')
+        setSupportInfo('')
+        setPasswordInstructions('')
+        setShowPasswordInstructions(false)
+        setFeatures(defaultFeatures)
+        setError(null)
+      }
     }
-  }, [open, isEditing, resolvedClientId])
+  }, [open, isEditing, challenge, resolvedClientId])
+
+  // Handler for image uploads from the rich text editor
+  const handleEditorImageUpload = async (file: File): Promise<string> => {
+    const formData = new FormData()
+    formData.append('file', file)
+    const result = await uploadFile(formData, 'challenges')
+    if (result.success) {
+      return result.url
+    }
+    throw new Error(result.error || 'Upload failed')
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
+    
+    // Validate required fields
+    if (!internalName.trim()) {
+      setError('Name is required')
+      return
+    }
+    if (!publicTitle.trim()) {
+      setError('Public Title is required')
+      return
+    }
+    if (!descriptionHtml.trim()) {
+      setError('Challenge Description is required')
+      return
+    }
+    
     setIsSubmitting(true)
     setError(null)
 
@@ -68,18 +142,26 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
             internal_name: internalName,
             public_title: publicTitle || null,
             show_public_title: showPublicTitle,
-            description: description || null,
-            brand_color: brandColor || null,
+            description_html: descriptionHtml || null,
             folder: folder || null,
+            slug: customSlug || undefined,
+            brand_color: brandColor,
+            support_info: supportInfo || null,
+            password_instructions: showPasswordInstructions ? passwordInstructions : null,
+            features,
           })
         : await createChallenge({
             client_id: targetClientId,
             internal_name: internalName,
             public_title: publicTitle || null,
             show_public_title: showPublicTitle,
-            description: description || null,
-            brand_color: brandColor || null,
+            description_html: descriptionHtml || null,
             folder: folder || null,
+            slug: customSlug || undefined,
+            brand_color: brandColor,
+            support_info: supportInfo || null,
+            password_instructions: showPasswordInstructions ? passwordInstructions : null,
+            features,
           })
 
       if (result.success) {
@@ -97,6 +179,8 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
 
   if (!open) return null
 
+  const previewUrl = isEditing && challenge ? `/${challenge.slug}` : null
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div
@@ -104,134 +188,306 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
         onClick={onClose}
       />
 
-      <div className="relative w-full max-w-lg">
-        <div className="rounded-xl bg-[var(--color-bg-elevated)] shadow-xl border border-[var(--color-border)]">
+      <div className="relative w-full max-w-2xl">
+        <div className="rounded-xl bg-white shadow-xl border border-gray-200 max-h-[90vh] flex flex-col">
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]">
-            <h2 className="text-lg font-semibold text-[var(--color-fg)]">
-              {isEditing ? 'Edit Challenge' : 'New Challenge'}
-            </h2>
-            <button
-              type="button"
-              onClick={onClose}
-              className="p-1.5 rounded-lg hover:bg-[var(--color-bg-muted)] text-[var(--color-fg-muted)] transition-colors"
-            >
-              <CloseIcon className="h-5 w-5" />
-            </button>
+          <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 flex-shrink-0">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-900">
+                {isEditing ? 'Edit Challenge' : 'New Challenge'}
+              </h2>
+              {isEditing && challenge && (
+                <p className="text-sm text-gray-500 mt-0.5">
+                  URL: <code className="bg-gray-100 px-1.5 py-0.5 rounded text-xs">/{challenge.slug}</code>
+                </p>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {previewUrl && (
+                <Link
+                  href={previewUrl}
+                  target="_blank"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  <PreviewIcon className="h-4 w-4" />
+                  Preview
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={onClose}
+                className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-400 transition-colors"
+              >
+                <CloseIcon className="h-5 w-5" />
+              </button>
+            </div>
           </div>
 
           {/* Form */}
-          <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[70vh] overflow-y-auto">
-            {error && (
-              <div className="rounded-lg bg-[var(--color-error-subtle)] px-4 py-3 text-sm text-[var(--color-error)]">
-                {error}
-              </div>
-            )}
-
-            {/* Client Selection - only show if no client context and we have clients to choose from */}
-            {!hasClientContext && !isEditing && clients && clients.length > 0 && (
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-[var(--color-fg)]">
-                  Client
-                </label>
-                <select
-                  value={selectedClientId}
-                  onChange={(e) => setSelectedClientId(e.target.value)}
-                  className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm text-[var(--color-fg)] focus:border-[var(--color-accent)] focus:outline-none focus:ring-1 focus:ring-[var(--color-accent)]"
-                >
-                  {clients.map((client) => (
-                    <option key={client.id} value={client.id}>
-                      {client.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-
-            <Input
-              label="Internal Name"
-              value={internalName}
-              onChange={(e) => setInternalName(e.target.value)}
-              placeholder="e.g. Q1 2026 Leadership Challenge"
-              required
-              autoFocus
-            />
-
-            <Input
-              label="Public Title"
-              value={publicTitle}
-              onChange={(e) => setPublicTitle(e.target.value)}
-              placeholder="e.g. Leadership Development Program"
-            />
-
-            <label className="flex items-center gap-3 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={showPublicTitle}
-                onChange={(e) => setShowPublicTitle(e.target.checked)}
-                className="h-4 w-4 rounded border-[var(--color-border)] text-[var(--color-accent)]"
-              />
-              <span className="text-sm text-[var(--color-fg)]">Show public title to participants</span>
-            </label>
-
-            <RichTextEditor
-              label="Description"
-              value={description}
-              onChange={setDescription}
-              placeholder="Welcome message for participants..."
-            />
-
-            {/* Brand Color */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-[var(--color-fg)]">
-                Brand Color
-              </label>
-              <div className="flex items-center gap-3">
-                <div className="flex gap-1.5">
-                  {COLOR_PRESETS.map((preset) => (
-                    <button
-                      key={preset.value}
-                      type="button"
-                      onClick={() => setBrandColor(preset.value)}
-                      className={cn(
-                        "w-7 h-7 rounded-lg transition-all",
-                        brandColor === preset.value
-                          ? "ring-2 ring-offset-2 ring-[var(--color-fg)]"
-                          : "hover:scale-110"
-                      )}
-                      style={{ backgroundColor: preset.value }}
-                      title={preset.name}
-                    />
-                  ))}
+          <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
+            <div className="p-6 space-y-5 overflow-y-auto flex-1 overflow-x-visible">
+              {error && (
+                <div className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 border border-red-100">
+                  {error}
                 </div>
-                <input
-                  type="color"
-                  value={brandColor}
-                  onChange={(e) => setBrandColor(e.target.value)}
-                  className="h-7 w-7 cursor-pointer rounded border border-[var(--color-border)]"
+              )}
+
+              {/* Client Selection (only for new challenges without client context) */}
+              {!hasClientContext && !isEditing && clients && clients.length > 0 && (
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-gray-900">Client</label>
+                  <select
+                    value={selectedClientId}
+                    onChange={(e) => setSelectedClientId(e.target.value)}
+                    className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                  >
+                    {clients.map((client) => (
+                      <option key={client.id} value={client.id}>
+                        {client.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Internal Name */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-900">
+                  Internal Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={internalName}
+                  onChange={(e) => setInternalName(e.target.value)}
+                  placeholder="e.g. Q1 2026 Leadership Challenge"
+                  required
+                  autoFocus
                 />
+              </div>
+
+              {/* Public Title */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-900">
+                  Public Title <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  value={publicTitle}
+                  onChange={(e) => setPublicTitle(e.target.value)}
+                  placeholder="e.g. Leadership Development Program"
+                  required
+                />
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showPublicTitle}
+                    onChange={(e) => setShowPublicTitle(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                  />
+                  <span className="text-sm text-gray-600">Show public title to participants</span>
+                </label>
+              </div>
+
+              {/* Custom URL */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-900">
+                  Custom URL <span className="font-normal text-gray-500">(optional)</span>
+                </label>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-500 whitespace-nowrap">/</span>
+                  <Input
+                    value={customSlug}
+                    onChange={(e) => setCustomSlug(e.target.value.replace(/[^a-zA-Z0-9-]/g, ''))}
+                    placeholder="MMXdXcr"
+                    className="font-mono text-sm"
+                  />
+                </div>
+                <p className="text-xs text-gray-500">
+                  Leave empty for auto-generated URL. Case-sensitive (preserves legacy URLs like MMXdXcr).
+                </p>
+              </div>
+
+              {/* Brand Color */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-900">Brand Color</label>
+                <div className="flex items-center gap-3">
+                  <div className="flex gap-1.5">
+                    {BRAND_COLOR_PRESETS.map((color) => (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setBrandColor(color)}
+                        className={cn(
+                          "w-7 h-7 rounded-lg transition-all",
+                          brandColor === color 
+                            ? "ring-2 ring-offset-2 ring-gray-400 scale-110" 
+                            : "hover:scale-105"
+                        )}
+                        style={{ backgroundColor: color }}
+                      />
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={brandColor}
+                    onChange={(e) => setBrandColor(e.target.value)}
+                    placeholder="#ff6b4a"
+                    className="w-24 rounded-lg border border-gray-300 bg-white px-2 py-1.5 text-xs font-mono text-gray-900"
+                  />
+                </div>
+              </div>
+
+              {/* Description */}
+              <div className="space-y-2 relative z-20">
+                <label className="text-sm font-medium text-gray-900">
+                  Challenge Description <span className="text-red-500">*</span>
+                </label>
+                <InlineRichEditor
+                  key={`desc-${challenge?.id || 'new'}-${open}`}
+                  value={descriptionHtml}
+                  onChange={setDescriptionHtml}
+                  placeholder="Welcome message and overview for participants..."
+                  hint="This appears on the challenge landing page"
+                  minHeight="150px"
+                  required
+                  onUploadImage={handleEditorImageUpload}
+                />
+              </div>
+
+              {/* Support Info */}
+              <div className="space-y-2 relative z-10">
+                <label className="text-sm font-medium text-gray-900">
+                  Support Info <span className="font-normal text-gray-500">(optional)</span>
+                </label>
+                <InlineRichEditor
+                  key={`support-${challenge?.id || 'new'}-${open}`}
+                  value={supportInfo}
+                  onChange={setSupportInfo}
+                  placeholder="Contact info, help resources, tips..."
+                  hint="Shown when participants click the info button"
+                  minHeight="100px"
+                  onUploadImage={handleEditorImageUpload}
+                />
+              </div>
+
+              {/* Password Instructions */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordInstructions(!showPasswordInstructions)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      showPasswordInstructions ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        showPasswordInstructions ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <label className="text-sm font-medium text-gray-900">
+                    Include Password Instructions
+                  </label>
+                </div>
+                {showPasswordInstructions && (
+                  <div className="ml-14">
+                    <textarea
+                      value={passwordInstructions}
+                      onChange={(e) => setPasswordInstructions(e.target.value)}
+                      placeholder="e.g., Check your welcome email for the password, or contact support@company.com"
+                      className="w-full rounded-lg border border-gray-200 px-4 py-3 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 focus:outline-none min-h-[80px]"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">
+                      Shown on the challenge page when password-protected assignments exist
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* Folder */}
+              <Input
+                label="Folder (optional)"
+                value={folder}
+                onChange={(e) => setFolder(e.target.value)}
+                placeholder="e.g. 2026 Programs"
+              />
+
+              {/* Features */}
+              <div className="space-y-3">
+                <label className="text-sm font-medium text-gray-900">
+                  Challenge Features
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <FeatureToggle
+                    label="Sprint Structure"
+                    description="Group assignments into phases"
+                    checked={features.sprint_structure}
+                    onChange={(v) => setFeatures({ ...features, sprint_structure: v })}
+                  />
+                  <FeatureToggle
+                    label="Milestones"
+                    description="Celebrate progress achievements"
+                    checked={features.milestones}
+                    onChange={(v) => setFeatures({ ...features, milestones: v })}
+                  />
+                  <FeatureToggle
+                    label="Time-based Unlocks"
+                    description="Schedule content releases"
+                    checked={features.time_based_unlocks}
+                    onChange={(v) => setFeatures({ ...features, time_based_unlocks: v })}
+                  />
+                  <FeatureToggle
+                    label="Progress Tracking"
+                    description="Track individual completion"
+                    checked={features.progress_tracking}
+                    onChange={(v) => setFeatures({ ...features, progress_tracking: v })}
+                  />
+                  <FeatureToggle
+                    label="Announcements"
+                    description="Post updates for participants"
+                    checked={features.announcements}
+                    onChange={(v) => setFeatures({ ...features, announcements: v })}
+                  />
+                  <FeatureToggle
+                    label="Micro Quizzes"
+                    description="Add reflection check-ins"
+                    checked={features.micro_quizzes}
+                    onChange={(v) => setFeatures({ ...features, micro_quizzes: v })}
+                  />
+                </div>
               </div>
             </div>
 
-            <Input
-              label="Folder"
-              value={folder}
-              onChange={(e) => setFolder(e.target.value)}
-              placeholder="e.g. 2026 Q1"
-            />
-
-            {/* Actions */}
-            <div className="flex justify-end gap-3 pt-2">
-              <Button type="button" variant="secondary" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={isSubmitting || !internalName.trim() || (!hasClientContext && !isEditing && !selectedClientId)}
-              >
-                {isSubmitting && <Spinner size="sm" className="mr-2" />}
-                {isEditing ? 'Save' : 'Create'}
-              </Button>
+            {/* Footer */}
+            <div className="flex items-center justify-between gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50 flex-shrink-0">
+              <div>
+                {isEditing && previewUrl && (
+                  <Link
+                    href={`/admin/challenges/${challenge.id}`}
+                    className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Manage Assignments →
+                  </Link>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <Button type="button" variant="secondary" onClick={onClose}>
+                  Cancel
+                </Button>
+                <Button 
+                  type="submit" 
+                  disabled={isSubmitting || !internalName.trim() || !publicTitle.trim() || !descriptionHtml.trim()}
+                  title={!internalName.trim() || !publicTitle.trim() || !descriptionHtml.trim() ? 'Please fill in all required fields' : undefined}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Spinner size="sm" className="mr-2" />
+                      {isEditing ? 'Saving...' : 'Creating...'}
+                    </>
+                  ) : (
+                    isEditing ? 'Save Changes' : 'Create Challenge'
+                  )}
+                </Button>
+              </div>
             </div>
           </form>
         </div>
@@ -245,5 +501,56 @@ function CloseIcon({ className }: { className?: string }) {
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
     </svg>
+  )
+}
+
+function PreviewIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+    </svg>
+  )
+}
+
+function FeatureToggle({
+  label,
+  description,
+  checked,
+  onChange,
+}: {
+  label: string
+  description: string
+  checked: boolean
+  onChange: (value: boolean) => void
+}) {
+  return (
+    <label className={cn(
+      "flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+      checked 
+        ? "bg-blue-50 border-blue-200" 
+        : "bg-gray-50 border-gray-200 hover:bg-gray-100"
+    )}>
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(e) => onChange(e.target.checked)}
+        className="mt-0.5 h-4 w-4 rounded border-gray-300 text-blue-600"
+      />
+      <div className="flex-1 min-w-0">
+        <div className={cn(
+          "text-sm font-medium",
+          checked ? "text-blue-900" : "text-gray-900"
+        )}>
+          {label}
+        </div>
+        <div className={cn(
+          "text-xs mt-0.5",
+          checked ? "text-blue-700" : "text-gray-500"
+        )}>
+          {description}
+        </div>
+      </div>
+    </label>
   )
 }

@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogContent,
   DialogFooter,
   Spinner,
 } from '@/components/ui'
@@ -33,18 +32,6 @@ const CONTENT_TYPE_BADGES: Record<string, { label: string; variant: 'default' | 
   announcement: { label: 'Announcement', variant: 'outline' },
 }
 
-const VERSION_LABELS = [
-  'Version',
-  'English version',
-  'French version',
-  'Dutch version',
-  'German version',
-  'Beginner version',
-  'Advanced version',
-  'Short version',
-  'Extended version',
-]
-
 type Step = 'select' | 'choose-action'
 
 export function AssignmentPicker({
@@ -59,7 +46,8 @@ export function AssignmentPicker({
   const [step, setStep] = useState<Step>('select')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
-  const [versionLabel, setVersionLabel] = useState('Version')
+  const [versionLabel, setVersionLabel] = useState('')
+  const [saveToLibrary, setSaveToLibrary] = useState(false) // Default to NOT saving
   const [isCreatingVersion, setIsCreatingVersion] = useState(false)
 
   const selectedAssignment = useMemo(() =>
@@ -77,7 +65,9 @@ export function AssignmentPicker({
     return reusable.filter(
       (a) =>
         a.internal_title.toLowerCase().includes(query) ||
-        a.public_title?.toLowerCase().includes(query)
+        a.public_title?.toLowerCase().includes(query) ||
+        // Also search by tags
+        (a.tags && a.tags.some(tag => tag.toLowerCase().includes(query)))
     )
   }, [assignments, searchQuery])
 
@@ -94,6 +84,8 @@ export function AssignmentPicker({
   const handleLink = () => {
     if (selectedId) {
       onSelect(selectedId)
+      // Close dialog - parent's onSelect handler will refresh the page
+      handleClose()
     }
   }
 
@@ -106,7 +98,8 @@ export function AssignmentPicker({
         selectedId,
         challengeId,
         versionLabel,
-        sprintId
+        sprintId,
+        saveToLibrary
       )
 
       if (result.success) {
@@ -127,7 +120,8 @@ export function AssignmentPicker({
     setSearchQuery('')
     setSelectedId(null)
     setStep('select')
-    setVersionLabel('Version')
+    setVersionLabel('')
+    setSaveToLibrary(false)
     onClose()
   }
 
@@ -146,10 +140,10 @@ export function AssignmentPicker({
             </DialogDescription>
           </DialogHeader>
 
-          <DialogContent className="space-y-4">
+          <div className="py-4 space-y-4">
             <Input
               type="search"
-              placeholder="Search assignments..."
+              placeholder="Search by name or tag..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
@@ -198,6 +192,20 @@ export function AssignmentPicker({
                                   {assignment.public_title}
                                 </p>
                               )}
+                              {assignment.tags && assignment.tags.length > 0 && (
+                                <div className="flex flex-wrap gap-1 mt-1">
+                                  {assignment.tags.slice(0, 3).map(tag => (
+                                    <span key={tag} className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-600 rounded">
+                                      {tag}
+                                    </span>
+                                  ))}
+                                  {assignment.tags.length > 3 && (
+                                    <span className="px-1.5 py-0.5 text-[10px] bg-gray-100 text-gray-500 rounded">
+                                      +{assignment.tags.length - 3}
+                                    </span>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
                           <div className="text-xs text-[var(--color-fg-muted)]">
@@ -234,7 +242,7 @@ export function AssignmentPicker({
                 </div>
               )}
             </div>
-          </DialogContent>
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
@@ -260,17 +268,22 @@ export function AssignmentPicker({
             </DialogDescription>
           </DialogHeader>
 
-          <DialogContent className="space-y-4">
+          <div className="py-4 space-y-4">
             {/* Link option */}
-            <button
+            <Button
               type="button"
               onClick={handleLink}
               disabled={loading || isCreatingVersion}
-              className="w-full rounded-xl border-2 border-[var(--color-border)] p-4 text-left transition-colors hover:border-[var(--color-primary)] hover:bg-[var(--color-bg-subtle)]"
+              className="w-full rounded-xl border-2 border-[var(--color-border)] p-4 h-auto text-left transition-colors hover:border-[var(--color-primary)] hover:bg-[var(--color-bg-subtle)] justify-start"
+              variant="ghost"
             >
-              <div className="flex items-start gap-3">
-                <div className="rounded-lg bg-[var(--color-primary)] bg-opacity-10 p-2">
-                  <LinkIcon className="h-5 w-5 text-[var(--color-primary)]" />
+              <div className="flex items-start gap-3 w-full">
+                <div className="rounded-lg bg-[var(--color-primary)] bg-opacity-10 p-2 shrink-0">
+                  {loading ? (
+                    <Spinner size="sm" />
+                  ) : (
+                    <LinkIcon className="h-5 w-5 text-[var(--color-primary)]" />
+                  )}
                 </div>
                 <div>
                   <h4 className="font-semibold text-[var(--color-fg)]">Link (shared)</h4>
@@ -279,7 +292,7 @@ export function AssignmentPicker({
                   </p>
                 </div>
               </div>
-            </button>
+            </Button>
 
             {/* Create version option */}
             <div className="rounded-xl border-2 border-[var(--color-border)] p-4">
@@ -297,18 +310,27 @@ export function AssignmentPicker({
                     <label className="text-xs font-semibold text-[var(--color-fg-muted)] block mb-1">
                       Version Label
                     </label>
-                    <select
+                    <input
+                      type="text"
                       value={versionLabel}
                       onChange={(e) => setVersionLabel(e.target.value)}
-                      className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
-                    >
-                      {VERSION_LABELS.map((label) => (
-                        <option key={label} value={label}>
-                          {label}
-                        </option>
-                      ))}
-                    </select>
+                      placeholder="e.g. Client A, Dutch version, Easy mode..."
+                      className="w-full rounded-lg border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-2 text-sm focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none"
+                    />
+                    <p className="mt-1 text-xs text-[var(--color-fg-subtle)]">
+                      Name this version to differentiate it (e.g., "Dutch", "Client A", "Simplified")
+                    </p>
                   </div>
+
+                  <label className="mt-3 flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={saveToLibrary}
+                      onChange={(e) => setSaveToLibrary(e.target.checked)}
+                      className="h-4 w-4 rounded border-gray-300 text-blue-600"
+                    />
+                    <span className="text-sm text-[var(--color-fg)]">Save to library for future use</span>
+                  </label>
 
                   <Button
                     className="mt-3"
@@ -322,7 +344,7 @@ export function AssignmentPicker({
                 </div>
               </div>
             </div>
-          </DialogContent>
+          </div>
 
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={handleBack} disabled={loading || isCreatingVersion}>

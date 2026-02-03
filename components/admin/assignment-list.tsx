@@ -1,8 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Button, Badge, Spinner } from '@/components/ui'
-import { duplicateAssignment, deleteAssignment } from '@/lib/actions/assignments'
+import { Button, Badge, Spinner, Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui'
+import { duplicateAssignment, deleteAssignment, archiveAssignment, unarchiveAssignment } from '@/lib/actions/assignments'
 import { UsedInDialog } from './used-in-dialog'
 import { VariantEditor } from './variant-editor'
 import type { AssignmentWithUsages } from '@/lib/types/database'
@@ -26,6 +26,10 @@ export function AssignmentList({ assignments, onEdit, onRefresh, onTagClick }: A
   const [error, setError] = useState<string | null>(null)
   const [usedInAssignment, setUsedInAssignment] = useState<AssignmentWithUsages | null>(null)
   const [variantAssignment, setVariantAssignment] = useState<AssignmentWithUsages | null>(null)
+  // Two-step delete confirmation
+  const [deleteTarget, setDeleteTarget] = useState<AssignmentWithUsages | null>(null)
+  const [deleteStep, setDeleteStep] = useState<1 | 2>(1)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDuplicate = async (assignment: AssignmentWithUsages) => {
     setActionId(assignment.id)
@@ -45,37 +49,93 @@ export function AssignmentList({ assignments, onEdit, onRefresh, onTagClick }: A
     }
   }
 
-  const handleDelete = async (assignment: AssignmentWithUsages) => {
+  // Step 1: Show first confirmation
+  const handleDeleteClick = (assignment: AssignmentWithUsages) => {
     const usageCount = assignment.assignment_usages?.length ?? 0
     if (usageCount > 0) {
-      setError(`Cannot delete "${assignment.internal_title}" - it's used in ${usageCount} challenge(s).`)
+      setError(`Cannot delete "${assignment.internal_title}" - it's used in ${usageCount} challenge(s). Remove it from all challenges first.`)
       return
     }
+    setDeleteTarget(assignment)
+    setDeleteStep(1)
+  }
 
-    if (!confirm(`Are you sure you want to delete "${assignment.internal_title}"? This cannot be undone.`)) {
-      return
+  // Step 2: Confirm permanent deletion
+  const handleDeleteConfirm = () => {
+    setDeleteStep(2)
+  }
+
+  // Final: Execute deletion
+  const handleDeleteFinal = async () => {
+    if (!deleteTarget) return
+
+    setIsDeleting(true)
+    setError(null)
+
+    try {
+      const result = await deleteAssignment(deleteTarget.id)
+      if (result.success) {
+        setDeleteTarget(null)
+        setDeleteStep(1)
+        onRefresh()
+      } else {
+        setError(result.error ?? 'Failed to delete assignment')
+        setDeleteTarget(null)
+        setDeleteStep(1)
+      }
+    } catch (err) {
+      setError('Failed to delete assignment')
+      setDeleteTarget(null)
+      setDeleteStep(1)
+    } finally {
+      setIsDeleting(false)
     }
+  }
 
+  const handleDeleteCancel = () => {
+    setDeleteTarget(null)
+    setDeleteStep(1)
+  }
+
+  const copyUrl = (slug: string) => {
+    const url = `${window.location.origin}/${slug}`
+    navigator.clipboard.writeText(url)
+  }
+
+  const handleArchive = async (assignment: AssignmentWithUsages) => {
     setActionId(assignment.id)
     setError(null)
 
     try {
-      const result = await deleteAssignment(assignment.id)
+      const result = await archiveAssignment(assignment.id)
       if (result.success) {
         onRefresh()
       } else {
-        setError(result.error ?? 'Failed to delete assignment')
+        setError(result.error ?? 'Failed to archive assignment')
       }
-    } catch (err) {
-      setError('Failed to delete assignment')
+    } catch {
+      setError('Failed to archive assignment')
     } finally {
       setActionId(null)
     }
   }
 
-  const copyUrl = (slug: string) => {
-    const url = `${window.location.origin}/a/${slug}`
-    navigator.clipboard.writeText(url)
+  const handleUnarchive = async (assignment: AssignmentWithUsages) => {
+    setActionId(assignment.id)
+    setError(null)
+
+    try {
+      const result = await unarchiveAssignment(assignment.id)
+      if (result.success) {
+        onRefresh()
+      } else {
+        setError(result.error ?? 'Failed to restore assignment')
+      }
+    } catch {
+      setError('Failed to restore assignment')
+    } finally {
+      setActionId(null)
+    }
   }
 
   if (assignments.length === 0) {
@@ -217,13 +277,36 @@ export function AssignmentList({ assignments, onEdit, onRefresh, onTagClick }: A
                       >
                         {actionId === assignment.id ? <Spinner size="sm" /> : 'Duplicate'}
                       </Button>
+                      {assignment.archived_at ? (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleUnarchive(assignment)}
+                          disabled={actionId === assignment.id}
+                          className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                          title="Restore from archive"
+                        >
+                          Restore
+                        </Button>
+                      ) : (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleArchive(assignment)}
+                          disabled={actionId === assignment.id}
+                          className="text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                          title="Archive assignment"
+                        >
+                          Archive
+                        </Button>
+                      )}
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => handleDelete(assignment)}
+                        onClick={() => handleDeleteClick(assignment)}
                         disabled={actionId === assignment.id || usageCount > 0}
                         className={usageCount === 0 ? 'text-[var(--color-error)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-subtle)]' : ''}
-                        title={usageCount > 0 ? 'Remove from all challenges first' : 'Delete assignment'}
+                        title={usageCount > 0 ? 'Remove from all challenges first' : 'Delete permanently'}
                       >
                         Delete
                       </Button>
@@ -251,6 +334,66 @@ export function AssignmentList({ assignments, onEdit, onRefresh, onTagClick }: A
           onClose={() => setVariantAssignment(null)}
         />
       )}
+
+      {/* Two-Step Delete Confirmation Dialog */}
+      <Dialog open={deleteTarget !== null} onClose={handleDeleteCancel}>
+        <DialogHeader>
+          <DialogTitle className="text-red-600">
+            {deleteStep === 1 ? 'Delete Assignment?' : 'Confirm Permanent Deletion'}
+          </DialogTitle>
+          <DialogDescription>
+            {deleteTarget?.internal_title}
+          </DialogDescription>
+        </DialogHeader>
+
+        {/* Note: SimpleDialog already wraps in DialogContent, so we use a div here */}
+        <div className="py-4">
+          {deleteStep === 1 ? (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-amber-50 border border-amber-200 p-4">
+                <div className="flex gap-3">
+                  <WarningIcon className="h-5 w-5 text-amber-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-amber-800">
+                    <p className="font-medium">This will permanently delete this assignment.</p>
+                    <p className="mt-1">All content, settings, and media will be removed.</p>
+                  </div>
+                </div>
+              </div>
+              <p className="text-sm text-gray-600">
+                Are you sure you want to proceed?
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div className="rounded-lg bg-red-50 border border-red-200 p-4">
+                <div className="flex gap-3">
+                  <TrashIcon className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-red-800">
+                    <p className="font-medium">This action cannot be undone.</p>
+                    <p className="mt-1">The assignment "{deleteTarget?.internal_title}" will be permanently deleted.</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="secondary" onClick={handleDeleteCancel} disabled={isDeleting}>
+            Cancel
+          </Button>
+          {deleteStep === 1 ? (
+            <Button variant="destructive" onClick={handleDeleteConfirm}>
+              Yes, Delete
+            </Button>
+          ) : (
+            <Button variant="destructive" onClick={handleDeleteFinal} disabled={isDeleting}>
+              {isDeleting ? <Spinner size="sm" className="mr-2" /> : null}
+              Permanently Delete
+            </Button>
+          )}
+        </DialogFooter>
+      </Dialog>
     </div>
   )
 }
@@ -259,6 +402,22 @@ function LinkIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+    </svg>
+  )
+}
+
+function WarningIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.38 3.375 2.07 3.375h14.092c1.69 0 2.936-1.875 2.069-3.375L12.707 5.625c-.546-.956-1.953-.956-2.499 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
+    </svg>
+  )
+}
+
+function TrashIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m14.74 9-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 0 1-2.244 2.077H8.084a2.25 2.25 0 0 1-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 0 0-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 0 1 3.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 0 0-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 0 0-7.5 0" />
     </svg>
   )
 }

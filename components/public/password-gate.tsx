@@ -8,19 +8,20 @@ import { cn } from '@/lib/utils/cn'
 interface PasswordGateProps {
   assignmentId: string
   assignmentTitle: string
-  passwordInstructions?: string
   onSuccess: () => void
+  passwordInstructions?: string
   analyticsContext?: {
     clientId: string
     challengeId: string
   }
 }
 
-export function PasswordGate({ assignmentId, assignmentTitle, passwordInstructions, onSuccess, analyticsContext }: PasswordGateProps) {
+export function PasswordGate({ assignmentId, assignmentTitle, onSuccess, passwordInstructions, analyticsContext }: PasswordGateProps) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [retryAfter, setRetryAfter] = useState<number | null>(null)
   const [isPending, startTransition] = useTransition()
+  const [showPassword, setShowPassword] = useState(true) // Default visible for gamification
 
   // Countdown timer for rate limiting
   useEffect(() => {
@@ -41,7 +42,6 @@ export function PasswordGate({ assignmentId, assignmentTitle, passwordInstructio
     e.preventDefault()
 
     if (!password.trim()) {
-      setError('Please enter a password')
       return
     }
 
@@ -92,20 +92,20 @@ export function PasswordGate({ assignmentId, assignmentTitle, passwordInstructio
             <LockIcon className="h-10 w-10 text-[var(--color-accent)]" />
           </div>
 
-          {/* Title */}
-          <h1 className="mb-2 text-center text-2xl font-bold text-[var(--color-fg)]">
-            Password Required
-          </h1>
-          <p className="mb-4 text-center text-[var(--color-fg-muted)]">
-            Enter the password to unlock{' '}
-            <span className="font-semibold text-[var(--color-fg)]">{assignmentTitle}</span>
-          </p>
+          {/* Lock icon as title */}
+          <div className="mb-6 text-center">
+            <LockIcon className="h-8 w-8 mx-auto text-[var(--color-fg-subtle)]" />
+          </div>
+
+          {/* Password Instructions - Only show if provided */}
           {passwordInstructions && (
-            <p className="mb-8 text-center text-sm text-[var(--color-fg-subtle)] italic">
-              {passwordInstructions}
-            </p>
+            <div className="mb-6 rounded-xl bg-[var(--color-accent-subtle)] px-4 py-3 text-sm text-[var(--color-accent)]">
+              <div className="flex items-start gap-2">
+                <HintIcon className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{passwordInstructions}</span>
+              </div>
+            </div>
           )}
-          {!passwordInstructions && <div className="mb-4" />}
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
@@ -116,21 +116,35 @@ export function PasswordGate({ assignmentId, assignmentTitle, passwordInstructio
               <div className="relative">
                 <input
                   id="password"
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
+                  placeholder="••••••••"
                   disabled={isPending || !!retryAfter}
                   className={cn(
-                    'w-full rounded-2xl border-[1.5px] bg-[var(--color-bg)] px-5 py-4 text-[var(--color-fg)] placeholder-[var(--color-fg-subtle)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2',
+                    'w-full rounded-2xl border-[1.5px] bg-[var(--color-bg)] px-5 py-4 pr-20 text-[var(--color-fg)] placeholder-[var(--color-fg-subtle)] transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)] focus:ring-offset-2',
                     error
                       ? 'border-[var(--color-error)]'
                       : 'border-[var(--color-border)] hover:border-[var(--color-border-hover)]'
                   )}
                   autoFocus
-                  autoComplete="current-password"
+                  autoComplete="off"
+                  data-1p-ignore
+                  data-lpignore="true"
                 />
-                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="p-1 rounded hover:bg-gray-100 transition-colors"
+                    aria-label="Toggle visibility"
+                  >
+                    {showPassword ? (
+                      <EyeOffIcon className="h-4 w-4 text-[var(--color-fg-subtle)]" />
+                    ) : (
+                      <EyeIcon className="h-4 w-4 text-[var(--color-fg-subtle)]" />
+                    )}
+                  </button>
                   <KeyIcon className="h-5 w-5 text-[var(--color-fg-subtle)]" />
                 </div>
               </div>
@@ -149,38 +163,33 @@ export function PasswordGate({ assignmentId, assignmentTitle, passwordInstructio
               <div className="text-center text-sm text-[var(--color-fg-muted)] py-2">
                 <span className="inline-flex items-center gap-2">
                   <ClockIcon className="h-4 w-4" />
-                  Wait <span className="font-bold text-[var(--color-fg)] tabular-nums">{retryAfter}</span> seconds
+                  <span className="font-bold text-[var(--color-fg)] tabular-nums">{retryAfter}s</span>
                 </span>
               </div>
             )}
 
-            {/* Submit Button */}
+            {/* Submit Button - Icon only */}
             <button
               type="submit"
               disabled={isPending || !!retryAfter || !password.trim()}
-              className="w-full rounded-2xl bg-[var(--gradient-accent)] px-5 py-4 text-base font-semibold text-white shadow-[0_4px_16px_-4px_rgba(255,107,74,0.4)] transition-all duration-200 hover:shadow-[0_8px_24px_-6px_rgba(255,107,74,0.5)] hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:translate-y-0 disabled:hover:shadow-none"
+              className="w-full rounded-2xl bg-[var(--color-accent)] px-5 py-4 text-base font-semibold text-white shadow-lg transition-all duration-200 hover:brightness-110 hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-50 disabled:bg-gray-400 disabled:hover:translate-y-0 disabled:hover:brightness-100"
             >
               {isPending ? (
-                <span className="flex items-center justify-center gap-2">
-                  <LoaderIcon className="h-5 w-5 animate-spin" />
-                  Verifying...
+                <span className="flex items-center justify-center">
+                  <LoaderIcon className="h-6 w-6 animate-spin" />
                 </span>
               ) : retryAfter ? (
-                `Try again in ${retryAfter}s`
-              ) : (
                 <span className="flex items-center justify-center gap-2">
-                  <UnlockIcon className="h-5 w-5" />
-                  Unlock Content
+                  <ClockIcon className="h-5 w-5" />
+                  {retryAfter}s
+                </span>
+              ) : (
+                <span className="flex items-center justify-center">
+                  <UnlockIcon className="h-6 w-6" />
                 </span>
               )}
             </button>
           </form>
-
-          {/* Help Text */}
-          <p className="mt-8 text-center text-sm text-[var(--color-fg-subtle)]">
-            Don't have the password?{' '}
-            <span className="text-[var(--color-fg-muted)]">Contact your administrator.</span>
-          </p>
         </div>
       </div>
     </div>
@@ -232,6 +241,31 @@ function LoaderIcon({ className }: { className?: string }) {
     <svg className={className} fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+    </svg>
+  )
+}
+
+function EyeIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 0 1 0-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178Z" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
+    </svg>
+  )
+}
+
+function EyeOffIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3.98 8.223A10.477 10.477 0 0 0 1.934 12C3.226 16.338 7.244 19.5 12 19.5c.993 0 1.953-.138 2.863-.395M6.228 6.228A10.451 10.451 0 0 1 12 4.5c4.756 0 8.773 3.162 10.065 7.498a10.522 10.522 0 0 1-4.293 5.774M6.228 6.228 3 3m3.228 3.228 3.65 3.65m7.894 7.894L21 21m-3.228-3.228-3.65-3.65m0 0a3 3 0 1 0-4.243-4.243m4.242 4.242L9.88 9.88" />
+    </svg>
+  )
+}
+
+function HintIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 18v-5.25m0 0a6.01 6.01 0 0 0 1.5-.189m-1.5.189a6.01 6.01 0 0 1-1.5-.189m3.75 7.478a12.06 12.06 0 0 1-4.5 0m3.75 2.383a14.406 14.406 0 0 1-3 0M14.25 18v-.192c0-.983.658-1.823 1.508-2.316a7.5 7.5 0 1 0-7.517 0c.85.493 1.509 1.333 1.509 2.316V18" />
     </svg>
   )
 }

@@ -4,29 +4,57 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useState, useTransition, useEffect, useCallback } from 'react'
 import { cn } from '@/lib/utils/cn'
-import { DemoUserButton } from '@/components/admin/demo-user-button'
+import { isAdminAuthenticated, signOutAdmin } from '@/lib/auth/admin-auth'
 
-const navigation = [
+// Main navigation (Settings is separate, pinned to bottom)
+const mainNavigation = [
   { name: 'Dashboard', href: '/admin', icon: HomeIcon },
   { name: 'Clients', href: '/admin/clients', icon: BuildingIcon },
   { name: 'Challenges', href: '/admin/challenges', icon: FlagIcon },
   { name: 'Assignments', href: '/admin/assignments', icon: FileTextIcon },
   { name: 'Analytics', href: '/admin/analytics', icon: ChartIcon },
-  { name: 'Settings', href: '/admin/settings', icon: SettingsIcon },
 ]
+
+const settingsItem = { name: 'Settings', href: '/admin/settings', icon: SettingsIcon }
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null)
+
+  // Check authentication on mount
+  useEffect(() => {
+    // Skip auth check on login page
+    if (pathname === '/admin/login') {
+      setIsAuthenticated(true) // Let login page render
+      return
+    }
+    
+    const authenticated = isAdminAuthenticated()
+    if (!authenticated) {
+      router.replace('/admin/login')
+    } else {
+      setIsAuthenticated(true)
+    }
+  }, [pathname, router])
+
+  // Handle sign out
+  const handleSignOut = useCallback(() => {
+    signOutAdmin()
+    router.replace('/admin/login')
+  }, [router])
 
   // Prefetch all navigation routes on mount for instant transitions
   useEffect(() => {
-    navigation.forEach(item => {
-      router.prefetch(item.href)
-    })
-  }, [router])
+    if (isAuthenticated) {
+      mainNavigation.forEach(item => {
+        router.prefetch(item.href)
+      })
+      router.prefetch(settingsItem.href)
+    }
+  }, [router, isAuthenticated])
 
   // Handle navigation with transition for smooth loading
   const handleNavigation = useCallback((href: string) => {
@@ -39,12 +67,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
   // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Cmd/Ctrl + number for quick navigation
+      // Cmd/Ctrl + number for quick navigation (1-5 for main nav, 6 for settings)
       if ((e.metaKey || e.ctrlKey) && e.key >= '1' && e.key <= '6') {
         e.preventDefault()
         const index = parseInt(e.key) - 1
-        if (navigation[index]) {
-          handleNavigation(navigation[index].href)
+        if (index < 5 && mainNavigation[index]) {
+          handleNavigation(mainNavigation[index].href)
+        } else if (index === 5) {
+          handleNavigation(settingsItem.href)
         }
       }
       // Escape to close mobile menu
@@ -57,6 +87,20 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [handleNavigation])
 
+  // Login page renders without the admin layout chrome
+  if (pathname === '/admin/login') {
+    return <>{children}</>
+  }
+
+  // Show loading while checking auth
+  if (isAuthenticated === null) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[var(--color-bg)]">
+        <div className="h-8 w-8 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
   return (
     <div className="flex min-h-screen">
       {/* Loading bar */}
@@ -68,37 +112,37 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
 
       {/* Sidebar */}
       <aside className="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col bg-[var(--color-bg-elevated)] border-r border-[var(--color-border)] lg:flex">
-        {/* Logo */}
-        <div className="flex h-16 items-center px-5 border-b border-[var(--color-border)]">
-          <Link href="/admin" className="flex items-center gap-3 group">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-accent)] text-white text-sm font-bold">
-              CC
-            </div>
-            <span className="text-sm font-semibold text-[var(--color-fg)] group-hover:text-[var(--color-accent)] transition-colors">
+        {/* Logo / Brand */}
+        <div className="px-5 py-6 border-b border-[var(--color-border)]">
+          <Link href="/admin" className="block group">
+            <h1 className="text-lg font-bold text-[var(--color-fg)] group-hover:text-[var(--color-accent)] transition-colors">
               Company Challenges
-            </span>
+            </h1>
+            <p className="text-xs text-[var(--color-fg-muted)] mt-0.5">
+              by Limpid&Co
+            </p>
           </Link>
         </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 px-4 py-6 overflow-y-auto">
+        {/* Main Navigation */}
+        <nav className="flex-1 px-3 py-4 overflow-y-auto">
           <div className="space-y-1">
-            {navigation.map((item) => {
+            {mainNavigation.map((item) => {
               const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
               return (
                 <button
                   key={item.name}
                   onClick={() => handleNavigation(item.href)}
                   className={cn(
-                    'group relative flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all duration-150',
+                    'group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
                     isActive
-                      ? 'bg-[var(--color-accent)] text-white'
+                      ? 'bg-[var(--color-accent)] text-white shadow-sm'
                       : 'text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-fg)]',
                     isPending && 'opacity-60 pointer-events-none'
                   )}
                 >
                   <item.icon className={cn(
-                    'h-[18px] w-[18px] transition-colors',
+                    'h-[18px] w-[18px] flex-shrink-0 transition-colors',
                     isActive ? 'text-white' : 'text-[var(--color-fg-muted)] group-hover:text-[var(--color-fg)]'
                   )} />
                   <span>{item.name}</span>
@@ -108,32 +152,58 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           </div>
         </nav>
 
-        {/* Footer - User */}
-        <div className="p-4 border-t border-[var(--color-border)]">
-          <div className="flex items-center gap-3">
-            <DemoUserButton afterSignOutUrl="/" />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-[var(--color-fg)] truncate">Account</p>
-            </div>
+        {/* Bottom Section: Settings + User */}
+        <div className="border-t border-[var(--color-border)]">
+          {/* Settings - Pinned to bottom */}
+          <div className="px-3 py-3">
+            <button
+              onClick={() => handleNavigation(settingsItem.href)}
+              className={cn(
+                'group relative flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all duration-150',
+                pathname === settingsItem.href || pathname.startsWith(settingsItem.href + '/')
+                  ? 'bg-[var(--color-accent)] text-white shadow-sm'
+                  : 'text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-fg)]',
+                isPending && 'opacity-60 pointer-events-none'
+              )}
+            >
+              <SettingsIcon className={cn(
+                'h-[18px] w-[18px] flex-shrink-0 transition-colors',
+                pathname === settingsItem.href || pathname.startsWith(settingsItem.href + '/')
+                  ? 'text-white'
+                  : 'text-[var(--color-fg-muted)] group-hover:text-[var(--color-fg)]'
+              )} />
+              <span>Settings</span>
+            </button>
+          </div>
+
+          {/* User / Sign Out */}
+          <div className="px-3 py-3 border-t border-[var(--color-border)] bg-[var(--color-bg-muted)]/30">
+            <button
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)] hover:text-[var(--color-fg)] transition-colors"
+            >
+              <LogOutIcon className="h-[18px] w-[18px] flex-shrink-0" />
+              <span>Sign out</span>
+            </button>
           </div>
         </div>
       </aside>
 
       {/* Mobile header */}
-      <header className="fixed inset-x-0 top-0 z-40 flex h-16 items-center gap-4 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)]/95 backdrop-blur-md px-4 lg:hidden">
+      <header className="fixed inset-x-0 top-0 z-40 flex h-14 items-center gap-3 border-b border-[var(--color-border)] bg-[var(--color-bg-elevated)]/95 backdrop-blur-md px-4 lg:hidden">
         <button
           type="button"
           onClick={() => setMobileMenuOpen(true)}
-          className="flex h-10 w-10 items-center justify-center rounded-xl text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)] transition-colors"
+          className="flex h-9 w-9 items-center justify-center rounded-lg text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)] transition-colors"
           aria-label="Open menu"
         >
           <MenuIcon className="h-5 w-5" />
         </button>
-        <span className="text-base font-bold text-[var(--color-fg)]">Company Challenges</span>
+        <div className="flex-1">
+          <span className="text-sm font-semibold text-[var(--color-fg)]">Company Challenges</span>
+        </div>
         {isPending && (
-          <div className="ml-auto">
-            <div className="h-5 w-5 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
-          </div>
+          <div className="h-5 w-5 border-2 border-[var(--color-accent)] border-t-transparent rounded-full animate-spin" />
         )}
       </header>
 
@@ -144,13 +214,12 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in"
             onClick={() => setMobileMenuOpen(false)}
           />
-          <aside className="absolute inset-y-0 left-0 w-64 bg-[var(--color-bg-elevated)] border-r border-[var(--color-border)] animate-slide-in-left">
-            <div className="flex h-16 items-center justify-between border-b border-[var(--color-border)] px-4">
-              <div className="flex items-center gap-3">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[var(--color-accent)] text-white text-sm font-bold">
-                  CC
-                </div>
-                <span className="text-sm font-semibold text-[var(--color-fg)]">Company Challenges</span>
+          <aside className="absolute inset-y-0 left-0 w-72 bg-[var(--color-bg-elevated)] border-r border-[var(--color-border)] animate-slide-in-left flex flex-col">
+            {/* Mobile Header */}
+            <div className="flex items-center justify-between border-b border-[var(--color-border)] px-4 py-4">
+              <div>
+                <h1 className="text-base font-bold text-[var(--color-fg)]">Company Challenges</h1>
+                <p className="text-xs text-[var(--color-fg-muted)]">by Limpid&Co</p>
               </div>
               <button
                 onClick={() => setMobileMenuOpen(false)}
@@ -159,15 +228,17 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <CloseIcon className="h-5 w-5 text-[var(--color-fg-muted)]" />
               </button>
             </div>
-            <nav className="p-4 space-y-1">
-              {navigation.map((item) => {
+            
+            {/* Mobile Main Nav */}
+            <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+              {mainNavigation.map((item) => {
                 const isActive = pathname === item.href || (item.href !== '/admin' && pathname.startsWith(item.href))
                 return (
                   <button
                     key={item.name}
                     onClick={() => handleNavigation(item.href)}
                     className={cn(
-                      'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors',
+                      'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
                         ? 'bg-[var(--color-accent)] text-white'
                         : 'text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)]'
@@ -179,6 +250,36 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 )
               })}
             </nav>
+
+            {/* Mobile Bottom Section */}
+            <div className="border-t border-[var(--color-border)]">
+              <div className="p-3">
+                <button
+                  onClick={() => handleNavigation(settingsItem.href)}
+                  className={cn(
+                    'flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                    pathname === settingsItem.href
+                      ? 'bg-[var(--color-accent)] text-white'
+                      : 'text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)]'
+                  )}
+                >
+                  <SettingsIcon className="h-[18px] w-[18px]" />
+                  Settings
+                </button>
+              </div>
+              <div className="p-3 border-t border-[var(--color-border)] bg-[var(--color-bg-muted)]/30">
+                <button
+                  onClick={() => {
+                    setMobileMenuOpen(false)
+                    handleSignOut()
+                  }}
+                  className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)]"
+                >
+                  <LogOutIcon className="h-[18px] w-[18px]" />
+                  Sign out
+                </button>
+              </div>
+            </div>
           </aside>
         </div>
       )}
@@ -186,12 +287,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       {/* Main content */}
       <main className="flex-1 lg:pl-64">
         <div className={cn(
-          'min-h-screen pt-16 lg:pt-0 transition-opacity duration-150',
+          'min-h-screen pt-14 lg:pt-0 transition-opacity duration-150',
           isPending && 'opacity-60'
         )}>
-          <div className="relative">
-            {children}
-          </div>
+          {children}
         </div>
       </main>
     </div>
@@ -260,6 +359,14 @@ function CloseIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+    </svg>
+  )
+}
+
+function LogOutIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9" />
     </svg>
   )
 }

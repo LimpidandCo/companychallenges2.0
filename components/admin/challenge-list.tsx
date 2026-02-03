@@ -77,9 +77,18 @@ export function ChallengeList({ challenges, onEdit, onRefresh }: ChallengeListPr
     }
   }
 
-  const copyUrl = (slug: string) => {
-    const url = `${window.location.origin}/c/${slug}`
+  const [copiedId, setCopiedId] = useState<string | null>(null)
+
+  const copyUrl = (challenge: ChallengeWithClient) => {
+    const url = `${window.location.origin}/${challenge.slug}`
     navigator.clipboard.writeText(url)
+    setCopiedId(challenge.id)
+    setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  const getPublicUrl = (slug: string) => {
+    if (typeof window === 'undefined') return `/${slug}`
+    return `${window.location.origin}/${slug}`
   }
 
   if (challenges.length === 0) {
@@ -87,135 +96,152 @@ export function ChallengeList({ challenges, onEdit, onRefresh }: ChallengeListPr
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {error && (
-        <div className="rounded-[var(--radius-md)] bg-[var(--color-error-subtle)] p-3 text-sm text-[var(--color-error)]">
+        <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-700">
           {error}
         </div>
       )}
 
-      <div className="overflow-hidden rounded-[var(--radius-lg)] border border-[var(--color-border)]">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[var(--color-border)] bg-[var(--color-bg-subtle)]">
-              <th className="px-4 py-3 text-left text-sm font-medium text-[var(--color-fg-muted)]">
-                Challenge
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-[var(--color-fg-muted)]">
-                Client
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-[var(--color-fg-muted)]">
-                Folder
-              </th>
-              <th className="px-4 py-3 text-left text-sm font-medium text-[var(--color-fg-muted)]">
-                Status
-              </th>
-              <th className="px-4 py-3 text-right text-sm font-medium text-[var(--color-fg-muted)]">
-                Actions
-              </th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-[var(--color-border)]">
-            {challenges.map((challenge) => (
-              <tr key={challenge.id} className="hover:bg-[var(--color-bg-subtle)]">
-                <td className="px-4 py-3">
-                  <div className="flex items-center gap-3">
-                    <div
-                      className="h-8 w-8 rounded-[var(--radius-sm)]"
-                      style={{ backgroundColor: challenge.brand_color || '#6b7280' }}
-                    />
-                    <div>
-                      <p className="font-medium text-[var(--color-fg)]">
-                        {challenge.internal_name}
-                      </p>
-                      {challenge.public_title && (
-                        <p className="text-xs text-[var(--color-fg-subtle)]">
-                          {challenge.public_title}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-sm text-[var(--color-fg-muted)]">
-                    {challenge.client.name}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="text-sm text-[var(--color-fg-muted)]">
-                    {challenge.folder || '-'}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <Badge variant={challenge.is_archived ? 'outline' : 'success'}>
-                    {challenge.is_archived ? 'Archived' : 'Active'}
-                  </Badge>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => copyUrl(challenge.slug)}
-                      title="Copy URL"
+      <div className="grid gap-3">
+        {challenges.map((challenge) => (
+          <div
+            key={challenge.id}
+            className={`group relative rounded-xl border bg-white p-4 transition-all hover:shadow-md ${
+              challenge.is_archived ? 'border-gray-200 opacity-70' : 'border-gray-200 hover:border-gray-300'
+            }`}
+          >
+            <div className="flex items-start justify-between gap-4">
+              {/* Left side - Challenge info */}
+              <div className="flex items-start gap-4 min-w-0 flex-1">
+                <div
+                  className="h-12 w-12 rounded-xl flex items-center justify-center text-white font-bold text-lg shadow-sm flex-shrink-0"
+                  style={{ backgroundColor: challenge.brand_color || '#6b7280' }}
+                >
+                  {challenge.internal_name.charAt(0).toUpperCase()}
+                </div>
+                
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Link 
+                      href={`/admin/challenges/${challenge.id}`}
+                      className="font-semibold text-gray-900 hover:text-blue-600 transition-colors"
                     >
-                      <LinkIcon className="h-4 w-4" />
-                    </Button>
-                    <Link href={`/admin/challenges/${challenge.id}`}>
-                      <Button variant="ghost" size="sm">
-                        Manage
-                      </Button>
+                      {challenge.internal_name}
                     </Link>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => onEdit(challenge)}
-                      disabled={actionId === challenge.id}
-                    >
-                      Edit
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDuplicate(challenge)}
-                      disabled={actionId === challenge.id}
-                    >
-                      {actionId === challenge.id ? <Spinner size="sm" /> : 'Duplicate'}
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleArchive(challenge)}
-                      disabled={actionId === challenge.id}
-                    >
-                      {challenge.is_archived ? 'Restore' : 'Archive'}
-                    </Button>
-                    {challenge.is_archived && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDelete(challenge)}
-                        disabled={actionId === challenge.id}
-                        className="text-[var(--color-error)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-subtle)]"
-                      >
-                        Delete
-                      </Button>
+                    {!challenge.is_archived ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                        <span className="h-1.5 w-1.5 rounded-full bg-green-500 animate-pulse" />
+                        Live
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 text-xs font-medium">
+                        Archived
+                      </span>
                     )}
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                  
+                  {challenge.public_title && (
+                    <p className="text-sm text-gray-500 truncate mt-0.5">{challenge.public_title}</p>
+                  )}
+                  
+                  <div className="flex items-center gap-3 mt-2 text-sm">
+                    <span className="text-gray-500">{challenge.client.name}</span>
+                    <span className="text-gray-300">•</span>
+                    <div className="flex items-center gap-1.5">
+                      <code className="text-xs font-mono text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                        /{challenge.slug}
+                      </code>
+                      <button
+                        onClick={() => copyUrl(challenge)}
+                        className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Copy URL"
+                      >
+                        {copiedId === challenge.id ? (
+                          <CheckIcon className="h-3.5 w-3.5 text-green-500" />
+                        ) : (
+                          <CopyIcon className="h-3.5 w-3.5" />
+                        )}
+                      </button>
+                      <a
+                        href={getPublicUrl(challenge.slug)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="p-1 rounded hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+                        title="Preview"
+                      >
+                        <ExternalLinkIcon className="h-3.5 w-3.5" />
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right side - Actions */}
+              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Link href={`/admin/challenges/${challenge.id}`}>
+                  <button className="px-3 py-1.5 text-sm font-medium text-white bg-gray-900 hover:bg-gray-800 rounded-lg transition-colors">
+                    Manage
+                  </button>
+                </Link>
+                <button
+                  onClick={() => onEdit(challenge)}
+                  disabled={actionId === challenge.id}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  Edit
+                </button>
+                <button
+                  onClick={() => handleDuplicate(challenge)}
+                  disabled={actionId === challenge.id}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {actionId === challenge.id ? <Spinner size="sm" /> : 'Duplicate'}
+                </button>
+                <button
+                  onClick={() => handleArchive(challenge)}
+                  disabled={actionId === challenge.id}
+                  className="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {challenge.is_archived ? 'Restore' : 'Archive'}
+                </button>
+                <button
+                  onClick={() => handleDelete(challenge)}
+                  disabled={actionId === challenge.id}
+                  className="px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                  title="Permanently delete this challenge"
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
       </div>
     </div>
   )
 }
 
-function LinkIcon({ className }: { className?: string }) {
+function CopyIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+    </svg>
+  )
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+    </svg>
+  )
+}
+
+function ExternalLinkIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
     </svg>
   )
 }

@@ -258,41 +258,66 @@ function ChallengeRow({
   onRestore,
   onDelete,
 }: ChallengeRowProps) {
+  const [copied, setCopied] = useState(false)
+
+  const getPublicUrl = () => {
+    if (typeof window === 'undefined') return `/${challenge.slug}`
+    return `${window.location.origin}/${challenge.slug}`
+  }
+
+  const copyUrl = () => {
+    navigator.clipboard.writeText(getPublicUrl())
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
   return (
     <div
       className={cn(
-        "flex items-center justify-between gap-4 rounded-xl border p-4 transition-colors",
+        "rounded-xl border p-4 transition-colors",
         isArchived
           ? "border-[var(--color-border)] bg-[var(--color-bg-subtle)] opacity-60"
           : "border-[var(--color-border)] hover:border-[var(--color-border-hover)] hover:bg-[var(--color-bg-subtle)]"
       )}
     >
-      <div className="flex items-center gap-4 min-w-0">
-        <div
-          className="h-10 w-10 rounded-lg flex-shrink-0"
-          style={{ backgroundColor: challenge.brand_color || '#6366f1' }}
-        />
-        <div className="min-w-0">
-          <Link
-            href={`/admin/challenges/${challenge.id}`}
-            className="font-medium text-[var(--color-fg)] hover:text-[var(--color-accent)] transition-colors block truncate"
-          >
-            {challenge.internal_name}
-          </Link>
-          {challenge.public_title && (
-            <p className="text-sm text-[var(--color-fg-muted)] truncate">
-              {challenge.public_title}
-            </p>
-          )}
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center gap-4 min-w-0">
+          <div
+            className="h-10 w-10 rounded-lg flex-shrink-0"
+            style={{ backgroundColor: challenge.brand_color || '#6366f1' }}
+          />
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <Link
+                href={`/admin/challenges/${challenge.id}`}
+                className="font-medium text-[var(--color-fg)] hover:text-[var(--color-accent)] transition-colors truncate"
+              >
+                {challenge.internal_name}
+              </Link>
+              {!isArchived && (
+                <div className="flex items-center gap-1">
+                  <Badge variant="success" className="text-xs">Live</Badge>
+                  <span className="relative flex h-2 w-2">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                  </span>
+                </div>
+              )}
+            </div>
+            {challenge.public_title && (
+              <p className="text-sm text-[var(--color-fg-muted)] truncate">
+                {challenge.public_title}
+              </p>
+            )}
+          </div>
         </div>
-      </div>
 
-      <div className="flex items-center gap-2 flex-shrink-0">
-        {challenge.folder && (
-          <Badge variant="outline" className="hidden sm:inline-flex">
-            {challenge.folder}
-          </Badge>
-        )}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {challenge.folder && (
+            <Badge variant="outline" className="hidden sm:inline-flex">
+              {challenge.folder}
+            </Badge>
+          )}
 
         {isLoading ? (
           <Spinner size="sm" />
@@ -325,7 +350,38 @@ function ChallengeRow({
             </Link>
           </>
         )}
+        </div>
       </div>
+
+      {/* URL Section */}
+      {!isArchived && (
+        <div className="mt-3 pt-3 border-t border-[var(--color-border)] flex items-center gap-2">
+          <LinkIcon className="h-4 w-4 text-[var(--color-fg-subtle)] flex-shrink-0" />
+          <code className="text-xs font-mono text-[var(--color-fg-muted)] bg-[var(--color-bg-muted)] px-2 py-1 rounded truncate">
+            /{challenge.slug}
+          </code>
+          <button
+            onClick={copyUrl}
+            className="p-1.5 rounded hover:bg-[var(--color-bg-muted)] text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] transition-colors flex-shrink-0"
+            title="Copy URL"
+          >
+            {copied ? (
+              <CheckIcon className="h-4 w-4 text-green-500" />
+            ) : (
+              <CopyIcon className="h-4 w-4" />
+            )}
+          </button>
+          <a
+            href={getPublicUrl()}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="p-1.5 rounded hover:bg-[var(--color-bg-muted)] text-[var(--color-fg-subtle)] hover:text-[var(--color-fg)] transition-colors flex-shrink-0"
+            title="Open in new tab"
+          >
+            <ExternalLinkIcon className="h-4 w-4" />
+          </a>
+        </div>
+      )}
     </div>
   )
 }
@@ -350,6 +406,38 @@ function FlagIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M3 3v1.5M3 21v-6m0 0 2.77-.693a9 9 0 0 1 6.208.682l.108.054a9 9 0 0 0 6.086.71l3.114-.732a48.524 48.524 0 0 1-.005-10.499l-3.11.732a9 9 0 0 1-6.085-.711l-.108-.054a9 9 0 0 0-6.208-.682L3 4.5M3 15V4.5" />
+    </svg>
+  )
+}
+
+function LinkIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+    </svg>
+  )
+}
+
+function CopyIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 17.25v3.375c0 .621-.504 1.125-1.125 1.125h-9.75a1.125 1.125 0 0 1-1.125-1.125V7.875c0-.621.504-1.125 1.125-1.125H6.75a9.06 9.06 0 0 1 1.5.124m7.5 10.376h3.375c.621 0 1.125-.504 1.125-1.125V11.25c0-4.46-3.243-8.161-7.5-8.876a9.06 9.06 0 0 0-1.5-.124H9.375c-.621 0-1.125.504-1.125 1.125v3.5m7.5 10.375H9.375a1.125 1.125 0 0 1-1.125-1.125v-9.25m12 6.625v-1.875a3.375 3.375 0 0 0-3.375-3.375h-1.5a1.125 1.125 0 0 1-1.125-1.125v-1.5a3.375 3.375 0 0 0-3.375-3.375H9.75" />
+    </svg>
+  )
+}
+
+function CheckIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m4.5 12.75 6 6 9-13.5" />
+    </svg>
+  )
+}
+
+function ExternalLinkIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 6H5.25A2.25 2.25 0 0 0 3 8.25v10.5A2.25 2.25 0 0 0 5.25 21h10.5A2.25 2.25 0 0 0 18 18.75V10.5m-10.5 6L21 3m0 0h-5.25M21 3v5.25" />
     </svg>
   )
 }
