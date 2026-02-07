@@ -84,6 +84,17 @@ export async function createClient(input: ClientInsert): Promise<ClientActionRes
   try {
     const supabase = createAdminClient()
 
+    // Check for duplicate name (case-insensitive)
+    const { data: existing } = await supabase
+      .from('clients')
+      .select('id')
+      .ilike('name', input.name)
+      .single()
+
+    if (existing) {
+      return { success: false, error: 'A client with this name already exists' }
+    }
+
     // Use provided features or defaults (all false)
     const features = {
       announcements: false,
@@ -130,6 +141,20 @@ export async function createClient(input: ClientInsert): Promise<ClientActionRes
 export async function updateClient(id: string, input: ClientUpdate): Promise<ClientActionResult> {
   try {
     const supabase = createAdminClient()
+
+    // Check for duplicate name if name is being updated (case-insensitive)
+    if (input.name !== undefined) {
+      const { data: existing } = await supabase
+        .from('clients')
+        .select('id')
+        .ilike('name', input.name)
+        .neq('id', id)
+        .single()
+
+      if (existing) {
+        return { success: false, error: 'A client with this name already exists' }
+      }
+    }
 
     // Build update object
     const updateData: Record<string, unknown> = {}

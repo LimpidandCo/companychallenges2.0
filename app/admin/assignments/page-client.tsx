@@ -36,7 +36,7 @@ export function AssignmentsPageClient({
   const [searchQuery, setSearchQuery] = useState('')
   const [usageFilter, setUsageFilter] = useState<UsageFilter>('all')
   const [contentTypeFilter, setContentTypeFilter] = useState<ContentTypeFilter>('')
-  const [tagFilter, setTagFilter] = useState<string>('')
+  const [tagFilters, setTagFilters] = useState<string[]>([])
 
   const handleEditClick = (assignment: AssignmentWithUsages) => {
     setEditingAssignment(assignment)
@@ -63,9 +63,9 @@ export function AssignmentsPageClient({
       // Build export options based on current filters
       const exportOptions: { tags?: string[] } = {}
       
-      // If a tag filter is active, only export assignments with that tag
-      if (tagFilter) {
-        exportOptions.tags = [tagFilter]
+      // If tag filters are active, only export assignments with those tags
+      if (tagFilters.length > 0) {
+        exportOptions.tags = tagFilters
       }
       
       const result = await exportAssignments(exportOptions)
@@ -77,7 +77,7 @@ export function AssignmentsPageClient({
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        const filterSuffix = tagFilter ? `-${tagFilter}` : ''
+        const filterSuffix = tagFilters.length > 0 ? `-${tagFilters.join('-')}` : ''
         a.download = `assignments-export${filterSuffix}-${new Date().toISOString().split('T')[0]}.xlsx`
         document.body.appendChild(a)
         a.click()
@@ -145,9 +145,13 @@ export function AssignmentsPageClient({
     }
   }
 
-  // Handle tag click from list
+  // Handle tag click from list - toggle tag in filters
   const handleTagClick = (tag: string) => {
-    setTagFilter(tag)
+    setTagFilters(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag) 
+        : [...prev, tag]
+    )
   }
 
   // Filter assignments
@@ -169,12 +173,16 @@ export function AssignmentsPageClient({
       // Content type filter
       if (contentTypeFilter && assignment.content_type !== contentTypeFilter) return false
 
-      // Tag filter
-      if (tagFilter && (!assignment.tags || !assignment.tags.includes(tagFilter))) return false
+      // Tag filter - assignment must have ALL selected tags (AND logic)
+      if (tagFilters.length > 0) {
+        if (!assignment.tags) return false
+        const hasAllTags = tagFilters.every(tag => assignment.tags!.includes(tag))
+        if (!hasAllTags) return false
+      }
 
       return true
     })
-  }, [initialAssignments, searchQuery, usageFilter, contentTypeFilter, tagFilter])
+  }, [initialAssignments, searchQuery, usageFilter, contentTypeFilter, tagFilters])
 
   const usageOptions = [
     { value: 'all', label: 'Usage: Any' },
@@ -190,10 +198,6 @@ export function AssignmentsPageClient({
     { value: 'announcement', label: 'Announcement' },
   ]
 
-  const tagOptions = [
-    { value: '', label: 'All Tags' },
-    ...availableTags.map((tag) => ({ value: tag, label: tag })),
-  ]
 
   return (
     <div className="p-6 lg:p-8">
@@ -256,15 +260,6 @@ export function AssignmentsPageClient({
             onChange={(e) => setContentTypeFilter(e.target.value as ContentTypeFilter)}
           />
         </div>
-        {availableTags.length > 0 && (
-          <div className="w-36">
-            <Select
-              options={tagOptions}
-              value={tagFilter}
-              onChange={(e) => setTagFilter(e.target.value)}
-            />
-          </div>
-        )}
         <div className="w-36">
           <Select
             options={usageOptions}
@@ -274,19 +269,37 @@ export function AssignmentsPageClient({
         </div>
       </div>
 
-      {/* Active filter indicator */}
-      {tagFilter && (
-        <div className="mb-4 flex items-center gap-2">
-          <span className="text-sm text-[var(--color-fg-muted)]">Filtered by tag:</span>
-          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-accent-subtle)] px-2.5 py-1 text-xs font-medium text-[var(--color-accent)]">
-            {tagFilter}
+      {/* Tag filter badges */}
+      {availableTags.length > 0 && (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <span className="text-sm text-[var(--color-fg-muted)]">Tags:</span>
+          {availableTags.map(tag => {
+            const isActive = tagFilters.includes(tag)
+            return (
+              <button
+                key={tag}
+                onClick={() => handleTagClick(tag)}
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium transition-colors ${
+                  isActive
+                    ? 'bg-[var(--color-accent)] text-white'
+                    : 'bg-[var(--color-bg-subtle)] text-[var(--color-fg-muted)] hover:bg-[var(--color-bg-muted)]'
+                }`}
+              >
+                {tag}
+                {isActive && (
+                  <span className="ml-0.5">×</span>
+                )}
+              </button>
+            )
+          })}
+          {tagFilters.length > 0 && (
             <button
-              onClick={() => setTagFilter('')}
-              className="ml-1 hover:text-[var(--color-error)]"
+              onClick={() => setTagFilters([])}
+              className="text-xs text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] underline ml-2"
             >
-              ×
+              Clear all
             </button>
-          </span>
+          )}
         </div>
       )}
 

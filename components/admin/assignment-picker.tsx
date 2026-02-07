@@ -46,6 +46,7 @@ export function AssignmentPicker({
   const [step, setStep] = useState<Step>('select')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [tagFilters, setTagFilters] = useState<string[]>([])
   const [versionLabel, setVersionLabel] = useState('')
   const [saveToLibrary, setSaveToLibrary] = useState(false) // Default to NOT saving
   const [isCreatingVersion, setIsCreatingVersion] = useState(false)
@@ -55,21 +56,49 @@ export function AssignmentPicker({
     [assignments, selectedId]
   )
 
+  // Extract unique tags from all assignments
+  const availableTags = useMemo(() => {
+    const allTags = new Set<string>()
+    assignments.forEach(a => {
+      if (a.tags) {
+        a.tags.forEach(tag => allTags.add(tag))
+      }
+    })
+    return Array.from(allTags).sort()
+  }, [assignments])
+
   const filteredAssignments = useMemo(() => {
     // Only show reusable assignments in the library picker
     const reusable = assignments.filter((a) => a.is_reusable !== false)
 
-    if (!searchQuery) return reusable
+    return reusable.filter((a) => {
+      // Search filter
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase()
+        const matchesTitle = a.internal_title.toLowerCase().includes(query)
+        const matchesPublicTitle = a.public_title?.toLowerCase().includes(query)
+        const matchesTag = a.tags && a.tags.some(tag => tag.toLowerCase().includes(query))
+        if (!matchesTitle && !matchesPublicTitle && !matchesTag) return false
+      }
 
-    const query = searchQuery.toLowerCase()
-    return reusable.filter(
-      (a) =>
-        a.internal_title.toLowerCase().includes(query) ||
-        a.public_title?.toLowerCase().includes(query) ||
-        // Also search by tags
-        (a.tags && a.tags.some(tag => tag.toLowerCase().includes(query)))
+      // Tag filter - assignment must have ALL selected tags (AND logic)
+      if (tagFilters.length > 0) {
+        if (!a.tags) return false
+        const hasAllTags = tagFilters.every(tag => a.tags!.includes(tag))
+        if (!hasAllTags) return false
+      }
+
+      return true
+    })
+  }, [assignments, searchQuery, tagFilters])
+
+  const handleTagFilterClick = (tag: string) => {
+    setTagFilters(prev => 
+      prev.includes(tag) 
+        ? prev.filter(t => t !== tag) 
+        : [...prev, tag]
     )
-  }, [assignments, searchQuery])
+  }
 
   const handleSelect = (id: string) => {
     setSelectedId(id)
@@ -119,6 +148,7 @@ export function AssignmentPicker({
   const handleClose = () => {
     setSearchQuery('')
     setSelectedId(null)
+    setTagFilters([])
     setStep('select')
     setVersionLabel('')
     setSaveToLibrary(false)
@@ -147,6 +177,40 @@ export function AssignmentPicker({
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+
+            {/* Tag filter badges */}
+            {availableTags.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs text-[var(--color-fg-muted)]">Filter by tags:</span>
+                {availableTags.map(tag => {
+                  const isActive = tagFilters.includes(tag)
+                  return (
+                    <button
+                      key={tag}
+                      type="button"
+                      onClick={() => handleTagFilterClick(tag)}
+                      className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                        isActive
+                          ? 'bg-[var(--color-accent)] text-white'
+                          : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                      }`}
+                    >
+                      {tag}
+                      {isActive && <span className="ml-0.5">×</span>}
+                    </button>
+                  )
+                })}
+                {tagFilters.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setTagFilters([])}
+                    className="text-[10px] text-[var(--color-fg-muted)] hover:text-[var(--color-fg)] underline"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            )}
 
             <div className="max-h-[300px] overflow-y-auto rounded-[var(--radius-md)] border border-[var(--color-border)]">
               {filteredAssignments.length > 0 ? (

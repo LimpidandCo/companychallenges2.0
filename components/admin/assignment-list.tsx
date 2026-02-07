@@ -1,11 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Button, Badge, Spinner, Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui'
+import { Button, Badge, Spinner, Dialog, DialogHeader, DialogTitle, DialogDescription, DialogFooter, Select } from '@/components/ui'
 import { duplicateAssignment, deleteAssignment, archiveAssignment, unarchiveAssignment } from '@/lib/actions/assignments'
+import { getChallenges } from '@/lib/actions/challenges'
+import { addAssignmentToChallenge } from '@/lib/actions/assignment-usages'
+import { getSprintsForChallenge } from '@/lib/actions/sprints'
 import { UsedInDialog } from './used-in-dialog'
 import { VariantEditor } from './variant-editor'
-import type { AssignmentWithUsages } from '@/lib/types/database'
+import type { AssignmentWithUsages, ChallengeWithClient, Sprint } from '@/lib/types/database'
 
 interface AssignmentListProps {
   assignments: AssignmentWithUsages[]
@@ -30,6 +33,16 @@ export function AssignmentList({ assignments, onEdit, onRefresh, onTagClick }: A
   const [deleteTarget, setDeleteTarget] = useState<AssignmentWithUsages | null>(null)
   const [deleteStep, setDeleteStep] = useState<1 | 2>(1)
   const [isDeleting, setIsDeleting] = useState(false)
+  
+  // Add to Challenge state
+  const [addToChallengeAssignment, setAddToChallengeAssignment] = useState<AssignmentWithUsages | null>(null)
+  const [challenges, setChallenges] = useState<ChallengeWithClient[]>([])
+  const [sprints, setSprints] = useState<Sprint[]>([])
+  const [selectedChallengeId, setSelectedChallengeId] = useState<string>('')
+  const [selectedSprintId, setSelectedSprintId] = useState<string>('')
+  const [isLoadingChallenges, setIsLoadingChallenges] = useState(false)
+  const [isLoadingSprints, setIsLoadingSprints] = useState(false)
+  const [isAddingToChallenge, setIsAddingToChallenge] = useState(false)
 
   const handleDuplicate = async (assignment: AssignmentWithUsages) => {
     setActionId(assignment.id)
@@ -100,6 +113,77 @@ export function AssignmentList({ assignments, onEdit, onRefresh, onTagClick }: A
   const copyUrl = (slug: string) => {
     const url = `${window.location.origin}/${slug}`
     navigator.clipboard.writeText(url)
+  }
+
+  // Add to Challenge handlers
+  const handleAddToChallengeClick = async (assignment: AssignmentWithUsages) => {
+    setAddToChallengeAssignment(assignment)
+    setSelectedChallengeId('')
+    setSelectedSprintId('')
+    setSprints([])
+    
+    // Load challenges
+    setIsLoadingChallenges(true)
+    try {
+      const result = await getChallenges()
+      if (result.success) {
+        setChallenges(result.data)
+      }
+    } finally {
+      setIsLoadingChallenges(false)
+    }
+  }
+
+  const handleChallengeSelect = async (challengeId: string) => {
+    setSelectedChallengeId(challengeId)
+    setSelectedSprintId('')
+    setSprints([])
+    
+    if (challengeId) {
+      // Load sprints for the selected challenge
+      setIsLoadingSprints(true)
+      try {
+        const result = await getSprintsForChallenge(challengeId)
+        if (result.success) {
+          setSprints(result.data)
+        }
+      } finally {
+        setIsLoadingSprints(false)
+      }
+    }
+  }
+
+  const handleAddToChallengeSubmit = async () => {
+    if (!addToChallengeAssignment || !selectedChallengeId) return
+    
+    setIsAddingToChallenge(true)
+    setError(null)
+    
+    try {
+      const result = await addAssignmentToChallenge({
+        challenge_id: selectedChallengeId,
+        assignment_id: addToChallengeAssignment.id,
+        sprint_id: selectedSprintId || null,
+      })
+      
+      if (result.success) {
+        setAddToChallengeAssignment(null)
+        onRefresh()
+      } else {
+        setError(result.error)
+      }
+    } catch {
+      setError('Failed to add assignment to challenge')
+    } finally {
+      setIsAddingToChallenge(false)
+    }
+  }
+
+  const handleAddToChallengeCancel = () => {
+    setAddToChallengeAssignment(null)
+    setSelectedChallengeId('')
+    setSelectedSprintId('')
+    setSprints([])
   }
 
   const handleArchive = async (assignment: AssignmentWithUsages) => {
@@ -248,6 +332,15 @@ export function AssignmentList({ assignments, onEdit, onRefresh, onTagClick }: A
                       <Button
                         variant="ghost"
                         size="sm"
+                        onClick={() => handleAddToChallengeClick(assignment)}
+                        title="Add to challenge"
+                        className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
+                      >
+                        <PlusCircleIcon className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
                         onClick={() => copyUrl(assignment.slug)}
                         title="Copy URL"
                       >
@@ -335,6 +428,87 @@ export function AssignmentList({ assignments, onEdit, onRefresh, onTagClick }: A
         />
       )}
 
+      {/* Add to Challenge Dialog */}
+      <Dialog open={addToChallengeAssignment !== null} onClose={handleAddToChallengeCancel}>
+        <DialogHeader>
+          <DialogTitle>Add to Challenge</DialogTitle>
+          <DialogDescription>
+            Add "{addToChallengeAssignment?.internal_title}" to a challenge
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="py-4 space-y-4">
+          {isLoadingChallenges ? (
+            <div className="flex items-center justify-center py-8">
+              <Spinner size="sm" />
+              <span className="ml-2 text-sm text-[var(--color-fg-muted)]">Loading challenges...</span>
+            </div>
+          ) : (
+            <>
+              <div>
+                <label className="block text-sm font-medium text-[var(--color-fg)] mb-1">
+                  Select Challenge
+                </label>
+                <Select
+                  value={selectedChallengeId}
+                  onChange={(e) => handleChallengeSelect(e.target.value)}
+                  options={[
+                    { value: '', label: 'Choose a challenge...' },
+                    ...challenges.map(c => ({
+                      value: c.id,
+                      label: `${c.internal_name}${c.client ? ` (${c.client.name})` : ''}`
+                    }))
+                  ]}
+                />
+              </div>
+
+              {selectedChallengeId && (
+                <div>
+                  <label className="block text-sm font-medium text-[var(--color-fg)] mb-1">
+                    Sprint (optional)
+                  </label>
+                  {isLoadingSprints ? (
+                    <div className="flex items-center py-2">
+                      <Spinner size="sm" />
+                      <span className="ml-2 text-xs text-[var(--color-fg-muted)]">Loading sprints...</span>
+                    </div>
+                  ) : sprints.length > 0 ? (
+                    <Select
+                      value={selectedSprintId}
+                      onChange={(e) => setSelectedSprintId(e.target.value)}
+                      options={[
+                        { value: '', label: 'No sprint (add to challenge root)' },
+                        ...sprints.map(s => ({
+                          value: s.id,
+                          label: s.name
+                        }))
+                      ]}
+                    />
+                  ) : (
+                    <p className="text-sm text-[var(--color-fg-muted)]">
+                      No sprints in this challenge
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+
+        <DialogFooter>
+          <Button variant="secondary" onClick={handleAddToChallengeCancel} disabled={isAddingToChallenge}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleAddToChallengeSubmit}
+            disabled={!selectedChallengeId || isAddingToChallenge}
+          >
+            {isAddingToChallenge ? <Spinner size="sm" className="mr-2" /> : null}
+            Add to Challenge
+          </Button>
+        </DialogFooter>
+      </Dialog>
+
       {/* Two-Step Delete Confirmation Dialog */}
       <Dialog open={deleteTarget !== null} onClose={handleDeleteCancel}>
         <DialogHeader>
@@ -402,6 +576,14 @@ function LinkIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M13.19 8.688a4.5 4.5 0 0 1 1.242 7.244l-4.5 4.5a4.5 4.5 0 0 1-6.364-6.364l1.757-1.757m13.35-.622 1.757-1.757a4.5 4.5 0 0 0-6.364-6.364l-4.5 4.5a4.5 4.5 0 0 0 1.242 7.244" />
+    </svg>
+  )
+}
+
+function PlusCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v6m3-3H9m12 0a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
     </svg>
   )
 }

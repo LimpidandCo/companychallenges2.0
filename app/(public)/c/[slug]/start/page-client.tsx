@@ -417,7 +417,7 @@ export function AssignmentsGridClient({
                   className="flex h-14 w-14 items-center justify-center rounded-2xl text-white font-bold text-xl shadow-lg"
                   style={{ backgroundColor: brandColor }}
                 >
-                  {sprints.findIndex(s => s.id === currentSprint.id) + 1}
+                  <PlayIcon className="h-6 w-6" />
                 </div>
                 <div>
                   <h2 className="text-xl sm:text-2xl font-bold text-gray-900">
@@ -471,15 +471,6 @@ export function AssignmentsGridClient({
           {/* Sprint Cards View */}
           {showSprintCards && (
             <div className="space-y-6">
-              <div className="text-center mb-8">
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
-                  {getLabel('sprint') || 'Missions'}
-                </h2>
-                <p className="text-gray-600 mt-2">
-                  Select a mission to begin
-                </p>
-              </div>
-              
               <SprintCardsGrid
                 sprints={sprints}
                 sprintMap={sprintMap}
@@ -570,7 +561,7 @@ function SprintCardsGrid({
   getLabel,
 }: SprintCardsGridProps) {
   return (
-    <div className="space-y-4">
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {sprints.map((sprint, index) => {
         const progress = getSprintProgress(sprint.id)
         const isLocked = sprint.starts_at ? new Date(sprint.starts_at) > new Date() : false
@@ -581,7 +572,6 @@ function SprintCardsGrid({
           <SprintCard
             key={sprint.id}
             sprint={sprint}
-            index={index + 1}
             brandColor={brandColor}
             progress={progress}
             isLocked={isLocked}
@@ -603,7 +593,6 @@ function SprintCardsGrid({
 
 interface SprintCardProps {
   sprint: Sprint
-  index: number
   brandColor: string
   progress: { completed: number; total: number }
   isLocked: boolean
@@ -616,7 +605,6 @@ interface SprintCardProps {
 
 function SprintCard({
   sprint,
-  index,
   brandColor,
   progress,
   isLocked,
@@ -690,7 +678,7 @@ function SprintCard({
             ) : isComplete ? (
               <CheckCircleIcon className="h-10 w-10" />
             ) : (
-              index
+              <PlayIcon className="h-8 w-8" />
             )}
           </div>
 
@@ -1183,6 +1171,14 @@ function LockIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
+    </svg>
+  )
+}
+
+function PlayIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="currentColor" viewBox="0 0 24 24">
+      <path d="M8 5.14v14l11-7-11-7z" />
     </svg>
   )
 }

@@ -19,9 +19,11 @@ export function MicroQuizDisplay({
   const [response, setResponse] = useState<string | number | null>(savedResponse ?? null)
   const [submitted, setSubmitted] = useState(!!savedResponse)
 
-  const handleSubmit = () => {
-    if (response !== null && onResponse) {
-      onResponse(quiz.id, response)
+  // Auto-submit handler for immediate feedback quiz types
+  const handleResponseChange = (value: string | number, autoSubmit = false) => {
+    setResponse(value)
+    if (autoSubmit && onResponse) {
+      onResponse(quiz.id, value)
       setSubmitted(true)
     }
   }
@@ -50,7 +52,14 @@ export function MicroQuizDisplay({
         {quiz.quiz_type === 'reflection' && (
           <ReflectionInput
             value={response as string || ''}
-            onChange={setResponse}
+            onChange={(value) => handleResponseChange(value, false)}
+            onBlur={() => {
+              // Auto-submit reflection when user finishes typing (on blur)
+              if (response && onResponse && !submitted) {
+                onResponse(quiz.id, response)
+                setSubmitted(true)
+              }
+            }}
             submitted={submitted}
             brandColor={brandColor}
           />
@@ -60,7 +69,7 @@ export function MicroQuizDisplay({
           <MultipleChoiceInput
             options={quiz.options}
             value={response as string || ''}
-            onChange={setResponse}
+            onChange={(value) => handleResponseChange(value, true)}
             submitted={submitted}
             brandColor={brandColor}
           />
@@ -72,23 +81,12 @@ export function MicroQuizDisplay({
             max={quiz.scale_max ?? 10}
             labels={quiz.scale_labels}
             value={response as number}
-            onChange={setResponse}
+            onChange={(value) => handleResponseChange(value, true)}
             submitted={submitted}
             brandColor={brandColor}
           />
         )}
       </div>
-
-      {/* Submit Button */}
-      {!submitted && response !== null && (
-        <button
-          onClick={handleSubmit}
-          className="mt-4 w-full px-4 py-2.5 rounded-xl text-white font-medium transition-colors hover:opacity-90"
-          style={{ backgroundColor: brandColor }}
-        >
-          Submit Response
-        </button>
-      )}
 
       {submitted && (
         <div className="mt-4 flex items-center gap-2 text-[var(--color-success)]">
@@ -107,10 +105,12 @@ export function MicroQuizDisplay({
 function ReflectionInput({ 
   value, 
   onChange, 
+  onBlur,
   submitted,
 }: { 
   value: string
   onChange: (value: string) => void
+  onBlur?: () => void
   submitted: boolean
   brandColor: string
 }) {
@@ -118,6 +118,7 @@ function ReflectionInput({
     <textarea
       value={value}
       onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
       placeholder="Share your thoughts..."
       disabled={submitted}
       rows={4}
@@ -257,14 +258,7 @@ export function MicroQuizList({
   if (quizzes.length === 0) return null
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <ClipboardIcon className="h-5 w-5 text-[var(--color-fg-muted)]" />
-        <h3 className="text-lg font-semibold text-[var(--color-fg)]">
-          Quick Reflection{quizzes.length > 1 ? 's' : ''}
-        </h3>
-      </div>
-      <div className="space-y-4">
+    <div className="space-y-4">
         {quizzes.map((quiz) => (
           <MicroQuizDisplay
             key={quiz.id}
@@ -274,7 +268,6 @@ export function MicroQuizList({
             savedResponse={savedResponses[quiz.id]}
           />
         ))}
-      </div>
     </div>
   )
 }
@@ -299,12 +292,5 @@ function CheckIcon({ className }: { className?: string }) {
   )
 }
 
-function ClipboardIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 0 0 2.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 0 0-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 0 0 .75-.75 2.25 2.25 0 0 0-.1-.664m-5.8 0A2.251 2.251 0 0 1 13.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25ZM6.75 12h.008v.008H6.75V12Zm0 3h.008v.008H6.75V15Zm0 3h.008v.008H6.75V18Z" />
-    </svg>
-  )
-}
 
 
