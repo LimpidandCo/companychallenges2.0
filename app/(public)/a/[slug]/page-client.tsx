@@ -8,7 +8,8 @@ import { PasswordGate } from '@/components/public/password-gate'
 import { SupportModal } from '@/components/public/support-modal'
 import { InstructionsRenderer, AssignmentContentRenderer } from '@/components/public/content-renderer'
 import { MicroQuizList } from '@/components/public/micro-quiz'
-import { trackAssignmentView, trackAssignmentComplete, trackMediaPlay } from '@/lib/actions/analytics'
+import { trackAssignmentView, trackAssignmentComplete, trackMediaPlay, trackQuizResponse } from '@/lib/actions/analytics'
+import { gaAssignmentView, gaAssignmentComplete, gaMediaPlay, gaQuizResponse } from '@/lib/analytics/ga'
 import { startAssignment, completeAssignment } from '@/lib/actions/participants'
 import type { Assignment, MicroQuiz } from '@/lib/types/database'
 import type { AssignmentNavContext } from '@/lib/actions/public'
@@ -127,7 +128,8 @@ export function AssignmentPageClient({
       assignment.id,
       navContext.sprintId
     )
-  }, [navContext, isReleased, requiresPassword, hasAccess, assignment.id])
+    gaAssignmentView(navContext.challenge.id, assignment.id, title)
+  }, [navContext, isReleased, requiresPassword, hasAccess, assignment.id, title])
 
   // Start progress tracking for signed-in users
   useEffect(() => {
@@ -178,6 +180,7 @@ export function AssignmentPageClient({
       assignment.id,
       navContext.sprintId
     )
+    gaAssignmentComplete(navContext.challenge.id, assignment.id, title)
     
     // Save to localStorage
     saveCompletionToStorage(navContext.challenge.id, assignment.id)
@@ -201,6 +204,7 @@ export function AssignmentPageClient({
       assignment.id,
       navContext.sprintId
     )
+    gaAssignmentComplete(navContext.challenge.id, assignment.id, title)
     
     // Save to localStorage
     saveCompletionToStorage(navContext.challenge.id, assignment.id)
@@ -231,12 +235,14 @@ export function AssignmentPageClient({
   const handleMediaPlay = () => {
     if (hasTrackedMediaPlay.current || !navContext) return
     hasTrackedMediaPlay.current = true
+    const mediaType = assignment.media_url?.includes('youtube') ? 'youtube' : assignment.media_url?.includes('vimeo') ? 'vimeo' : 'video'
     trackMediaPlay(
       navContext.challenge.clientId,
       navContext.challenge.id,
       assignment.id,
-      { mediaType: assignment.media_url?.includes('youtube') ? 'youtube' : assignment.media_url?.includes('vimeo') ? 'vimeo' : 'video' }
+      { mediaType }
     )
+    gaMediaPlay(navContext.challenge.id, assignment.id, mediaType)
   }
 
   // Password gate
@@ -474,6 +480,16 @@ export function AssignmentPageClient({
                     <MicroQuizList 
                       quizzes={quizzes} 
                       brandColor={brandColor}
+                      onResponse={(quizId, response) => {
+                        if (!navContext) return
+                        trackQuizResponse(
+                          navContext.challenge.clientId,
+                          navContext.challenge.id,
+                          assignment.id,
+                          { questionId: quizId, response }
+                        )
+                        gaQuizResponse(navContext.challenge.id, assignment.id, quizId)
+                      }}
                     />
                   )}
 

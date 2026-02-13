@@ -1,0 +1,494 @@
+Speaker 2 | 02:43
+I'm still on this other car. I'm going to be muted for a second, I'm sorry.
+dev.ganuga | 02:48
+Join yes, there we are.
+Speaker 2 | 02:50
+Yes, I mean...
+Speaker 3 | 02:53
+There we are.
+dev.ganuga | 02:56
+It's been a while it had yeah, and I say you lost the beer.
+Speaker 3 | 02:58
+It had been...
+Speaker 2 | 03:00
+I'm sorry, a second.
+dev.ganuga | 03:01
+Now I'm so sorry. I did come out of the kick-off meeting for the project with the Ascent Energy Company.
+Speaker 3 | 03:06
+I've just come out of the kick-off meeting for the project with the Ascent Energy Company where we launched the official launch of the platform, even though you know that we celebrated Jasper's 50th birthday on it yesterday.
+dev.ganuga | 03:11
+I see. Where we. Where we launched the. The official launch of the platform, yes, even though you know that we celebrated just the 15th birthday on. Yes, that was really like, well built out.
+Speaker 3 | 03:25
+So...
+dev.ganuga | 03:28
+It was nice. It was refreshing to see it actually serve a purpose outside of the corporate view. So that was really nice. I just stumbled across it and I was like, "What is this? Is this a test?"
+I hope that went well. His birthday.
+Speaker 3 | 03:51
+Yeah, it's obviously people.
+dev.ganuga | 03:51
+Yeah, it's obviously people.
+Speaker 3 | 03:53
+Are we just TED to push it all in one day?
+dev.ganuga | 03:53
+Are we just TED to push it all in one day?
+Speaker 3 | 03:56
+So not a lot of people actually go through all of it, but just the fact that we had it's basically the present we had for Jasper.
+dev.ganuga | 03:56
+So not a lot of people actually go through all of it. Yeah, but just the fact that we have... It's basically the present we have... We offer because it's basically... I would say I change, but yeah, that's the biggest.
+Speaker 3 | 04:06
+But because it's basically... I would almost say attention, right? That's the biggest. Let me just minimize myself. The biggest present you can get anything, anybody, right?
+dev.ganuga | 04:24
+Yeah, that's nice.
+Speaker 3 | 04:25
+Just put it in thought.
+dev.ganuga | 04:26
+I'm glad that it went well. So I guess that brings us to our legacy functionality. Now it's just a matter of individual mode and what we can bring out of analytics.
+I think there are some other features that we initially discussed regarding the gamified features, so let's take a look at those as well.
+Speaker 3 | 04:50
+Yeah, so I just... Because I'm a giant pain in the ass. I still have a little linear issue that with the things I'm confronted with... I run through right now.
+dev.ganuga | 05:03
+I...
+Speaker 3 | 05:05
+One thing I didn't put on the list yet, but I work in Firefox a lot.
+All a lot of the... It's still the thing with the color and the apply button, you know that we've had before, but now if I want to filter assignments to add to a link, the little selection window runs out of the window.
+dev.ganuga | 05:18
+Before... But if we want to filter and assignment to add to a link, the select... No, I don't... So I can use it.
+Speaker 3 | 05:29
+So I can't use it. So there are some scaling options anyway.
+dev.ganuga | 05:33
+I see. Yeah, but I understand why that's happening.
+Speaker 3 | 05:36
+It's... These are small things, but I just...
+dev.ganuga | 05:43
+I'm gonna have a.
+Like. I'm going to have a detailed look into that. Bob, LinkedIn issues. But I think Ken's having some feedback issues. So he's figuring that out right now.
+Speaker 3 | 06:02
+Yeah, that's fine. But anyway, so I think that in our minds maybe that's not in your mind. The individual mode and the gamification things are very much tied together, so I'm not even sure what gamification options we discussed. Actually, I know that Yasper is forever going on about hidden assignments. Which I think we...
+dev.ganuga | 06:35
+We could just... Yeah, that's not publicly available.
+Speaker 3 | 06:35
+We could just fabricate.
+Right? By putting a link to another thing, to another challenging.
+dev.ganuga | 06:46
+I see. But I think we need to take a step back and resurface what we talked about earlier, but formally because we were hyperfixated for a bit on getting to full legacy functionality.
+Once we do, completely get to it, after we knock out the issues you've raised, we can then be like, "Okay, here are the features that we initially thought out to develop." We can add other features that we think would be appropriate right now rather than just stick to what we initially planned out on.
+Speaker 3 | 07:25
+Yeah. So basically, for all intents and purposes, this tiny little admin thing is mostly that could be tweaked, but for all intents and purposes, it works now.
+dev.ganuga | 07:39
+Control.
+Speaker 3 | 07:42
+So that's great and I'm really happy the way it works.
+I did a little walk-through with the list guy yesterday, and she was quite impressed by the way we did the whole admin side of things as well, because it's really nice how that works.
+dev.ganuga | 07:54
+The whole... Yeah.
+Speaker 3 | 08:00
+I'm actually working on a multilingual challenge now, and it's so much easier that you can just add the assignments from a drop-down and link them.
+That's all. That's all great.
+dev.ganuga | 08:14
+I see. I've glad that working now.
+Speaker 3 | 08:18
+Yeah, but that's so... The stupid thing is that I'm so fixated on this that now I'm thinking, "Okay, if I do that, it opens in a new window or a new tab and..." The little things.
+But that's definitely a next version thing that we could make a backlog of all the little things.
+dev.ganuga | 08:41
+Yeah. And we are aiming to be like we are trying to achieve like the most optimal admin panels.
+Speaker 3 | 08:42
+And...
+dev.ganuga | 08:51
+So it's those like very little like feedback that go into like creating the ultimate version.
+So like that is very welcome, by the way. And we want that.
+Speaker 3 | 09:04
+Yes, so... But you know me by now, I'll just keep adding stuff to the whole linear and there. It's obvious to me that there is a limit to where you can go to do all the little tweaks, especially if we want to move forward to do some of the bigger things that are obviously more important, which is... I mean, like you say, there's a deep desire to go into individual mode as well.
+dev.ganuga | 09:15
+You can go to the tea especially move forward to do some of the big things. Yeah.
+Speaker 3 | 09:35
+The first thing the guy from the challenge we just launched said was, "I assume you will monitor the activity on the platform."
+dev.ganuga | 09:38
+Just launched. Was about...
+Speaker 3 | 09:45
+So let us know when we should push that for now. Actually, I can start doing that by using the dashboard that we already have because I can just see how many people are on there and how many completes there are and things like that.
+dev.ganuga | 09:57
+Zero.
+Speaker 3 | 10:04
+I think it would help to just get the Google Analytics in as well. Yes, just because that's just a general dashboard where you can get some information. I know from the legacy platform that it's really annoying because in the Analytics you see the URLs so that they don't really mean anything.
+dev.ganuga | 10:30
+Yeah, which makes out a that's if you can see how much.
+Speaker 3 | 10:34
+You always have to find out which pages those actually are.
+But that's doable. At least you can see how much traffic you have where it's from, things like that. So I feel that that's the easy step, right in the Analytics part.
+dev.ganuga | 10:51
+I think we can have some parent variables to the challenges themselves. The challenge itself could represent a view, and that view can be shared with a client or the client could get a full bird's-eye overview of analytics. The children of the parent objects, which would be assignments and sprints, those could be compiled into separate views.
+But I think... Yeah, that's a quick one. Implementing Jira. If I'm not too familiar with it because it's been a while since I messed around with Google Analytics, but I think it's a fairly easy step to set up.
+Speaker 2 | 11:41
+TJ. Is he's literally loves Google Analytics. I think it might be worth talking to him about it. He might have a fresh perspective that would, you know, alleviate some. Some of the dynamic confusion that, you've seen in the past, but I yeah, I'm not sure where to even start with that.
+Speaker 3 | 12:04
+Yeah, but to be honest, we have this one challenge running now. The confusion is going to be a problem if there are ten challenges, but that's... What if we gave a party and everybody came?
+So for now, if we can just follow the track of the usage of the platform from the basic Google Analytics view, that will be really helpful already. Because it would look... If we can just pick out some views from that, copy them, make screenshots, and send them to a client, that would look really quite beta already.
+dev.ganuga | 12:53
+Yeah, I understand, and I agree as well. That's the obvious immediate next step in terms of getting the analytics like to a base standard. And from there we can go, we can pivot however we want with that data.
+Speaker 3 | 13:15
+Just so just to be clear that the dashboard that you have on the platform now that's just data that you keep inside the platform, right?
+dev.ganuga | 13:26
+It's server-side. Yeah, it's something like that to get an idea of platform fields, but it's very useful.
+Speaker 3 | 13:28
+Yeah, so because that's already... Right now, it's an overview of all challenges and things like that.
+So it's nice to get a view of how the platform is used, but it's not very useful at a challenge level.
+dev.ganuga | 13:44
+Yes.
+Speaker 3 | 13:45
+But if something like this, that could be built out like, at a challenge or a sprint or an assignment level, if you can just see how many views you have, how much engagement and how many completes.
+dev.ganuga | 13:59
+Lat for?
+Speaker 3 | 14:00
+Because at the end, it's. It's interesting to see. Like if you have a hundred completes for the first assignment, how many will you have for the 10th or the 20th, for instance, you can. And that's the sort of data that if it's just if we have the data, we can do the analysis ourselves and find the right.
+dev.ganuga | 14:19
+Yeah.
+Speaker 3 | 14:22
+We can always later look if we can build that into a dashboard, but just getting the data for now that would allow us to analyze that and see what insights we can get from that. And then we can use that to build the dashboard that we eventually need.
+dev.ganuga | 14:40
+That makes sense. Okay, we can get that set up. I think we're going to have a couple of development sessions, but I feel like you've just described a schema in terms of being able to filter the analytics to create a certain view.
+Speaker 3 | 15:16
+And just to be sure, I'm. I would be happy if I can, just filter some data and just get a CSV out or something that I could play with myself.
+dev.ganuga | 15:28
+Yeah.
+Speaker 3 | 15:31
+Like, "What is all the data you have of the Ascent Copilot Challenge from February 10th to March 10th?"
+dev.ganuga | 15:35
+To part from the 10th of Feb.
+Speaker 3 | 15:43
+Because looking at the dashboard you have, you already must have at the different levels, the views and the engagements and the completes and the everything that must be there.
+dev.ganuga | 15:57
+Yeah, I think it is.
+Speaker 3 | 16:01
+Unless I'm oversimplifying that definitely happen. But.
+dev.ganuga | 16:05
+But we currently do store user actions and their local storage. That was something that we initially set up as the infrastructure so that it carries onto individual mode and it gets stored beyond sessions.
+So yeah, that is definitely set up and they do go together in individual mode and analytics because the next step is getting the initial data that's collected within a device's local storage and pushing it onto the admin panel, which we're already doing for a couple of defaults.
+Yeah, I see.
+Speaker 3 | 16:50
+Exactly. That's what made me think that it might be something that's already there but just not available to me as I use them.
+dev.ganuga | 17:01
+Okay. All right, we'll further on that. I think we can... I think I need to first start sketching out the Google Analytics view because I know they use a standard one. But being able to export it out is good. I'm just trying to conceptualize it in the moment.
+Speaker 3 | 17:28
+Yeah, because Google Analytics obviously has some demographics as well, like the region and whatever, which is nice because for the bark one, for instance, we had definitely had separate countries participating.
+dev.ganuga | 17:35
+Yes.
+Speaker 3 | 17:45
+So it was really nice that we could use Google Analytics to show how many people from Taiwan or from the United States were being part of this.
+dev.ganuga | 17:45
+So it was really nice that we could... How many people from Taiwan?
+Speaker 3 | 17:53
+But to be honest, right now, the challenge we're running now is all Holland.
+So we don't really care. I think the first step is always going to be more how many people are on there in the first place and how engaged they are and will they complete and things like that.
+dev.ganuga | 18:13
+Yeah. I think, to answer your question from earlier in the chat, we might potentially need to set up a cookies consent if we want to get broader data.
+Speaker 3 | 18:30
+Yeah, I'm. I'm not sure about that. I'm. I'm really so. So I know that Lisa said that at Fifth Pro, where she works, they do, they use Google Analytics without cookie content form because it's anonymous anyway, but they changed that.
+dev.ganuga | 18:43
+That use this... Could I see...?
+Speaker 3 | 18:55
+But we could probably get away with it. The legacy platform did not have a cookie consent form.
+dev.ganuga | 19:01
+Yeah. I don't think there's an obligation there too. I was just throwing it out because it was a topic. We could go with whatever practice we decide on.
+Speaker 3 | 19:16
+Yes. So I'm not sure. I'm sure if we ask specialists, they will be quite strict on that and they will say we need it.
+dev.ganuga | 19:20
+Be quite stri.
+Speaker 3 | 19:23
+But we can sort of see what we can get away first and then see where we where it goes.
+dev.ganuga | 19:27
+Yeah, let's do that. Okay, alright.
+Speaker 3 | 19:36
+But does that make sense that we can just use a similar setup to the dashboard that it's now and then filter and get a more detailed view at the different levels?
+dev.ganuga | 19:50
+Yeah, I think we should. If we don't, then it's very easy to build in.
+Speaker 3 | 19:58
+Yeah, and then I... So it would be great if the basic view, which is in the dashboard right now, could work in the platform.
+dev.ganuga | 20:05
+The...
+Speaker 3 | 20:10
+As I said, if the data is there and we can make a little export, then we can play with that and see what we really need.
+dev.ganuga | 20:18
+Yeah, that makes sense.
+Speaker 3 | 20:27
+And you say that links to individual mode, right?
+dev.ganuga | 20:32
+Yeah, because we would like to prepare a lot of data for export.
+Currently, let's just say individual mode. We haven't actually discussed individual mode. Now that I'm thinking about it, how would we want to approach it from the challenge level? What users like to sign in and then be able to access a challenge. Or let's just say we have a challenge directory for a company that people can land on.
+It would be like a brief, topological overview of what this is for. This is for this company. This is for these employees, this is this type of education protocol or whatnot. People are prompted to sign in with their enterprise authentication.
+Then they would get pre-assigned sprints and assignments. That's my very familiar theory of how we could go with it.
+Speaker 3 | 21:50
+But that sounds quite heavy-handed, actually, because I think... This is very much so... This is something where we on our side discussed... I love the no-hassle, no integration thing that we have now.
+dev.ganuga | 22:11
+I see.
+Speaker 3 | 22:14
+But I see that it would be for the user experience. It would be nice if you could make it more personal, which to be fair, already... The fact that I can see which assignments I finished, which was not there on the legacy platform, already makes it feel way more personalized.
+dev.ganuga | 22:28
+Yeah.
+Speaker 3 | 22:37
+Even though it was a bastard because I had to demo it ten times today, and I had to open it in incognito mode every time to get a clean sheet.
+dev.ganuga | 22:48
+Yeah.
+Speaker 3 | 22:50
+But that's. That's nice and personalized already. But as soon as we want to like, I think the dream would be that you could even like, save your quiz outcomes or save some outputs.
+dev.ganuga | 22:54
+But as soon as we...
+Speaker 3 | 23:07
+That would mean you would need some identifier.
+dev.ganuga | 23:10
+Yeah, I sees.
+Speaker 3 | 23:11
+But I would always do that at the challenge level, I think. Not to start with anyway, because I don't know how that would develop further. But it sounds like way too much to create the whole infrastructure to be able to put learning journeys together for users because that would mean that we would have to do admin on that as well.
+dev.ganuga | 23:23
+It's way too much to create the whole infrastructure to be able to...
+I was going to say that. Yeah.
+Speaker 3 | 23:45
+So I would say so we're still not a complete LMS, right? Even though we're actually doing a proposal to be used as one for a client this Friday. But. But we just we are a very like flexibility and quick deployment and ease of use.
+That's I think, what we need company challenges to be about.
+dev.ganuga | 24:09
+What? We need the complete challenge.
+Speaker 3 | 24:12
+So I think we should be... You want to be part of the Yatps 50 challenge. We turn on individual mode. I don't know if you can even choose to register or not, but if you don't register, you can still see the assignments but not save your progress or whatever. Or we can...
+If you do sign up, we can give you some extra things, and I'm just brainstorming here, right?
+dev.ganuga | 24:42
+It's like a sign-in to save your progress.
+Speaker 3 | 24:46
+Yeah, basically. Then maybe for those who are signed in, we could find a way to say, "Okay, a premium experience. You get the VP assignments as well."
+dev.ganuga | 25:00
+They could get a welcome back if they do put in their first name.
+Speaker 3 | 25:05
+Yeah. And then. But then it should be clear that the login is always going to be quite light.
+dev.ganuga | 25:14
+Yeah, it's like a, profile icon and the header that, you know, they can log in real quick.
+Speaker 3 | 25:14
+It's still not going to be like HIP secure. Put all your passwords here, type login, right?
+dev.ganuga | 25:30
+I think that's better as a lightweight model.
+But we can explore options there.
+Speaker 3 | 25:37
+Yeah, but, I mean, yeah, and I'd be happy if you could just say, what's your name? And choose a password. And you can log in that way, and you don't even have to store that anywhere in a difficult way because we would... I would accept that if you do another challenge, you would have to create another log-in.
+dev.ganuga | 26:00
+I see. Yeah, we can make it simple that way, I guess. I was a bit hyperfixated on making it enterprise-secure. So I was talking about enterprise authentication frameworks, but I think I might have taken a bit too far considering Company Challenges is meant to be the flexible, lightweight platform that it is.
+Speaker 3 | 26:26
+I mean, definitely if we land ten projects worth a million each, I would definitely go that way.
+dev.ganuga | 26:36
+Yeah.
+Speaker 3 | 26:38
+But even the way the amount of trouble I have getting the challenges online now, not from a platform perspective but from a project management perspective, if I had to include going through all the security things to get single sign-on, whatever...
+dev.ganuga | 26:40
+The amount of trouble, the challenges... Not from the cultural perspective but from a profit management perspective. I mean, including going through all...
+Speaker 3 | 26:59
+I mean, that would never be worth it for the level of content that we provide.
+dev.ganuga | 27:06
+Yeah.
+Speaker 3 | 27:06
+That would make no sense at all.
+Speaker 2 | 27:08
+Yeah, it's not like you have their social security numbers or personal information, right? That's really the reason for it. When there's sensitive data that you're trying to protect.
+Speaker 3 | 27:17
+But even email addresses, to be fair.
+Speaker 2 | 27:19
+That's very true, yes.
+Speaker 3 | 27:21
+But I mean, so... That means we could say, "Share your outcomes," but don't put any company secrets in there because it's not that secure.
+dev.ganuga | 27:25
+Because they. He outcomes.
+Speaker 3 | 27:32
+That's it. I mean, we'll have to see how clients react to that.
+So we should be prepared to think about getting more enterprise-level security in there in the long run, just in case people want it. But right now, we see that clients are happy to do the simple lightweight, well, basically non-secure option because that means a completely different price tag.
+dev.ganuga | 27:59
+Simplified. Yes, I see. Then I think it might be appropriate to just strip out clerk right now, just for the time being, and focus on our database instead. Clerk is just a layer.
+It's a layer that we embed with our database, which is Superbase and the platform. They follow fifteen different practices to make sure that, even when we break quantum computers, your password will never get leaked.
+It's that type of security. So we definitely like the source code that supports that infrastructure and standard enterprise authentication is still there. But let's make it simple for now. Let's make it where you're able to see
+the tables and the admin panel as well for the users. Okay.
+Speaker 3 | 29:09
+I mean, I don't know how that would work. I mean. Ca. I'd even. Yeah, I want this little admin work at this point. And I think even. I mean, we would even have to think about whether we want to have a password reset process, for instance, because that would be not great because then you'd need to store email addresses, for instance, to.
+dev.ganuga | 29:31
+Yeah.
+You need to send them like an email to like.
+Speaker 2 | 29:42
+Yeah, no more cost.
+dev.ganuga | 29:43
+Yeah, and it's added complexity. But I agree with you as well on how all of these features are on-demand type of infrastructure that we would need to explicitly build out when they would come, which they are going in the direction of it eventually coming, but right now we're trying to focus on practicality and base functionality. Okay.
+Speaker 3 | 30:18
+Exactly. The only thing I trust you to do is to keep in mind that this might be a next step so that anything we build now for the individual mode, if we would get a client who would say, "I'm willing to pay you to make it enterprise-level secure."
+dev.ganuga | 30:42
+Yeah.
+Speaker 3 | 30:43
+That we can just call you and you know what to do and it would be still in the same line.
+Speaker 2 | 30:51
+I'm glad that you said that. I was about to make the disclaimer that we have security specialists and network specialists that thrive in that space.
+dev.ganuga | 30:55
+We have security specialists and network specialists that drive in that space.
+Speaker 2 | 30:59
+That's basically their specialty.
+dev.ganuga | 30:59
+That's the specialty.
+Speaker 2 | 31:02
+So when the time comes, definitely not an issue for us to accommodate.
+dev.ganuga | 31:02
+So just what the complexity and the presence and the sensitivity of the data.
+Speaker 2 | 31:08
+At that point, it's just a matter of what the complexity and the preferences and the sensitivity of the data is. So we'll have to address that, redrest that.
+dev.ganuga | 31:14
+And so we'll have to address that.
+Speaker 2 | 31:16
+But we already kind of have an early formative understanding that it's not, you know, we're not, you know, storing secrets like generational secrets on there and stuff like that.
+dev.ganuga | 31:16
+But for you to understand that it's not secrets generation, secrets, and stuff like that. So it's not like we're not able to...
+Speaker 2 | 31:24
+So it's not like we're not needing to create Fort Knox or you know. Buck.
+Speaker 3 | 31:29
+No, but you could imagine that we could do a strategy formation challenge for an international company where people could basically post all their biggest strategic ideas or data insights.
+I mean, if anybody should want to do that, I don't expect that to happen, but it could happen.
+dev.ganuga | 31:51
+Do that. I don'.
+Speaker 3 | 31:55
+Then we would need the relevant level of security as well. As long as we're moving in the direction where we can add these steps step by step, then I'm happy.
+Speaker 2 | 32:09
+Awesome. I was trying to say the same thing. So, I appreciate you for clearing up my speech.
+Speaker 3 | 32:14
+No, well, that's it's good that we can see if we understand each other correctly. Yeah, that's great. Okay, and then as for individual as for the gameification, we had some thoughts on that in the original scope of work, I think.
+dev.ganuga | 32:36
+Yeah, the still seems relative.
+Speaker 3 | 32:38
+We can revisit those, see what still seems relevant, see what's easy to build or difficult to build.
+I mean, that's something to consider, I expect, and see what would maybe open up if we do get individual mode, what kind of functions that would open up?
+dev.ganuga | 33:01
+Yeah, okay, I think that covers it.
+Speaker 3 | 33:11
+Yeah, I think mostly there's one little side question. So we moved the app from the guy who hosted it, he's still hosting our website. How much work is it to just create a quick website to just a home page, just a landing page with a context form and that we can just push onto the company challenges.com site?
+dev.ganuga | 33:40
+Okay, we'll do that. What were you thinking for, like, the general copy of it? If you want to create, like, a linear issue. And it can be really brief of, like, the sections and like, the footer.
+If you want, I can, like, insert in a terms a privacy page, or. But.
+Speaker 3 | 34:01
+It has to be way simpler than that. What we have right now is a really flat home page like a landing page.
+dev.ganuga | 34:06
+Yes.
+Speaker 3 | 34:07
+We just need to but we're not we've not built it.
+So if I had the access to the thing, I could probably just change it around myself. But like we need and a few other clients on a few other brand names as partners, a few things like that. But I don't know.
+I mean, if it's... If that's like you say, you can knock that out in an hour, then do it. If not, then we can find another way to do it.
+dev.ganuga | 34:36
+Yeah, I think since we did establish the Global Schema design of the entire app, and we made all the components, including the typography and the base sections, it should be really easy to do.
+So, yeah, we can knock that out for you. Just be sure.
+Speaker 3 | 35:00
+I'll create a linear issue and we'll see where we go from there.
+dev.ganuga | 35:03
+Let's do that.
+Speaker 3 | 35:06
+Right? Because then we can really just stop using that guide.
+dev.ganuga | 35:16
+Yeah. I am sorry for you to go through such a thing.
+Speaker 3 | 35:24
+As you've noticed, we've learned from it.
+Speaker 2 | 35:26
+So I appreciate that very much.
+dev.ganuga | 35:26
+[Laughter] Just like...
+Speaker 2 | 35:30
+That's life in a nutshell.
+Speaker 3 | 35:32
+Yeah, just one other really quick question.
+dev.ganuga | 35:33
+Yeah.
+Speaker 3 | 35:36
+Then if we wanted to do specific AI challenges, which we do a lot about, is it easy to link that? Because we've linked the first sell app to company challenges at challenges.com right now.
+But could we link it to challenges at leading AI? Would that link the same app to two subdomains?
+dev.ganuga | 36:03
+Yeah.
+Speaker 2 | 36:03
+Yes.
+dev.ganuga | 36:05
+I think that would be achieved through this concept called forwarding. I'm not too sure, but cause you...
+Speaker 2 | 36:13
+In that I've seen it work before. I know that it's possible to have two different domains that redirect you to one like the same exact application, right?
+Speaker 3 | 36:22
+Yeah, I was just thinking if it was as easy as that, because, I mean, I got it to work at @thecompanychngr.com. So if I can get it to work, it must be really easy, right? If I can just. If I can just define the other domain in Forcell as well and it'll be able to live together, I don't know if that would work.
+dev.ganuga | 36:47
+Yeah, I think it is pretty easy to set it up from Vel itself. Actually, I'm going to add that to my homework real quick, but I think it's easily achievable.
+Speaker 3 | 37:00
+Because I would not want to refer it to companychlengs.com.
+dev.ganuga | 37:05
+Yeah.
+Speaker 3 | 37:06
+I would want the domain still to read leading with the...
+Speaker 2 | 37:12
+I understand. So what we're wanting to do then is create a duplicate of the instance and then essentially you would have the same exact application.
+dev.ganuga | 37:15
+Like duplicate and inc. Of them. Essentially, you would have...
+Speaker 2 | 37:21
+But they're just branded individually.
+Speaker 3 | 37:23
+Yeah, but it would be even greater if they would just refer to the same application and have one instance.
+dev.ganuga | 37:27
+The same.
+Speaker 3 | 37:30
+So I could conceivably even have one challenge and publish it through leading with a and company challenges.
+dev.ganuga | 37:34
+Challenge Century. Living with company challenges.
+Speaker 3 | 37:40
+It just branches.
+So I have no idea that I...
+Speaker 2 | 37:45
+That would have you would have to have, like, a dynamic, like TE like placeholder for, like, the logo on the web page.
+dev.ganuga | 37:53
+The web. P.
+Speaker 2 | 37:55
+I'm not entirely sure how to... But we're not using the...
+Speaker 3 | 37:58
+Logo on the web page.
+Speaker 2 | 38:01
+My apologies. I thought that you were saying that you know...
+Speaker 3 | 38:03
+It only is powered by company challenges at the bottom, which is fine, but in the challenges we use the client loader. Understood, and we can still do that, but it's okay.
+dev.ganuga | 38:11
+Yes.
+Speaker 3 | 38:14
+So I just... My question is half answered already. It's not straightforward.
+dev.ganuga | 38:21
+Yeah.
+Speaker 3 | 38:23
+So let's... I'll think about how much we need it and how that would look. So I can just ask you a more specific question with the actual detailed use case.
+dev.ganuga | 38:30
+Just ask a more specific question... So but just to add on it, I do think there are 100 different ways that companies use forwarding services and bad propagation services.
+Speaker 3 | 38:36
+So you can maybe see how something like that won't work.
+dev.ganuga | 38:53
+So if a newer feature functionality that they pushed out is deprecated, they would make it so that if users want at that it would redirect to the new version of that feature. So in software development practice, I think that should be possible
+but we just need clarity there to...
+Speaker 3 | 39:16
+Yeah, I'm thinking it must be possible, but I was just... I just threw it in the air to see if you would say... Yeah, that's just flip that switch, and it's done, but if it's not, then we'll look into it deeper.
+That's fine. Okay, great.
+Speaker 2 | 39:38
+Alright, seems like we have exhausted ourselves here.
+dev.ganuga | 39:40
+It seems like we have exhausted ourselves.
+Speaker 2 | 39:43
+I'm not sure if we have anything else that we want to touch on.
+dev.ganuga | 39:43
+I'm not sure if we have anything else that we want to touch on assessing.
+Speaker 2 | 39:45
+Am I assessing the situation correctly?
+Speaker 3 | 39:48
+Yeah, I'm just wondering how this will look going forward.
+Speaker 2 | 39:54
+I'm looking forward to seeing how it unfolds as well. I think Dav needs to sit back and sit with some of the team and start sketching out what it will look like. I think we should have some more information and clarity on how it forms up in a couple of days here.
+dev.ganuga | 40:14
+Yeah.
+Speaker 3 | 40:15
+Okay, that's great.
+dev.ganuga | 40:15
+And just to recap the call, first things first is I would go in and look at the data we're already storing in local storage and then we'll see how to export that and from their like individual mode and you know, compounding that Google Analytics view like gains clarity.
+And like the linear issues that you mentioned, alongside with the other linear issue for the landing page. But I think, a development session with the team is needed.
+Speaker 3 | 40:53
+That's great. Just let me know if you need anything from me and if I can look at anything to see if we're still on the same page.
+dev.ganuga | 40:59
+If I can look at anything to fulfill the in practice.
+Speaker 3 | 41:05
+But that works really well in practice, so I'm quite confident we'll get there.
+Speaker 2 | 41:09
+Yes, agreed.
+Speaker 3 | 41:12
+Okay, well, great. Thanks for your flexibility again.
+Speaker 2 | 41:18
+Absolutely, we are happy to, and I'll talk to you in a few minutes, yeah?

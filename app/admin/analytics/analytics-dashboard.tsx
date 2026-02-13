@@ -7,8 +7,10 @@ import {
   getChallengeStats,
   getDailyViewCounts,
   exportAnalyticsCSV,
+  getClientOptions,
   type OverviewStats,
   type ChallengeStats,
+  type ClientOption,
   type DateRange
 } from '@/lib/actions/admin-analytics'
 
@@ -18,10 +20,16 @@ const DATE_PRESETS = [
   { label: 'Last 30 days', days: 30 },
   { label: 'Last 90 days', days: 90 },
   { label: 'All time', days: 0 },
+  { label: 'Custom', days: -1 },
 ] as const
 
 // Chart type options
 type ChartType = 'bar' | 'line' | 'area'
+
+// Format date for input[type=date] value
+function toDateInputValue(date: Date): string {
+  return date.toISOString().split('T')[0]
+}
 
 export function AnalyticsDashboard() {
   const [selectedPreset, setSelectedPreset] = useState(1) // Default to 30 days
@@ -31,9 +39,28 @@ export function AnalyticsDashboard() {
   const [dailyData, setDailyData] = useState<{ date: string; views: number; uniqueSessions: number }[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [isPending, startTransition] = useTransition()
+  const [clients, setClients] = useState<ClientOption[]>([])
+  const [selectedClientId, setSelectedClientId] = useState<string>('')
+  // Custom date range state
+  const [customFrom, setCustomFrom] = useState<string>(() => {
+    const d = new Date(); d.setDate(d.getDate() - 30); return toDateInputValue(d)
+  })
+  const [customTo, setCustomTo] = useState<string>(() => toDateInputValue(new Date()))
 
-  // Calculate date range from preset
+  // Load client options on mount
+  useEffect(() => {
+    getClientOptions().then(setClients)
+  }, [])
+
+  // Calculate date range from preset or custom inputs
   const getDateRange = (days: number): DateRange | undefined => {
+    if (days === -1) {
+      // Custom date range
+      return {
+        from: new Date(customFrom + 'T00:00:00').toISOString(),
+        to: new Date(customTo + 'T23:59:59').toISOString()
+      }
+    }
     if (days === 0) return undefined
     const to = new Date()
     const from = new Date()
@@ -44,17 +71,29 @@ export function AnalyticsDashboard() {
     }
   }
 
-  // Load data on mount and when preset changes
+  // Compute how many days to pass for getDailyViewCounts
+  const getChartDays = (days: number): number => {
+    if (days === -1) {
+      const diffMs = new Date(customTo).getTime() - new Date(customFrom).getTime()
+      return Math.max(Math.ceil(diffMs / (1000 * 60 * 60 * 24)), 1)
+    }
+    return days || 365
+  }
+
+  // Load data on mount and when preset or client changes
   useEffect(() => {
     const loadData = async () => {
       setIsLoading(true)
       const preset = DATE_PRESETS[selectedPreset]
       const dateRange = getDateRange(preset.days)
+      const clientFilter = selectedClientId || undefined
+      const isCustom = preset.days === -1
+      const customDateRange = isCustom ? dateRange : undefined
 
       const [overview, challenges, daily] = await Promise.all([
-        getOverviewStats(dateRange),
-        getChallengeStats(dateRange),
-        getDailyViewCounts(undefined, preset.days || 365)
+        getOverviewStats(dateRange, clientFilter),
+        getChallengeStats(dateRange, clientFilter),
+        getDailyViewCounts(undefined, getChartDays(preset.days), clientFilter, customDateRange)
       ])
 
       setOverviewStats(overview)
@@ -64,21 +103,25 @@ export function AnalyticsDashboard() {
     }
 
     loadData()
-  }, [selectedPreset])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedPreset, selectedClientId, customFrom, customTo])
 
   // Export handler
   const handleExport = () => {
     startTransition(async () => {
       const preset = DATE_PRESETS[selectedPreset]
       const dateRange = getDateRange(preset.days)
-      const csv = await exportAnalyticsCSV(undefined, dateRange)
+      const clientFilter = selectedClientId || undefined
+      const csv = await exportAnalyticsCSV(undefined, dateRange, clientFilter)
 
       if (csv) {
         const blob = new Blob([csv], { type: 'text/csv' })
         const url = URL.createObjectURL(blob)
         const a = document.createElement('a')
         a.href = url
-        a.download = `analytics-${new Date().toISOString().split('T')[0]}.csv`
+        const clientSlug = selectedClientId ? clients.find(c => c.id === selectedClientId)?.name?.toLowerCase().replace(/\s+/g, '-') + '-' : ''
+        const dateSlug = preset.days === -1 ? `${customFrom}_to_${customTo}` : new Date().toISOString().split('T')[0]
+        a.download = `analytics-${clientSlug}${dateSlug}.csv`
         a.click()
         URL.revokeObjectURL(url)
       }
@@ -118,21 +161,63 @@ export function AnalyticsDashboard() {
     <div className="space-y-6 animate-fade-in">
       {/* Controls */}
       <div className="flex flex-wrap items-center justify-between gap-4">
-        {/* Date Range Selector */}
-        <div className="flex gap-2 p-1 bg-[var(--color-bg-muted)] rounded-[var(--radius-lg)]">
-          {DATE_PRESETS.map((preset, index) => (
-            <button
-              key={preset.label}
-              onClick={() => setSelectedPreset(index)}
-              className={`relative rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
-                selectedPreset === index
-                  ? 'bg-[var(--color-bg)] text-[var(--color-fg)] shadow-[var(--shadow-sm)]'
-                  : 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
-              }`}
-            >
-              {preset.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Date Range Selector */}
+          <div className="flex gap-2 p-1 bg-[var(--color-bg-muted)] rounded-[var(--radius-lg)]">
+            {DATE_PRESETS.map((preset, index) => (
+              <button
+                key={preset.label}
+                onClick={() => setSelectedPreset(index)}
+                className={`relative rounded-[var(--radius-md)] px-3 py-1.5 text-sm font-medium transition-all duration-200 ${
+                  selectedPreset === index
+                    ? 'bg-[var(--color-bg)] text-[var(--color-fg)] shadow-[var(--shadow-sm)]'
+                    : 'text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]'
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Date Range Inputs */}
+          {DATE_PRESETS[selectedPreset].days === -1 && (
+            <div className="flex items-center gap-2">
+              <input
+                type="date"
+                value={customFrom}
+                onChange={(e) => setCustomFrom(e.target.value)}
+                className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-sm text-[var(--color-fg)] shadow-[var(--shadow-xs)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)]"
+              />
+              <span className="text-sm text-[var(--color-fg-muted)]">to</span>
+              <input
+                type="date"
+                value={customTo}
+                onChange={(e) => setCustomTo(e.target.value)}
+                className="rounded-[var(--radius-md)] border border-[var(--color-border)] bg-[var(--color-bg)] px-3 py-1.5 text-sm text-[var(--color-fg)] shadow-[var(--shadow-xs)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)]"
+              />
+            </div>
+          )}
+
+          {/* Client Filter */}
+          {clients.length > 0 && (
+            <div className="relative">
+              <select
+                value={selectedClientId}
+                onChange={(e) => setSelectedClientId(e.target.value)}
+                className="appearance-none rounded-[var(--radius-lg)] border border-[var(--color-border)] bg-[var(--color-bg)] pl-3 pr-8 py-1.5 text-sm font-medium text-[var(--color-fg)] shadow-[var(--shadow-xs)] transition-all duration-150 hover:border-[var(--color-border-hover)] focus:outline-none focus:ring-2 focus:ring-[var(--color-accent)]/20 focus:border-[var(--color-accent)] cursor-pointer"
+              >
+                <option value="">All Clients</option>
+                {clients.map((client) => (
+                  <option key={client.id} value={client.id}>
+                    {client.name}
+                  </option>
+                ))}
+              </select>
+              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-2">
+                <ChevronDownIcon className="h-4 w-4 text-[var(--color-fg-muted)]" />
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Export Button */}
@@ -148,7 +233,7 @@ export function AnalyticsDashboard() {
 
       {/* Overview Stats */}
       {overviewStats && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 animate-stagger">
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5 animate-stagger">
           <StatCard
             title="Challenge Views"
             value={overviewStats.totalChallengeViews}
@@ -167,6 +252,12 @@ export function AnalyticsDashboard() {
             value={overviewStats.totalMediaPlays}
             icon={<PlayIcon className="h-5 w-5" />}
             color="emerald"
+          />
+          <StatCard
+            title="Completions"
+            value={overviewStats.totalCompletions}
+            icon={<CheckCircleIcon className="h-5 w-5" />}
+            color="purple"
           />
           <StatCard
             title="Unique Sessions"
@@ -325,10 +416,11 @@ export function AnalyticsDashboard() {
                     >
                       <td className="px-6 py-4">
                         <Link
-                          href={`/admin/challenges/${stat.challengeId}`}
-                          className="font-medium text-[var(--color-fg)] hover:text-[var(--color-accent)] transition-colors"
+                          href={`/admin/analytics/${stat.challengeId}`}
+                          className="font-medium text-[var(--color-fg)] hover:text-[var(--color-accent)] transition-colors inline-flex items-center gap-1.5 group"
                         >
                           {stat.challengeName}
+                          <ArrowRightIcon className="h-3.5 w-3.5 opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all" />
                         </Link>
                       </td>
                       <td className="px-6 py-4 text-sm text-[var(--color-fg-muted)]">
@@ -392,6 +484,11 @@ const colorMap = {
     bg: 'bg-emerald-50 dark:bg-emerald-500/10',
     text: 'text-emerald-600 dark:text-emerald-400',
     ring: 'ring-emerald-500/20'
+  },
+  purple: {
+    bg: 'bg-purple-50 dark:bg-purple-500/10',
+    text: 'text-purple-600 dark:text-purple-400',
+    ring: 'ring-purple-500/20'
   },
   amber: {
     bg: 'bg-amber-50 dark:bg-amber-500/10',
@@ -799,8 +896,8 @@ function LoadingSkeleton() {
       </div>
 
       {/* Stats cards skeleton */}
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {[...Array(4)].map((_, i) => (
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+        {[...Array(5)].map((_, i) => (
           <div
             key={i}
             className="h-[88px] rounded-[var(--radius-xl)] border border-[var(--color-border)] bg-[var(--color-bg)] p-6 animate-slide-up"
@@ -877,6 +974,14 @@ function PlayIcon({ className }: { className?: string }) {
   )
 }
 
+function CheckCircleIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
+    </svg>
+  )
+}
+
 function UsersIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
@@ -937,6 +1042,22 @@ function TrendDownIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 6 9 12.75l4.286-4.286a11.948 11.948 0 0 1 4.306 6.43l.776 2.898m0 0 3.182-5.511m-3.182 5.51-5.511-3.181" />
+    </svg>
+  )
+}
+
+function ChevronDownIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+    </svg>
+  )
+}
+
+function ArrowRightIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5 21 12m0 0-7.5 7.5M21 12H3" />
     </svg>
   )
 }

@@ -8,7 +8,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogDescription,
-  DialogContent,
   DialogFooter,
   Spinner,
   RichTextEditor,
@@ -107,7 +106,7 @@ export function AnnouncementForm({
 
   return (
     <Dialog open={open} onClose={handleClose}>
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0 gap-4">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Edit Announcement' : 'Create Announcement'}</DialogTitle>
           <DialogDescription>
@@ -117,7 +116,7 @@ export function AnnouncementForm({
           </DialogDescription>
         </DialogHeader>
 
-        <DialogContent className="space-y-4">
+        <div className="space-y-4 overflow-y-auto min-h-0 flex-1">
           {error && (
             <div className="rounded-[var(--radius-md)] bg-[var(--color-error-subtle)] p-3 text-sm text-[var(--color-error)]">
               {error}
@@ -195,7 +194,7 @@ export function AnnouncementForm({
               Pinned announcements appear first in the list.
             </p>
           </div>
-        </DialogContent>
+        </div>
 
         <DialogFooter>
           <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>

@@ -170,7 +170,7 @@ export function AssignmentPicker({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4 space-y-4">
+          <div className="py-4 space-y-4 overflow-y-auto min-h-0 flex-1">
             <Input
               type="search"
               placeholder="Search by name or tag..."
@@ -332,7 +332,7 @@ export function AssignmentPicker({
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4 space-y-4">
+          <div className="py-4 space-y-4 overflow-y-auto min-h-0 flex-1">
             {/* Link option */}
             <Button
               type="button"

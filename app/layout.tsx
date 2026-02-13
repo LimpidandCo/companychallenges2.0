@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { Plus_Jakarta_Sans, JetBrains_Mono } from 'next/font/google'
 import { ClerkProvider } from '@/components/providers/clerk-provider'
+import { GoogleAnalytics } from '@/components/providers/google-analytics'
 import './globals.css'
 
 const plusJakarta = Plus_Jakarta_Sans({
@@ -46,6 +47,7 @@ export default function RootLayout({
     <ClerkProvider>
       <html lang="en" suppressHydrationWarning>
         <body className={`${plusJakarta.variable} ${jetbrainsMono.variable} ${plusJakarta.className} antialiased`}>
+          <GoogleAnalytics />
           {children}
         </body>
       </html>

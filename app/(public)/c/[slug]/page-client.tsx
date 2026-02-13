@@ -6,6 +6,7 @@ import { AuthGate } from '@/components/public/auth-gate'
 import { SupportModal } from '@/components/public/support-modal'
 import { ChallengeDescriptionRenderer } from '@/components/public/content-renderer'
 import { trackChallengeView } from '@/lib/actions/analytics'
+import { gaChallengeView } from '@/lib/analytics/ga'
 import { useLabels } from '@/lib/hooks/use-labels'
 import type { Challenge, ChallengeLabel } from '@/lib/types/database'
 
@@ -43,7 +44,8 @@ export function ChallengePageClient({
     if (hasTrackedView.current) return
     hasTrackedView.current = true
     trackChallengeView(challenge.client_id, challenge.id)
-  }, [challenge.client_id, challenge.id])
+    gaChallengeView(challenge.id, challenge.public_title || challenge.internal_name)
+  }, [challenge.client_id, challenge.id, challenge.public_title, challenge.internal_name])
 
   const title = challenge.show_public_title && challenge.public_title
     ? challenge.public_title

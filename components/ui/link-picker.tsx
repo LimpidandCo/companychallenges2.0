@@ -230,7 +230,7 @@ export function LinkPicker({ open, onClose, onSelect }: LinkPickerProps) {
         <DialogTitle>Insert Link</DialogTitle>
       </DialogHeader>
 
-      <div className="p-4 space-y-4">
+      <div className="p-4 space-y-4 overflow-y-auto min-h-0 flex-1">
         {/* Tabs */}
         <div className="flex gap-2">
           <button onClick={() => setActiveTab('assignments')} className={tabClass('assignments')}>
