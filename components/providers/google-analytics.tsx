@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect } from 'react'
+import { Suspense, useEffect } from 'react'
 import { usePathname, useSearchParams } from 'next/navigation'
 import Script from 'next/script'
 import { GA_MEASUREMENT_ID } from '@/lib/analytics/ga'
@@ -54,7 +54,9 @@ export function GoogleAnalytics() {
           `,
         }}
       />
-      <RouteChangeTracker />
+      <Suspense fallback={null}>
+        <RouteChangeTracker />
+      </Suspense>
     </>
   )
 }
