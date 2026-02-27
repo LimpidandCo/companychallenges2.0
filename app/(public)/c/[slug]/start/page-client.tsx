@@ -8,11 +8,14 @@ import { SupportModal } from '@/components/public/support-modal'
 import { PasswordGate } from '@/components/public/password-gate'
 import { useLabels } from '@/lib/hooks/use-labels'
 import { verifySprintPassword } from '@/lib/actions/public'
-import type { Challenge, Assignment, AssignmentUsage, Sprint, ChallengeLabel, Milestone } from '@/lib/types/database'
+import type { Challenge, Assignment, AssignmentUsage, Sprint, ChallengeLabel, Milestone, SprintProgress } from '@/lib/types/database'
 import { cn } from '@/lib/utils/cn'
 
 // LocalStorage key for tracking completions (matches assignment page)
 const getCompletionStorageKey = (challengeId: string) => `cc_completed_${challengeId}`
+
+// SessionStorage key for sprint password unlocks (clears when browser closes)
+const getSprintUnlockStorageKey = (challengeId: string) => `cc_unlocked_sprints_${challengeId}`
 
 interface AssignmentsGridClientProps {
   challenge: Challenge
@@ -22,9 +25,9 @@ interface AssignmentsGridClientProps {
   milestones?: Milestone[]
   pendingCount: number
   labels?: ChallengeLabel[]
-  // Progress data (for individual mode)
+  // Progress data (for individual mode - from server)
   completedIds?: string[]
-  totalProgress?: number // 0-100
+  sprintProgress?: SprintProgress[]
 }
 
 /**
@@ -46,6 +49,7 @@ export function AssignmentsGridClient({
   pendingCount,
   labels: initialLabels,
   completedIds: serverCompletedIds = [],
+  sprintProgress: serverSprintProgress,
 }: AssignmentsGridClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -53,8 +57,8 @@ export function AssignmentsGridClient({
   // Read sprint ID from URL params (for returning from assignment)
   const urlSprintId = searchParams.get('sprint')
   
-  // View state: 'sprints' shows sprint cards, 'assignments' shows assignment grid
-  const [currentView, setCurrentView] = useState<'sprints' | 'assignments'>(urlSprintId ? 'assignments' : 'sprints')
+  // View state: 'sprints' | 'sprint-landing' | 'assignments'
+  const [currentView, setCurrentView] = useState<'sprints' | 'sprint-landing' | 'assignments'>(urlSprintId ? 'assignments' : 'sprints')
   const [selectedSprintId, setSelectedSprintId] = useState<string | null>(urlSprintId)
   
   // Password modal state
@@ -70,6 +74,19 @@ export function AssignmentsGridClient({
   
   const [localCompletedIds, setLocalCompletedIds] = useState<string[]>([])
   const [isPageLoaded, setIsPageLoaded] = useState(false)
+
+  // Individual mode detection
+  const isIndividualMode = challenge.mode === 'individual' || challenge.mode === 'hybrid'
+  const hasServerProgress = isIndividualMode && !!serverSprintProgress && serverSprintProgress.length > 0
+
+  // Build sprint progress map (sprint_id -> SprintProgress)
+  const sprintProgressMap = useMemo(() => {
+    const map = new Map<string, SprintProgress>()
+    if (serverSprintProgress) {
+      serverSprintProgress.forEach(p => map.set(p.sprint_id, p))
+    }
+    return map
+  }, [serverSprintProgress])
 
   const { getLabel } = useLabels({ 
     challengeId: challenge.id, 
@@ -94,20 +111,28 @@ export function AssignmentsGridClient({
     if (urlSprintId) {
       const sprint = sprints.find(s => s.id === urlSprintId)
       if (sprint) {
-        // Check if sprint requires password and is not unlocked
+        // Check sequential lock first (individual mode)
+        if (hasServerProgress) {
+          const progress = sprintProgressMap.get(urlSprintId)
+          if (progress && progress.status === 'locked') {
+            setCurrentView('sprints')
+            setSelectedSprintId(null)
+            return
+          }
+        }
+        // Check if sprint requires password and is not unlocked (sessionStorage)
         if (sprint.password_hash) {
-          const unlockedKey = `cc_unlocked_sprints_${challenge.id}`
-          const unlockedStored = localStorage.getItem(unlockedKey)
+          const unlockedKey = getSprintUnlockStorageKey(challenge.id)
+          const unlockedStored = sessionStorage.getItem(unlockedKey)
           const unlockedSprints: string[] = unlockedStored ? JSON.parse(unlockedStored) : []
           if (!unlockedSprints.includes(urlSprintId)) {
-            // Sprint needs password, show sprints view
             setCurrentView('sprints')
             setSelectedSprintId(null)
           }
         }
       }
     }
-  }, [challenge.id, urlSprintId, sprints])
+  }, [challenge.id, urlSprintId, sprints, hasServerProgress, sprintProgressMap])
 
   // Merge server and local completed IDs
   const completedIds = useMemo(() => {
@@ -127,7 +152,7 @@ export function AssignmentsGridClient({
   }
   const features = { ...defaultFeatures, ...(challenge.features || {}) }
   const hasSprints = sprints.length > 0 && features.sprint_structure
-  const showProgress = features.progress_tracking && challenge.mode !== 'collective'
+  const showProgress = hasServerProgress || (features.progress_tracking && challenge.mode !== 'collective')
   const showMilestones = features.milestones && milestones.length > 0
 
   // Group usages by sprint
@@ -174,27 +199,45 @@ export function AssignmentsGridClient({
     })
   }, [showMilestones, milestones, totalProgress])
 
-  // Check if a sprint is unlocked (password already entered)
-  const isSprintUnlocked = (sprintId: string): boolean => {
+  // Check if a sprint password has been entered this session (sessionStorage)
+  const isSprintPasswordUnlocked = (sprintId: string): boolean => {
     try {
-      const key = `cc_unlocked_sprints_${challenge.id}`
-      const stored = localStorage.getItem(key)
+      const key = getSprintUnlockStorageKey(challenge.id)
+      const stored = sessionStorage.getItem(key)
       if (stored) {
         const unlockedSprints: string[] = JSON.parse(stored)
         return unlockedSprints.includes(sprintId)
       }
     } catch {
-      // localStorage might not be available
+      // sessionStorage might not be available
     }
     return false
   }
 
-  // Handle sprint card click
+  // Check if a sprint is sequentially locked (individual mode server-side check)
+  const isSprintSequentiallyLocked = (sprintId: string): boolean => {
+    if (!hasServerProgress) return false
+    const progress = sprintProgressMap.get(sprintId)
+    return progress?.status === 'locked'
+  }
+
+  // Get server-side sprint status
+  const getSprintServerStatus = (sprintId: string): SprintProgress['status'] | null => {
+    if (!hasServerProgress) return null
+    return sprintProgressMap.get(sprintId)?.status ?? null
+  }
+
+  // Handle sprint card click -- two-layer locking
   const handleSprintClick = async (sprint: Sprint) => {
+    // Layer 1: Sequential lock (individual mode)
+    if (isSprintSequentiallyLocked(sprint.id)) {
+      return // Card is disabled, do nothing
+    }
+
     const sprintUsages = sprintMap.get(sprint.id) || []
     
-    // If sprint has password AND is not already unlocked, show password modal
-    if (sprint.password_hash && !isSprintUnlocked(sprint.id)) {
+    // Layer 2: Password lock (scratch card)
+    if (sprint.password_hash && !isSprintPasswordUnlocked(sprint.id)) {
       setPasswordModalSprint(sprint)
       return
     }
@@ -206,7 +249,14 @@ export function AssignmentsGridClient({
       return
     }
     
-    // Otherwise show sprint's assignments
+    // If sprint has description/cover, show sprint landing page first
+    if (sprint.description_html || sprint.cover_image_url) {
+      setSelectedSprintId(sprint.id)
+      setCurrentView('sprint-landing')
+      return
+    }
+
+    // Otherwise show sprint's assignments directly
     setSelectedSprintId(sprint.id)
     setCurrentView('assignments')
   }
@@ -222,29 +272,35 @@ export function AssignmentsGridClient({
       const result = await verifySprintPassword(passwordModalSprint.id, password)
       
       if (result.success) {
-        // Store unlocked sprint in localStorage so assignments in this sprint are also unlocked
+        // Store unlocked sprint in sessionStorage (clears when browser closes)
         try {
-          const key = `cc_unlocked_sprints_${challenge.id}`
-          const stored = localStorage.getItem(key)
+          const key = getSprintUnlockStorageKey(challenge.id)
+          const stored = sessionStorage.getItem(key)
           const unlockedSprints: string[] = stored ? JSON.parse(stored) : []
           if (!unlockedSprints.includes(passwordModalSprint.id)) {
             unlockedSprints.push(passwordModalSprint.id)
-            localStorage.setItem(key, JSON.stringify(unlockedSprints))
+            sessionStorage.setItem(key, JSON.stringify(unlockedSprints))
           }
         } catch {
-          // localStorage might not be available
+          // sessionStorage might not be available
         }
         
         const sprintUsages = sprintMap.get(passwordModalSprint.id) || []
+        const unlockedSprintId = passwordModalSprint.id
+        const unlockedSprint = passwordModalSprint
         setPasswordModalSprint(null)
         
         // If only 1 assignment, navigate directly
         if (sprintUsages.length === 1) {
           const assignment = sprintUsages[0].assignment
           router.push(`/${assignment.slug}?from=${challenge.slug}`)
+        } else if (unlockedSprint.description_html || unlockedSprint.cover_image_url) {
+          // Show sprint landing page
+          setSelectedSprintId(unlockedSprintId)
+          setCurrentView('sprint-landing')
         } else {
-          // Show sprint's assignments
-          setSelectedSprintId(passwordModalSprint.id)
+          // Show sprint's assignments directly
+          setSelectedSprintId(unlockedSprintId)
           setCurrentView('assignments')
         }
       } else {
@@ -257,10 +313,16 @@ export function AssignmentsGridClient({
     }
   }
 
-  // Handle back to sprints
-  const handleBackToSprints = () => {
-    setSelectedSprintId(null)
-    setCurrentView('sprints')
+  // Handle back navigation
+  const handleBack = () => {
+    if (currentView === 'assignments' && currentSprint && (currentSprint.description_html || currentSprint.cover_image_url)) {
+      // From assignments -> back to sprint landing (if it has a landing page)
+      setCurrentView('sprint-landing')
+    } else {
+      // From sprint-landing or assignments -> back to sprint overview
+      setSelectedSprintId(null)
+      setCurrentView('sprints')
+    }
   }
 
   // Get current sprint for header
@@ -268,8 +330,14 @@ export function AssignmentsGridClient({
     ? sprints.find(s => s.id === selectedSprintId) 
     : null
 
+  // Handle "Go to assignments" from sprint landing
+  const handleGoToAssignments = () => {
+    setCurrentView('assignments')
+  }
+
   // Determine what to show
   const showSprintCards = hasSprints && currentView === 'sprints'
+  const showSprintLanding = hasSprints && currentView === 'sprint-landing' && currentSprint
   const showAssignments = !hasSprints || currentView === 'assignments'
 
   return (
@@ -329,10 +397,10 @@ export function AssignmentsGridClient({
             <div className="flex items-center justify-between">
               {/* Logo & Title with Back Button */}
               <div className="flex items-center gap-4">
-                {/* Back button when viewing sprint's assignments */}
-                {currentView === 'assignments' && hasSprints && (
+                {/* Back button when viewing sprint landing or assignments */}
+                {(currentView === 'assignments' || currentView === 'sprint-landing') && hasSprints && (
                   <button
-                    onClick={handleBackToSprints}
+                    onClick={handleBack}
                     className="flex h-10 w-10 items-center justify-center rounded-xl border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
                   >
                     <ArrowLeftIcon className="h-5 w-5" />
@@ -480,8 +548,24 @@ export function AssignmentsGridClient({
                 getSprintProgress={getSprintProgress}
                 onSprintClick={handleSprintClick}
                 getLabel={getLabel}
+                isSprintSequentiallyLocked={isSprintSequentiallyLocked}
+                getSprintServerStatus={getSprintServerStatus}
+                hasServerProgress={hasServerProgress}
               />
             </div>
+          )}
+
+          {/* Sprint Landing Page View */}
+          {showSprintLanding && currentSprint && (
+            <SprintLandingPage
+              sprint={currentSprint}
+              brandColor={brandColor}
+              progress={getSprintProgress(currentSprint.id)}
+              showProgress={showProgress}
+              serverStatus={getSprintServerStatus(currentSprint.id)}
+              onGoToAssignments={handleGoToAssignments}
+              getLabel={getLabel}
+            />
           )}
 
           {/* Assignments View */}
@@ -548,6 +632,9 @@ interface SprintCardsGridProps {
   getSprintProgress: (sprintId: string) => { completed: number; total: number }
   onSprintClick: (sprint: Sprint) => void
   getLabel: (key: string) => string
+  isSprintSequentiallyLocked: (sprintId: string) => boolean
+  getSprintServerStatus: (sprintId: string) => SprintProgress['status'] | null
+  hasServerProgress: boolean
 }
 
 function SprintCardsGrid({
@@ -559,14 +646,25 @@ function SprintCardsGrid({
   getSprintProgress,
   onSprintClick,
   getLabel,
+  isSprintSequentiallyLocked,
+  getSprintServerStatus,
+  hasServerProgress,
 }: SprintCardsGridProps) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
       {sprints.map((sprint, index) => {
         const progress = getSprintProgress(sprint.id)
-        const isLocked = sprint.starts_at ? new Date(sprint.starts_at) > new Date() : false
+        const serverStatus = getSprintServerStatus(sprint.id)
+        
+        // Two-layer locking: sequential (server) takes priority, then time-based
+        const isSequentiallyLocked = isSprintSequentiallyLocked(sprint.id)
+        const isTimeLocked = sprint.starts_at ? new Date(sprint.starts_at) > new Date() : false
+        const isLocked = isSequentiallyLocked || isTimeLocked
+        
         const hasPassword = !!sprint.password_hash
-        const isComplete = progress.completed === progress.total && progress.total > 0
+        // Use server status for completion if available, fall back to local calculation
+        const isComplete = serverStatus === 'completed' || 
+          (!hasServerProgress && progress.completed === progress.total && progress.total > 0)
         
         return (
           <SprintCard
@@ -575,9 +673,10 @@ function SprintCardsGrid({
             brandColor={brandColor}
             progress={progress}
             isLocked={isLocked}
+            isSequentiallyLocked={isSequentiallyLocked}
             hasPassword={hasPassword}
             isComplete={isComplete}
-            showProgress={showProgress}
+            showProgress={showProgress || hasServerProgress}
             onClick={() => !isLocked && onSprintClick(sprint)}
             missionLabel={getLabel('sprint') || 'Mission'}
           />
@@ -596,6 +695,7 @@ interface SprintCardProps {
   brandColor: string
   progress: { completed: number; total: number }
   isLocked: boolean
+  isSequentiallyLocked: boolean
   hasPassword: boolean
   isComplete: boolean
   showProgress: boolean
@@ -608,6 +708,7 @@ function SprintCard({
   brandColor,
   progress,
   isLocked,
+  isSequentiallyLocked,
   hasPassword,
   isComplete,
   showProgress,
@@ -718,12 +819,19 @@ function SprintCard({
               </p>
             )}
 
+            {/* Sequential lock message */}
+            {isSequentiallyLocked && (
+              <p className="text-xs text-gray-400 mb-3 flex items-center gap-1">
+                <LockIcon className="h-3 w-3" />
+                Complete previous mission to unlock
+              </p>
+            )}
+
             {/* Assignment indicators */}
             <div className="flex items-center gap-3">
               {/* Assignment dots */}
               <div className="flex items-center gap-1">
                 {Array.from({ length: Math.min(progress.total, 8) }).map((_, i) => {
-                  const sprintUsages = Array.from({ length: progress.total })
                   const isAssignmentComplete = i < progress.completed
                   return (
                     <div
@@ -865,6 +973,123 @@ function SprintPasswordGate({
           </button>
         </div>
       </form>
+    </div>
+  )
+}
+
+// =============================================================================
+// Sprint Landing Page - Mirrors the challenge page layout
+// =============================================================================
+
+interface SprintLandingPageProps {
+  sprint: Sprint
+  brandColor: string
+  progress: { completed: number; total: number }
+  showProgress: boolean
+  serverStatus: SprintProgress['status'] | null
+  onGoToAssignments: () => void
+  getLabel: (key: string) => string
+}
+
+function SprintLandingPage({
+  sprint,
+  brandColor,
+  progress,
+  showProgress,
+  serverStatus,
+  onGoToAssignments,
+  getLabel,
+}: SprintLandingPageProps) {
+  const isComplete = serverStatus === 'completed' || 
+    (progress.completed === progress.total && progress.total > 0)
+  const isInProgress = progress.completed > 0 && !isComplete
+  
+  const buttonLabel = isComplete 
+    ? 'Review' 
+    : isInProgress 
+    ? 'Continue' 
+    : getLabel('start')
+
+  return (
+    <div className="max-w-3xl mx-auto">
+      {/* Cover Image */}
+      {sprint.cover_image_url && (
+        <div className="mb-8 overflow-hidden rounded-2xl shadow-lg">
+          <img
+            src={sprint.cover_image_url}
+            alt={sprint.name}
+            className="h-auto w-full max-h-80 object-cover"
+          />
+        </div>
+      )}
+
+      {/* Title */}
+      <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 tracking-tight mb-4">
+        {sprint.name}
+      </h2>
+
+      {/* Subtitle */}
+      {sprint.subtitle && (
+        <p className="text-lg text-gray-600 mb-6">{sprint.subtitle}</p>
+      )}
+
+      {/* Description */}
+      {sprint.description_html && (
+        <div 
+          className="prose prose-lg max-w-none mb-8"
+          dangerouslySetInnerHTML={{ __html: sprint.description_html }}
+        />
+      )}
+
+      {/* Progress + Assignment count */}
+      <div className="mb-8 flex items-center gap-4">
+        <div 
+          className="flex h-12 w-12 items-center justify-center rounded-xl text-white"
+          style={{ backgroundColor: isComplete ? '#22c55e' : brandColor }}
+        >
+          {isComplete ? (
+            <CheckCircleIcon className="h-6 w-6" />
+          ) : (
+            <PlayIcon className="h-6 w-6" />
+          )}
+        </div>
+        <div>
+          <p className="text-sm font-semibold text-gray-900">
+            {progress.total} {progress.total === 1 ? 'assignment' : 'assignments'}
+          </p>
+          {showProgress && (
+            <p className="text-sm text-gray-500">
+              {progress.completed} of {progress.total} completed
+            </p>
+          )}
+        </div>
+        {showProgress && (
+          <div className="ml-auto flex items-center gap-2">
+            <div className="h-2 w-24 bg-gray-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full rounded-full transition-all duration-500"
+                style={{ 
+                  width: `${progress.total > 0 ? Math.round((progress.completed / progress.total) * 100) : 0}%`, 
+                  backgroundColor: isComplete ? '#22c55e' : brandColor 
+                }}
+              />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Go to Assignments Button */}
+      <button
+        onClick={onGoToAssignments}
+        className="inline-flex items-center gap-2 rounded-xl px-8 py-4 text-lg font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+        style={{ 
+          backgroundColor: isComplete ? '#22c55e' : brandColor,
+          boxShadow: `0 4px 12px -4px ${isComplete ? '#22c55e' : brandColor}50`
+        }}
+      >
+        {buttonLabel}
+        <ArrowRightIcon className="h-5 w-5" />
+      </button>
     </div>
   )
 }

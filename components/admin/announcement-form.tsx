@@ -200,7 +200,7 @@ export function AnnouncementForm({
           <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
             Cancel
           </Button>
-          <Button type="submit" disabled={loading || !title.trim() || !content.trim()}>
+          <Button type="submit" disabled={loading || !title.trim() || !content.replace(/<[^>]*>/g, '').trim()}>
             {loading ? (
               <span className="flex items-center gap-2">
                 <Spinner size="sm" />

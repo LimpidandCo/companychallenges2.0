@@ -1,0 +1,481 @@
+Kenneth Minier | 00:22
+Hello, everyone.
+Speaker 2 | 00:24
+Hey, guys, how's it going? Hi. The beard is gone now.
+Speaker 3 | 00:30
+The beard is gone.
+Speaker 2 | 00:31
+Yeah, I took a page out of your book, and I'm trying to grow one, but it's never gonna be as magnificent as it was. [Laughter].
+Speaker 3 | 00:40
+Well, I'm. I'm happy it's gone. It was not my own choice to leave it like that for so long. 
+[Laughter] Okay, well, but the jury is set out on it, so some people like it, but I think it's really uncomfortable, so.
+Kenneth Minier | 00:51
+Well, I think it looks good, for what it's worth. Like, yeah, it does. I usually keep a little bit of scrop and I apologize. I don't have my camera on so I can't show it. But when I do go like bare down to the skin, it does feel uncomfortable. You can feel the hair, like, growing through a little bit. 
+It's just, like, itchy, but. Yeah, I understand, but you look muchier.
+Speaker 2 | 01:17
+Plus, life's, like, simpler if you just shave.
+Kenneth Minier | 01:18
+I like it.
+Speaker 3 | 01:22
+Yeah.
+Kenneth Minier | 01:23
+But, okay, we can get right into some of the points of discussion here. I don't want to take up too much working.
+Speaker 2 | 01:29
+Before we start, Nikil, I did see the, feedback and thank you so much for being so diligent with it. 
+Like it's making our lives so much easier. And just like before we start, I did address a couple of them. We initially made it so like the legacy SLUG redirected to like the SLUG infrastructure we had. 
+And then I was like rethinking and I'm like, hey, why don't we just have it exactly as is? CA we can't. So that's built in on my screen English for a second. Brogo right.
+Speaker 3 | 02:05
+Yeah.
+Speaker 2 | 02:07
+So yeah, the legacy SLUG infrastructure is back into place that will work.
+Speaker 3 | 02:13
+This is just the one thing I received the SCRETCHCARD for the next challenge yesterday. Yeah, and this is just one thing I'm really worried about because I can't really test it. Yeah, it's the redirect word until we go live, but it is printed on the stretch card. 
+Yeah. So if that doesn't work, we're completely screwed. Yeah, so that's why I'm so pushy on that.
+Speaker 2 | 02:44
+Yeah, I thought about that as well, and then I was like, yeah, let's just switch it over. But in terms of the Sprint design, like, we did build out a initial container Containerization design. I know, like, you've added some comments regarding how nesting could work, but then that gave me like like so much ideas in what a sprint could be. 
+So it could either be like a single tile that they would click on and then they could scroll through, I guess, or go through the pages, or we would see it as like a view. Like we could click a filter in the assignments tabs. 
+And then you would see like seven or eight, and then as you're clicking through, when you press complete and when not just complete singularly, it goes to the next. But that was all just quick ideation. I'm looking forward to, like, the idea that you have there.
+Speaker 3 | 03:38
+Yeah, it's, the Prince were born more or less spontaneously. So I do feel that we. That Yaspra and I had a clear view of the sort of thing we needed. It might not even be exactly the same view. By the way, this is how Yaspra and I work together. We. 
+Yeah, we talk, we go our own way. Thinking okay, now we know what we mean, and then we get back together, and turns out we meant completely different things. But so. So the basic idea of the prirint is actually how we will do the next challenge for this energy company here. They have a challenge for three months. They want three or four assignments a week, which is way too many. 
+But that's their problem. And. And they wanted the SCRETCHCARD. But like, it's terribly opportunistically. We said, well, the best format for a sketch card is if it's a five size with about 15 scratchable areas. The reason we said that is that that's a Standard design we have, so it's easiest for us to make. 
+But now we have probably like twelve weeks times for assignments. Which is like 50 ish assignments. Yeah. But only 15 vegetable areas.
+Speaker 2 | 05:14
+I see.
+Speaker 3 | 05:15
+So that's why we call them missions on the scratch card. We wouldn't normally call them sprints, but they like missions, so we can just put the passwords for them for the mission in. And then that would link to the assignments that are nested in there. 
+So if that's what we do, basically the sprints would be a level, it would be assignment tish but challenge ish. I don't know. It's a level in the middle, if you know what I mean.
+Speaker 2 | 05:52
+I see.
+Speaker 3 | 05:53
+So it would look like the assignments look, you could put your password there. That would not necessarily be an assignment because it would link to the assignments inside. I see.
+Speaker 2 | 06:10
+So it's like we're building a view for each of these friends.
+Speaker 3 | 06:14
+Yes. So if we don't get that working and that's why I'm not really nervous about it, what I would do is create just nested challenges.
+Kenneth Minier | 06:24
+He.
+Speaker 3 | 06:24
+I would create a challenge with the fifteen missions in. Yeah. And then each mission would link to a little challenge for it. For the mission with just three or four assignments in I see. 
+And that will work. So this is my thoughts about this print. But this would basically make this print, something like an assignment that links to other assignments.
+Speaker 2 | 06:56
+I see. Okay, so when you're, like, building out those cratch cards, does the ur l that is, on each one of those. Like, I think you're making five total ones for their 50 ish or no.
+Speaker 3 | 07:17
+No more, right? I just got the it's the same for everybody.
+Speaker 2 | 07:25
+Okay.
+Speaker 3 | 07:26
+So there's just one card, because otherwise it would be impossibly expensive to produce.
+Speaker 2 | 07:31
+Just one flash card. I see. And on there, we would have, links to, like, different sprints. I guess I'm just trying to conceptualize this call in.
+Kenneth Minier | 07:40
+Yes. Yep. You got it? No.
+Speaker 3 | 07:45
+Yeah, let me just tell them.
+Speaker 2 | 07:59
+Yeah, my audio's getting c out, can you hear me?
+Kenneth Minier | 08:00
+Yes, I can hear you. I think McKee is muted.
+Speaker 2 | 08:07
+I see.
+Speaker 3 | 08:09
+Yeah, I hear you again, you hear me?
+Kenneth Minier | 08:12
+Yes.
+Speaker 3 | 08:14
+Okay, so that was our. So the main reason to do this with sprints, let me just elaborate a little bit more is.
+Speaker 2 | 08:22
+Yeah, and I'll take like a proper note of it as well.
+Speaker 3 | 08:26
+To. So. So what I see happening now. And that's why you see some a deleting stuff.
+Kenneth Minier | 08:33
+OOP. You're cutting out. Again?
+Speaker 3 | 08:38
+For instance, I'm worried that there will be a lot of challenges and a lot of assignments in the libraries. 
+So if I had to create four like, suppose we do two languages, two difficulty levels challenge and I would do it nested as I would. Now, that would mean that basically, for one client in one moment, we would need five challenges. I see. 
+Like the two difficulty levels times to two languages, plus the one that links to it all. So. So it's that would be not great from an level.
+Speaker 2 | 09:21
+Yeah, it wouldt. So we're trying to like establish infrastructure within a challenge to be able to support like those views.
+Speaker 3 | 09:32
+Yes, and exactly and to be completely dreaming. But this is not how we I don't think this is how we defined it. It would be great if we could if the print could be the Dutch and the English Virgin or the easy and the difficult one.
+Speaker 2 | 09:53
+I see.
+Speaker 3 | 09:54
+That will be. There will be a different definition of the sprint, though, than what I said just now. So that's why I said maybe we should just talk about this, because, I see that I'm all over the place on this as well. 
+Yeah.
+Speaker 2 | 10:09
+It would. It would serve us best that we get full clarity. Like we idea the proper spec. So before we go and build it like we're on the same page. But just not like I align with you. I'm just gonna go over what I got from it so far. Since like now sprints are just a way for us to like manage these kind of cohorts. Not it's going to be one cohort for the entire thing, and they would all get one scratch card. 
+But since they have like a huge amount of assignments, our way to like kind of solve that would be sprints. And these sprints would be hosted within challenges, but would be responsible for categories in a sense. 
+So an easy version and an advanced version. But instead of us having to, like, you know, do the admin detour and like, do it the uncon unconventional way, it would just be easier if we were to have, like, sprints as like folders in a sense, for assignments. 
+And we could, like, kind of configure each one at the sprint level as well. But before I get into that, like, could you give me a bit. Just a bit more clarity on, like, the actual scratch card itself?
+Speaker 3 | 11:47
+I'm gonna open on all. I'll see if I have one. Here, you. 
+Let me just see if I can do this. Well, okay, so now I can show it. So basically so this is the Scretch Carde, right? There's always we try to do it there and people can scratch it, but we always make just one version because otherwise, I mean, these are quite expensive to produce. 
+Yeah. So if we do different versions, well, maybe we could do one run with different versions, but that will be from a distribution point of view, that will be very annoying. Yeah. So basically what it said on the back now I've hit my video. 
+So I don't see what you see. Okay, there's basically right here, you see that there's a link that people could type, which because I don't know of any good way to use a QR code on a Desktop. Yeah. And we have a QR code which will just take you there in mobile view. I see. 
+That's basically all it is. So it gives you the so from if we look at the one we're doing where there will be 50 assignments like this challenge just had 15 assignments. I see at two levels we made the different. We made them refer to each other, if you know what I mean. 
+So you could you've seen that, right? You can see they care for the pro version. And which version which is.
+Speaker 2 | 13:47
+Would be like separate challenges.
+Speaker 3 | 13:49
+It would be like separate. Okay, exactly. So I can show you this. Maybe that would help. I don't know if you've been on the platform, but let me just check. Sure. So this is the view and this is the actual challenge, the Barco one that I showed you to scretch right off. 
+Yeah.
+Speaker 2 | 14:27
+I remember here is showing us this. Yeah.
+Speaker 3 | 14:29
+So you see that? Here's the. The overall thing where we say. Okay, so for every assignment, every of the fifteen assignments, we have just a general introduction. Then somewhere you can choose to go to either the core or the pro. 
+Yeah. And then basically at the challenge level, we have the core and the pro defined separates.
+Speaker 2 | 14:59
+I see. So like first challenge is almost like a form of index.
+Speaker 3 | 15:07
+Exactly, it's not almost it's exactly like an index basically. Okay. We did not. We have not done that like that. Always. Because I think here, this is the very the mother of all challenges. The very first we did I just made an English and a Dutch one, and we basically just said, you want to go Dutch? Do the and put the link here.
+Speaker 2 | 15:37
+I see. I was gonna I was gonna say that we could, like, add something to global that changes it to any language that there is, and it would just be in the header.
+Speaker 3 | 15:53
+Yeah. But that would mean. Like, could I define which languages I want and put in the text myself? Sure, MoM. I would not want an automatic translation.
+Speaker 2 | 16:06
+Yeah, that's something I was thinking as well. So like a different, view in a sense that they can select from. But it would empty, like the fields and then you'd have to type it in.
+Speaker 3 | 16:21
+Yeah, because automatic translations are just not good enough.
+Speaker 2 | 16:25
+Yeah, it's not reliable to, I think.
+Speaker 3 | 16:29
+No. And we sometimes work like we do some work in the Middle East, as I told you. And, I wouldn't I would not be able to check what's there in Arabic, for instance.
+Speaker 2 | 16:39
+Yeah, that would be difficult. Yeah.
+Speaker 3 | 16:42
+Because even, like, Arabic in Dubai would be different from Arabic in Saudi Arabia.
+Speaker 2 | 16:48
+That is true.
+Speaker 3 | 16:49
+Yeah, so that that's too tricky.
+Speaker 2 | 16:54
+I think that's a good idea, though, of being able to. I think we'll like, create the, drop down everywhere. One at challenge level and one at assignment level, as well as, the assignment level of being when you, like, name the actual assignment tiles or being able to edit that as well.
+Speaker 3 | 17:21
+Like language. What do you mean?
+Speaker 2 | 17:25
+So I'm, like, thinking about how like. So first you have, like, the actual challenge page. And let's say users are able to, like, change it. Let's just take to change it from English to Dutch. If you were to, change it from English to Dutch, that would save. 
+And if we do want to create, like, a separate language, we would have to, like, create the full flowout again.
+Speaker 3 | 17:54
+Yeah. So that's why I've been such a bore about being more or less language independent. Yeah, so not to have to do that. It would be nice if you could. This is nice to have. I mean, if you could define languages. 
+It's how we do surveys with call tricks. It does it like that. You can add languages and then in the survey you see only the languages that are available. But I manually add the languages. The different languages? 
+Yeah. So it would be the same thing. But it would have like different language s in the database that you could pick from. Yeah. So what do you think about where.
+Speaker 2 | 18:45
+Going on that desor then right now?
+Speaker 3 | 18:48
+Well, it could work. It would be nice, but to be completely honest, we only had the two languages thing twice or three times. I think. I see. So I can work around kiks. And there might be other variables, like the different levels, like the pro and the core and the Barco thing. 
+That's a similar thing, but it's functionally, if we would make a functionality to actually do the languages selecttor, it will be a completely different one. Yeah. So now we can more easily, I think, find a way to nest these different versions of a challenge. 
+Yeah, other than to hard code languages in.
+Speaker 2 | 19:41
+Yeah, that would be better. I was gonna add how at the end, like we could just rely on separate challenges for that. And be will still like implement a reusable sprint structure inside each of these challenges. 
+So we're not creating any more challenges than necessary, but for things that are, like, completely distinct, such as, you know, a language, we could go with the extra challenge.
+Speaker 3 | 20:09
+Yeah, that would be fine at some stage, though. I mean, I think I haven't tested that, but you can save challenges to folders, right? Yeah. So that's one way to. But at some stage, if you have a challenges list or something that appears somewhere, it'll be a very long list. 
+Yeah. So we have to find ways to keep that manageable. But I'm sure that we can do that. That's the one thing that I just added to the knife to have one where you can now if you create a link to another assignment, you can you get a dropdown with all the assignments and all the challenges in, which is really nice. 
+But right now, for instance, that gives, I think, the full list of assignments.
+Speaker 2 | 21:01
+Yeah.
+Speaker 3 | 21:02
+And if you could so even do that. Yeah, if you could search that by either challenge or client that already solve thelop, I think.
+Speaker 2 | 21:13
+What do you think about, like a two step? Instead of like that. You first see, like the client and then like once you go there, then you would see like the challenges associated.
+Speaker 3 | 21:25
+Yes, because I would expect not to regret that because you never link to another client's challenges or assignment. Yes. Or even one that's unused from the library. You will always link to something that is in an assignment of your client. That a challenge of your client? 
+Yeah, okay, does that make sense? I would never link to a Google assignment from a Microsoft assignment. Yeah.
+Speaker 2 | 22:11
+It does make sense. I was just thinking about how I could, like, solve the extremely long list. It'd just be like. I think it's like a two way dropdown. But I'll make sure, like, the logics in.
+Speaker 3 | 22:24
+What would be. I think would be always be enough is if you could select. Like if I want to link to an assignment that I could select the client. So that could be a select because it could be the client I'm already in. Yes. 
+And then the challenge for that client and then the assigned. So you just select the challenge and then you can only choose the assignment from the that challenge. Yeah, that would be enough.
+Speaker 2 | 22:59
+Got it. Noted. Can, just to make sure you are taking, you are running the AI note taker, right?
+Kenneth Minier | 23:05
+Yes, I'm taking notes. I'm taking some manual notes as well, just to make sure that nothing slips through the cracks.
+Speaker 3 | 23:08
+Perfect. So stop me if I'm talking too much, Ken. And it doesn't make sense anymo.
+Kenneth Minier | 23:15
+No, please keep talking. The more that we get, the better we understand. 
+So, like, truly.
+Speaker 3 | 23:21
+Yeah, that's great.
+Kenneth Minier | 23:21
+Truly. This is exactly why we do this call.
+Speaker 3 | 23:26
+So. And then that brings us back to the prints. Because if we say we can manage challenges in such a way that we can still use different challenges to embed into one to get the languages or the levels or the departments or whatever sorted out, because I don't see a better option than that. 
+Yeah, I don't know if you can think of one, but.
+Speaker 2 | 24:03
+Nothing that crosses my mind yet.
+Speaker 3 | 24:05
+No, so as long as we can, as long as we can say. Okay, so this is a bit of admin, discipline maybe as well.
+Speaker 2 | 24:15
+Or. Yeah.
+Speaker 3 | 24:17
+What could work is, that challenges are automatically saved to a directory for the client once they're linked to a client. Yeah. And the assignments? Linked to the challenge. A challenge is always linked to a client, so if we automatically save any challenges to a folder for that client. Basically what we have in the legacy thing that you see you can only get the to the challenges to going through the client.
+Speaker 2 | 24:59
+Yeah. So what do you think we should do with the, challenges page then if we want to go like that? Cause it's just a list of all challenges.
+Speaker 3 | 25:10
+Yeah, let me just check that. Challenges. Yeah, but that's fine, okay, that's fine. The only thing is that and it would be even great so if you can. So right now, a client is obviously a property of a thing, a folder is another one, and active is another one. 
+So active in archive and all is very useful from an overview thing, obviously. And. Yeah. It looks good. I think if I'm honest here, it wouldn't. Yeah, so I think I'm just clicking through it now. I'm just wondering if I would even use others. I might to if I have. I'm not sure I would ever use folders. 
+Yeah.
+Speaker 2 | 26:27
+I see. Do you want to, like, leave it as, like, an optional thing or just remove it for simplicity?
+Speaker 3 | 26:37
+Well, just leave it. I mean, it's there, and maybe I'll find a reason to use it at some stage. Yeah, but I like this, and it just means that we have to. I mean, if you can filter by client, you're halfway there. I'm just looking. 
+Yeah, this is basically what the view that I meant. You just got two challenges and you just select the thing. And I mean for ourselves, we just should be sure to mark them active or archived, for instance, because that will reduce the list as well. OB if we take out the archived ones and then we could do going back to where we where you can choose assignments to link to that from another assignment, if you still know what I mean. 
+Yeah, then we could just. If you can just only pick assignments from active challenges from the same client, that will be an easy search. Yeah.
+Speaker 2 | 27:53
+We should add that filtering logic again, actually.
+Speaker 3 | 27:57
+So it would just be two. So you have already have its clients, so you can just say to which challenge would you like to link? And then, yeah, and then see the list of assignments right now.
+Speaker 2 | 28:12
+You just see a full, like.
+Speaker 3 | 28:14
+Four. You see all the assignments and that's, yeah, they're gonna be alphabetically ordered, probably.
+Speaker 2 | 28:21
+Or that's something that looked over that should be resolved.
+Speaker 3 | 28:25
+Yeah, it's in the somewhere in the issues. Okay, so then back to the reason we were here in the first place, the sprintsm it I think it could be yeah, the best thing about Scrins right now cause I know I talked to this about this to Yaspra and he said you should be able to have like five or six different levels to like a decision tree like thing. 
+Yeah, but if we want to code that into the functionality, I think that's going to be very complicated, right?
+Speaker 2 | 29:18
+Say that again with the decision.
+Speaker 3 | 29:21
+So for instance, if I have two difficulty levels and two languages and two departments and two and five teams, I don't know, and each should have different ones. I think that was his dream that you can. That you can just make all the 50 assignments and you can just say, but I'm in this language, this difficulty level, this department, this team. 
+And you get to the right place. But in the end. But in the end, you still have to define all of the assignments.
+Speaker 2 | 29:57
+I think. I think we can, like, get away with tags for that. For example, what I'm thinking there is like, you know, the, like, assignment tile page that we have. We could like, add, a filter system at the top. 
+Like, if you saw, like, the sprint structure. For the other example, like, it had sprint one two and three, but there were like a total of like 30, like cha 30 assignments or something, but each one would show you, like, the view for that sprint. 
+And I feel like if we went the extra step to like click further tags, which could be like assignment and like Dutch or something in conjunction with sprint and department, then they would get a final view. 
+And I think we can like, make it where there's they can like, answer that before they get on there, or once they get on there, they can click that or we can leave. We can have like, predesigned URLS that already, like, selected those like tags. 
+So then you get like a compiled view for your intended audience. Is that. Yes.
+Speaker 3 | 31:13
+Then we would have to then we would have to define which types of tags there are beforehand or on.
+Speaker 2 | 31:20
+Yeah, so I would think let's just say we created a single challenge, right? And we created all the assignments there and in each one. Just like the legacy platform where it's like Sprint one, although it was a title. Now like you can actually create the tag and you reuse that tag. Let's just say sprint one across the first 1010 assignments. 
+Right? And you can create, like, the respective two and three tags. And then on the assignment view, like, somewhere near the top, you know, like when you go to, like, clothing, like, websites, you're able to select and filter. In a sense, that's a gross, like, generalization. 
+But when you, like, click those filters, ultimately you would get like your road map in a sense. And like, we could like, restructure the UI and this is a gamification idea. Instead of it being like just tiles. We could have it, like, as an actual roadmap. You ever played this game called Candy Crus Saga?
+Speaker 3 | 32:43
+But I know the kind of thing you mean.
+Speaker 2 | 32:45
+Yeah, it's like level to level, and then it's done. That was just an idea. What do you think of that?
+Speaker 3 | 32:54
+Yeah, that could be nice. I'm just thinking if that would look how that would look if you have a lot of assignments. Yes, if that would be nice. Or it would look very messy. Especially that because we have to be able to do it both on Desktop and Mobile View. 
+Yeah, but you know more about that than I do, so I couldn't tell you.
+Speaker 2 | 33:20
+I'm gonna. I'm gonna play around there, a little bit, but with, like, the primary focus because we've already like, my notes like I've already, like, outlined the, infrastructure that you. Described earlier. 
+So that's just going to be like that's going to be like a no brainer for us to implement first. From there, we can like, think about ideas on how we could potentially, like, nest the tags. Well, I'm not going to implement neither of them. 
+I think what I'm gonna do is like get this like cycle of changes up and like get a theorized like version of what we could do there has an optional functionality added on. And if it's either if it's good or bad, like when we can go from there.
+Speaker 3 | 34:13
+I actually now you're talking about the tags, I'm thinking but it's not quite clicking, so I'm just throwing it in the air. Now, what if we just made a lot of assignments? They could be like Dutch, English, French, easy, difficult, I don't know what. 
+And we could eg them, yeah, in some way. And then we could define sprints as all assignments that have this combination of texts.
+Speaker 2 | 34:48
+Yeah, that's good.
+Kenneth Minier | 34:49
+That's actually co.
+Speaker 3 | 34:52
+So one of the texts could be mission one.
+Speaker 2 | 34:56
+Yeah.
+Speaker 3 | 34:57
+And then you could create if you go from the chilling side, you could maybe I and that's what what's not clicking right now, but you could do you could go to the missions and you would see the mission, which would be the sprint. I'm not sure where you would choose which of the assignments you would do with, like if there's languages or difficulty levels. I don't know if you had to choose that at the mission level or the sprint level, or at the challenge level or at the assignment level. 
+So that's what I think. Start clicking.
+Speaker 2 | 35:37
+I think like the sprints or the mission would be like a preconfigured like view of like the tag selected. So when you go to a sprint, it would be like assuming that it consists of certain tags. But at the challenge level, if you were to come in at the challenge level, like you can still come in and see like the entire overview. 
+And I feel like we can develop additional functionality to guide the user into like, you know, if they just came in and this would be like a different story when it comes to individual mode. For example, like they would have like a compiled experience that's designed for them that takes them from zero to like 100%. 
+So that. And that's a different story, but for like I think we're just ideaating for collective mode and how we can achieve thism.
+Speaker 3 | 36:33
+Yeah, but it's. I was sort of seeing this with the tags, and now I'm thinking, if you do that, I would have like, a mission one in Dutch and a mission one in English and a mission one in Arabic. Yeah, but then that would only make sense if the challenge would have those three versions in those three languages. 
+And right now the challenge is just one thing, so we would have to break that open again as well. Yeah, so probably still the best way to do that without starting all over again would be just to have one thing with the different challenges in per language or per difficulty level.
+Speaker 2 | 37:17
+Yeah, I think at least, like, we got to separate the challenges by the language. I feel like, yeah, if we just do that, like, it would be easier to, like, manage the sprints. For example, it's so easier to, like, assign tag because we wouldn't want like people coming into a challenge. 
+And then they clicked the on start and it's thirty assignments, but you have four languages, so they see 01:20 assignments. That wouldn't be.
+Speaker 3 | 37:48
+No, that's exactly why I said, if you can tag it, then you can.
+Kenneth Minier | 37:51
+You can pull it.
+Speaker 3 | 37:54
+But I think for now. The. The. I'm really happy to talk about this way and then get sort of half baked ideas because right now the prints, I really feel the most useful thing for those would be to be able to present the participants with more than one assignment in a group where you only have to put in your password once, for instance. I see. How we do is print with five assignments. You put the password at the springe level. Once you're in the springge, you can just do all five assignments. 
+Yeah, that will be fine. The only thing I'm a little bit worried about is that we will have some sprints or missions in this case, that will only contain one assignment, and that might look a bit shitty on screen. 
+Yeah.
+Speaker 2 | 38:53
+And I feel like we can like, configure something like admin side too, if it's like an instance like that.
+Speaker 3 | 39:03
+Yeah. So this is the point that the best way to solve it might be that you can that the challenge consists of sprints, and the sprints can either move through a level to more than one assignment or an assignment.
+Speaker 2 | 39:24
+I see.
+Speaker 3 | 39:25
+Can you. Does this make sense?
+Speaker 2 | 39:27
+It does. And I know we're Elise gonna. I know we're going to go in that direction 100%, but I think we're on the same page regarding like being able to like configure the sprints by just like assigning tags to it, 'cause you would assign tags at assignment level.
+Speaker 3 | 39:48
+Yes. So you but you could even. So in this case, if we just use it as I describe now, we could even make it so that I define as print. I can then choose which of the assignments are part of that print. That sounds easy, and I know nothing but it sounds easy. 
+Yeah. And then if there's only one assignment. So I would see that the sprint to go to assignment overview page with the cover images. Yeah, but if there's only one assignment in the SCRENT, it would just skip a sprint level and just go straight to the assignment to.
+Speaker 2 | 40:32
+Yeah, I see. Are we looking to, build, like, a custom sprint landing page?
+Speaker 3 | 40:40
+I would, yeah, so. So that would be. And that's why I was a bit in doubt whether it was more like a challenge or more like an assignment. Yeah, but if we do it this way, that would work really well because we can just do you have the challenge do start and you then get to the sprints. 
+Yeah, if you go into the first print, it would basically look like if there's assignments on the ease more than one. It would basically look like the challenge page where we would do a short description of what the sprint is. 
+Yeah, just one button go to the assignments. Yeah, if there's only one assignment in the print, it should go directly to the assignment page.
+Speaker 2 | 41:29
+I see, that makes sense. So it's like challenge to like the sprint overviews and it could be like folders and I feel like for individual motor, it's just off like the bat too. We could see we could show how like the rest of the sprints are unlock I mean locked for example, and they start on sprint one. 
+And when they clicked that, they would either see an overview all of the assignments or if it's just one assignment, then it would just go straight to that one. And all of this would have like we will manage like the cookies for this so that once like they've authenticated and collective mode they stay like it's stays in their local stores that they've already authenticated again unless like they uninstalled their browser and reinstall it again like they.
+Speaker 3 | 42:22
+Yeah, I'm not sure what's going to happen, but. But if we did it like this, if we were to put four assignments in a sprint and you already built that, you can put a password on the sprint. Yeah, I would just put no password on the assignments. 
+Yeah, so that you have to unlock the print every time. I like that because it keeps people. One of the things is people will still need the stretch card. Yeah, if you put a cookie so they can just it remembers the password, they will just poss the scratch card. 
+Yeah, that's a silly reason maybe.
+Speaker 2 | 43:02
+But it makes sense though. We will do that then.
+Speaker 3 | 43:07
+So the. So the sprints. So from the challenge, if there are sprints because not every challenge wear prints, you will get to an overview page that looks exactly like the assignment overview page. Now, yeah, but then an overview of the prints, yeah. 
+And they will appear as I put them online. So, like, in the next challenge, there will be 15 missions, but I will start by putting the first three online. Yeah, 15. And they will just appear like the assignments will appear as we post them. 
+And then from that overview, you can select the mission you want, give the password, and then you go either to the assignment. If there's just one assignment underneathm or to a similar overview page, which is the assignment of view page as it is now.
+Speaker 2 | 44:04
+I see. Yep, I think we're on the same page there. Kind of one. And if there's no sprints defined.
+Speaker 3 | 44:12
+You just go straight to assignment.
+Speaker 2 | 44:14
+Yup, perfect.
+Speaker 3 | 44:16
+Yeah, okay, that's right.
+Kenneth Minier | 44:19
+I'm taking backseat on this one. I, you know, this I feel like was a little bit more intricate, and I didn't want to step on any toes. I feel like you guys had a fuller understanding of the details. 
+And so I had some ideas and Dev, you took them out of my mouth already. You're saying. But yeah, honestly, I think that we are in alignment on the next steps moving forward here.
+Speaker 3 | 44:43
+Yeah, that would be great and would make sense. Should I try to send you something in which I tried to explain in writing what I mean? Or do you think you have it all figured out after? No.
+Speaker 2 | 44:59
+We got to figure it out. We like, have a process where we look through the transcript and we put it on, like, an action list that we can always reference to.
+Speaker 3 | 45:10
+Yeah, that's fine. I just. Just it's. It's. I really appreciate that we can. We can have this discussion and it's terrible for people like me because it's so easy for me to just out things towards you. 
+Yeah, I sometimes worry a bit that it's not clear enough. Yeah, and we're to.
+Speaker 2 | 45:36
+That we're used to that.
+Kenneth Minier | 45:37
+4I agree.
+Speaker 2 | 45:38
+We got a lot of founders that we speak to that, you know, just got energy and they just speak out. But like, I feel like since you're into, like, the education sector, like, you're much better at, like, articulating things than the people that we're used to on a daily basis. 
+So it's much appreciated.
+Kenneth Minier | 45:57
+And I think the simple awareness of, like the articulation gap to the interpretation like your simple awareness of that alone is what allows us to work like in this manner. 
+And so like, in all honesty, this is like working with you is our best experience yet. And we so yeah, and I like I say that just like to say it's I believe it's a result of like both of us understanding that there are interpretation gaps that come within this space.
+Speaker 2 | 46:14
+Yeah, it's honestly very productive.
+Speaker 3 | 46:18
+Okay, that's good.
+Kenneth Minier | 46:30
+And so we come to, like, to communicate with that understanding, which allows us to, you know, see through any fog and actually get alignment. And, you know, stay on track. So. Really. Really do appreciate your time.
+Speaker 3 | 46:42
+Yeah, that's great. And the thing is, I have no idea what might be easy to do or difficult to do. So that's why if I put the like the three level of issues, it's what's for me as a user is most important, obviously. 
+Yeah, but it's. I have a feeling that sometimes I might say, yeah, it must have this. And you say, yeah, and you press one button and it has it. And I think, this would be nice. And you think. Yeah, that would be nice, but it would be two weeks' worth of codating. 
+Yeah, no idea. But we're heavyweight.
+Speaker 2 | 47:18
+So don't worry about it. Like, no matter how crazy or how sophisticated, the overall idea is like we have like four or five developers that we can just call upon, be like, let's build this. And it's built. 
+So I'm really glad that we build stuff out that way, because you could throw like twenty ideas on that wall. And we. I can't guarantee it's going to be one hundred percent complete the next day, but we will say that it's. We've addressed it to 100%, right? 
+And then you're going to come in and be like, okay, but only 85% of this is done. So it's kind of like shoot for the stars, land on the cloud mentality that we're, like, trying to go with.
+Speaker 3 | 48:03
+Yeah, no, but it's good, and it's really I'm really amazed that every day I look, it is definitely moving. Yeah, which is really nice and especially because some of the probably not very complicated things, but to me, they're like, this is like for every challenge that we organize, this is this saves me two hours of admin work. For instance, know so that that's really nice that sometimes the little things will make a big difference.
+Kenneth Minier | 48:38
+I.
+Speaker 3 | 48:41
+So anyway, that that's good. Yeah, that's I hope this we can make that work because the prints think because that's actually something that will get live for the first client immediately. And it would be very nice in general if we can even if it's not like now we're doing a linear one that we expect people to follow a specific order. Sometimes we might want to do like thematic challenges will be really nice. That way we could use the sprints in the same way. 
+Like this is more of a potent generation sprint and this is more web development, print and this, you know, things like that. So this will always be very useful.
+Speaker 2 | 49:34
+I'm on the same page.
+Speaker 3 | 49:37
+Right? Okay, so once again, I have been annoying enough to create the new issues.
+Speaker 2 | 49:45
+Don't call yourself annoying, you've never been annoying. It's always good to speak to you.
+Speaker 3 | 49:50
+And so. Well, I'll just keep doing that. And? And I feel we're really close to getting this life.
+Kenneth Minier | 50:00
+Me too. I wish my camera were on. You guys would see me smiling very hard at that final exchange there.
+Speaker 3 | 50:09
+That's it should be fun, shouldn't it?
+Kenneth Minier | 50:12
+Yeah, that's this is life.
+Speaker 2 | 50:13
+So it is a.
+Kenneth Minier | 50:14
+You know, we were supposed to be enjoying what we're doing. And fortunately we do. So. This is fun?
+Speaker 3 | 50:21
+I'm not thinking that, actually. You're right. I think it would be nice. Maybe not like a complete Candy Crush saga or I've been. Years ago, I was playing Bubbleshooter all the time. Yeah, same thing, right?
+Speaker 2 | 50:36
+Different variation.
+Speaker 3 | 50:37
+Yeah, at one stage, I got to like level 4000 or something that shows how committed that was.
+Kenneth Minier | 50:37
+Yeah. That's. Yeah.
+Speaker 3 | 50:45
+But anyway, no, it would look nice. And maybe I think if you really make a road like that, it would take too much space on the screen. 
+Yeah, but I think we could, because now we just do that. I think that the X by Y matrix. I mean, if we can just put the road in between, it will be nice. And now I say that I think well, not maybe not all challenges will be in a specific order. 
+And then the rope will make no sense. Yeah.
+Speaker 2 | 51:18
+And I think we can find, like a Logical Responsive design that works with. Whether there are three or 15 or one, it still looks good.
+Speaker 3 | 51:29
+Yeah. And whether it's road view or tile view. Yeah, if that makes sense. Like, sometimes, like in this case, we do one first to second, three third, but we've done challenges where you can just pick a random assignment, just the one you like the title of or the picture or the whatever. 
+And then the road. The road representation would make no sense.
+Speaker 2 | 51:57
+Yeah, I feel like that's something we can honestly configure. Sprint level.
+Speaker 3 | 52:05
+It's probably at the challenge that even I see.
+Speaker 2 | 52:08
+Yeah.
+Speaker 3 | 52:12
+It would either just be pick one. Whether it's assignments or sprints, it would either be pick one, or it would be do this one first, do that one second. Yeah, then it would make a lot of sense. It shows that it's like with little arrows or little connections anyway, that it's one thing.
+Speaker 2 | 52:33
+Yeah, I'm definitely gonna keep that in mind. For what would come after like sprints obviously, cause we gotta get that.
+Speaker 3 | 52:42
+This is below nice to have. Yeah, if there's such a thing.
+Speaker 2 | 52:49
+I think that covers it. And we got everything that we needed. I'm excited to, like, jump into this, but can you have something to add?
+Kenneth Minier | 53:00
+No. I have nothing additional to add this time.
+Speaker 2 | 53:02
+Perfect. Alright.
+Speaker 3 | 53:08
+I want to see Ricardo as well. Ricardo.
+Speaker 2 | 53:11
+He's a bit shy. But honestly, we could get him on here because he's been helping out. He is our junior developer, and like, we're kind of like, training him. He's like, intelligent, like, very intelligent, but he's like the developer. I'm like, yeah.
+Speaker 3 | 53:29
+But I would love like if we have at least the next step live and we go actually we go live. That should be worth a little celebration. Yeah. It would be great if I can thank him in person.
+Kenneth Minier | 53:45
+Absolutely. Yeah, we would, he's honestly, he's been, coming out of his shell a little bit.
+Speaker 3 | 53:47
+We'll do that.
+Kenneth Minier | 53:52
+Some developers have unique personalities, and that's something that is, you know, a work in progress. He's much more open than he was a year ago today. 
+So I the fact that there is something that he's going to be open to like in the like short term.
+Speaker 3 | 54:00
+Yeah, and don't get me wrong, I mean, it is.
+Kenneth Minier | 54:07
+So I'm sorry.
+Speaker 3 | 54:11
+No, if he's a fantastic developer and doesn't like talking to people. I mean, he's a developer, so that's fine as well.
+Kenneth Minier | 54:20
+We have two developers on our team that are like that, but me being the personal social butterfly that I am, I that's something that I'm working on in slow, small doses with them. 
+You know, I used to be very introverted when I was younger. And so, you know, through my life. Is something that I've kind of worked at, but realized that it's a lot of mental mirroring that we set up that kind of causes us to be introverted. 
+So what part of my role here is to kind of be like the humanitarian and, you know, expand awareness onto others and allow us to mature and grow and further reach higher professionalisms. So that is one of the little details that I'm working on, and I just wanted to provide that little insight so that you have some context as to why he hasn't been introduced yet.
+Speaker 3 | 55:08
+That that's great. And. And just to be sure. I mean, it's not my role to. To train your people. But if it would be helpful for you guys and for him to have a smaller version of this discussion, like get some personality straight with a user.
+Speaker 2 | 55:24
+It would help to shadow him.
+Speaker 3 | 55:25
+So like I would be I would totally be up for doing that with him as well.
+Kenneth Minier | 55:30
+Sounds good.
+Speaker 3 | 55:31
+We really.
+Speaker 2 | 55:31
+Do appreciate it.
+Kenneth Minier | 55:33
+It sounds very good.
+Speaker 3 | 55:34
+Yeah, 'cause we're working together now, guys, so yeah, alright, great.
+Kenneth Minier | 55:36
+Yeah, I like it. All right. This is a great start to my day. I am happy to get alignment and orientation here and ready to get to work.
+Speaker 3 | 55:48
+All right, fantastic. Thank you very much.
+Speaker 2 | 55:51
+It was great to speak and have a go.
+Kenneth Minier | 55:51
+I thought I came so.
+Speaker 3 | 55:53
+Good one. Yeah.

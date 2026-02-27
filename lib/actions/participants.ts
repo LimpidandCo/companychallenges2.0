@@ -14,6 +14,7 @@ import type {
   ParticipantDashboardStats,
   EnrolledChallengeWithProgress,
   AssignmentWithProgress,
+  SprintProgress,
 } from '@/lib/types/database'
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string }
@@ -370,6 +371,9 @@ export async function enrollInChallenge(
       return { success: false, error: error.message }
     }
 
+    // Initialize sprint progress rows for individual mode
+    await initializeSprintProgress(challengeId, participant.id)
+
     return { success: true, data }
   } catch (error) {
     return { success: false, error: 'Failed to enroll in challenge' }
@@ -687,12 +691,13 @@ export async function startAssignment(
 }
 
 /**
- * Complete an assignment
+ * Complete an assignment.
+ * Returns the progress record and sprint completion info (if applicable).
  */
 export async function completeAssignment(
   assignmentUsageId: string,
   quizResponses?: QuizResponse[]
-): Promise<ActionResult<AssignmentProgress>> {
+): Promise<ActionResult<AssignmentProgress & { sprintCompletion?: SprintCompletionResult }>> {
   try {
     const participantResult = await getOrCreateCurrentParticipant()
     if (!participantResult.success) {
@@ -754,7 +759,22 @@ export async function completeAssignment(
     // Check for milestone achievements
     await checkMilestoneAchievements(participant.id, assignmentUsageId)
 
-    return { success: true, data }
+    // Check for sprint completion (if assignment belongs to a sprint)
+    let sprintCompletion: SprintCompletionResult | undefined
+    const { data: usage } = await supabase
+      .from('assignment_usages')
+      .select('sprint_id, challenge_id')
+      .eq('id', assignmentUsageId)
+      .single()
+
+    if (usage?.sprint_id) {
+      const result = await completeSprintIfDone(usage.sprint_id, usage.challenge_id)
+      if (result.success) {
+        sprintCompletion = result.data
+      }
+    }
+
+    return { success: true, data: { ...data, sprintCompletion } }
   } catch (error) {
     return { success: false, error: 'Failed to complete assignment' }
   }
@@ -1114,6 +1134,217 @@ export async function getChallengeLeaderboard(
     }
   } catch (error) {
     return { success: false, error: 'Failed to get leaderboard' }
+  }
+}
+
+// =============================================================================
+// Sprint Progress (Individual Mode)
+// =============================================================================
+
+/**
+ * Initialize sprint progress rows when a user enrolls in a challenge.
+ * If sequential_sprints is true, only the first sprint is unlocked.
+ * If false, all sprints are unlocked.
+ */
+export async function initializeSprintProgress(
+  challengeId: string,
+  participantId: string
+): Promise<void> {
+  const supabase = createAdminClient()
+
+  // Get challenge to check sequential_sprints flag
+  const { data: challenge } = await supabase
+    .from('challenges')
+    .select('sequential_sprints')
+    .eq('id', challengeId)
+    .single()
+
+  // Get all sprints for this challenge, ordered by position
+  const { data: sprints } = await supabase
+    .from('sprints')
+    .select('id, position')
+    .eq('challenge_id', challengeId)
+    .order('position', { ascending: true })
+
+  if (!sprints || sprints.length === 0) return
+
+  const isSequential = challenge?.sequential_sprints ?? false
+  const now = new Date().toISOString()
+
+  const rows = sprints.map((sprint, index) => {
+    const isFirst = index === 0
+    const shouldUnlock = !isSequential || isFirst
+
+    return {
+      participant_id: participantId,
+      sprint_id: sprint.id,
+      status: shouldUnlock ? 'unlocked' : 'locked',
+      unlocked_at: shouldUnlock ? now : null,
+    }
+  })
+
+  // Upsert to be idempotent (safe to call multiple times)
+  await supabase
+    .from('sprint_progress')
+    .upsert(rows, { onConflict: 'participant_id,sprint_id', ignoreDuplicates: true })
+}
+
+/**
+ * Get sprint progress for the current user in a challenge.
+ */
+export async function getSprintProgressForChallenge(
+  challengeId: string
+): Promise<ActionResult<SprintProgress[]>> {
+  try {
+    const participantResult = await getOrCreateCurrentParticipant()
+    if (!participantResult.success) {
+      return { success: false, error: participantResult.error }
+    }
+
+    const participant = participantResult.data
+    const supabase = createAdminClient()
+
+    // Get sprint IDs for this challenge
+    const { data: sprints } = await supabase
+      .from('sprints')
+      .select('id')
+      .eq('challenge_id', challengeId)
+
+    if (!sprints || sprints.length === 0) {
+      return { success: true, data: [] }
+    }
+
+    const sprintIds = sprints.map(s => s.id)
+
+    const { data, error } = await supabase
+      .from('sprint_progress')
+      .select('*')
+      .eq('participant_id', participant.id)
+      .in('sprint_id', sprintIds)
+
+    if (error) {
+      return { success: false, error: error.message }
+    }
+
+    return { success: true, data: (data || []) as SprintProgress[] }
+  } catch (error) {
+    return { success: false, error: 'Failed to get sprint progress' }
+  }
+}
+
+export interface SprintCompletionResult {
+  sprintCompleted: boolean
+  nextSprintUnlocked: boolean
+}
+
+/**
+ * Check if a sprint is fully completed (all assignments done) and if so,
+ * mark it complete and unlock the next sprint (when sequential).
+ */
+export async function completeSprintIfDone(
+  sprintId: string,
+  challengeId: string
+): Promise<ActionResult<SprintCompletionResult>> {
+  try {
+    const participantResult = await getOrCreateCurrentParticipant()
+    if (!participantResult.success) {
+      return { success: false, error: participantResult.error }
+    }
+
+    const participant = participantResult.data
+    const supabase = createAdminClient()
+
+    // Get all assignment_usages in this sprint
+    const { data: usages } = await supabase
+      .from('assignment_usages')
+      .select('id')
+      .eq('challenge_id', challengeId)
+      .eq('sprint_id', sprintId)
+      .eq('is_visible', true)
+
+    if (!usages || usages.length === 0) {
+      return { success: true, data: { sprintCompleted: false, nextSprintUnlocked: false } }
+    }
+
+    const usageIds = usages.map(u => u.id)
+
+    // Count completed assignments in this sprint for this user
+    const { count: completedCount } = await supabase
+      .from('assignment_progress')
+      .select('*', { count: 'exact', head: true })
+      .eq('participant_id', participant.id)
+      .in('assignment_usage_id', usageIds)
+      .eq('status', 'completed')
+
+    const allDone = (completedCount ?? 0) >= usages.length
+
+    if (!allDone) {
+      // Update sprint status to in_progress if not already
+      await supabase
+        .from('sprint_progress')
+        .update({ status: 'in_progress' })
+        .eq('participant_id', participant.id)
+        .eq('sprint_id', sprintId)
+        .in('status', ['unlocked'])
+
+      return { success: true, data: { sprintCompleted: false, nextSprintUnlocked: false } }
+    }
+
+    // All assignments done - mark sprint as completed
+    const now = new Date().toISOString()
+    await supabase
+      .from('sprint_progress')
+      .update({ status: 'completed', completed_at: now })
+      .eq('participant_id', participant.id)
+      .eq('sprint_id', sprintId)
+
+    // Check if challenge uses sequential sprints
+    const { data: challenge } = await supabase
+      .from('challenges')
+      .select('sequential_sprints')
+      .eq('id', challengeId)
+      .single()
+
+    let nextSprintUnlocked = false
+
+    if (challenge?.sequential_sprints) {
+      // Find the current sprint's position
+      const { data: currentSprint } = await supabase
+        .from('sprints')
+        .select('position')
+        .eq('id', sprintId)
+        .single()
+
+      if (currentSprint) {
+        // Find the next sprint by position (may not exist if this is the last)
+        const { data: nextSprint } = await supabase
+          .from('sprints')
+          .select('id')
+          .eq('challenge_id', challengeId)
+          .gt('position', currentSprint.position)
+          .order('position', { ascending: true })
+          .limit(1)
+          .maybeSingle()
+
+        if (nextSprint) {
+          // Unlock the next sprint
+          const { data: updated } = await supabase
+            .from('sprint_progress')
+            .update({ status: 'unlocked', unlocked_at: now })
+            .eq('participant_id', participant.id)
+            .eq('sprint_id', nextSprint.id)
+            .eq('status', 'locked')
+            .select()
+            .single()
+
+          nextSprintUnlocked = !!updated
+        }
+      }
+    }
+
+    return { success: true, data: { sprintCompleted: true, nextSprintUnlocked } }
+  } catch (error) {
+    return { success: false, error: 'Failed to check sprint completion' }
   }
 }
 

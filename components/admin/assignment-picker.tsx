@@ -13,6 +13,7 @@ import {
   Spinner,
 } from '@/components/ui'
 import { createAssignmentVersion } from '@/lib/actions/assignments'
+import { addAssignmentToChallenge } from '@/lib/actions/assignment-usages'
 import type { AssignmentWithUsages } from '@/lib/types/database'
 
 interface AssignmentPickerProps {
@@ -46,10 +47,12 @@ export function AssignmentPicker({
   const [step, setStep] = useState<Step>('select')
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [tagFilters, setTagFilters] = useState<string[]>([])
   const [versionLabel, setVersionLabel] = useState('')
-  const [saveToLibrary, setSaveToLibrary] = useState(false) // Default to NOT saving
+  const [saveToLibrary, setSaveToLibrary] = useState(false)
   const [isCreatingVersion, setIsCreatingVersion] = useState(false)
+  const [isBulkAdding, setIsBulkAdding] = useState(false)
 
   const selectedAssignment = useMemo(() =>
     assignments.find((a) => a.id === selectedId),
@@ -104,16 +107,47 @@ export function AssignmentPicker({
     setSelectedId(id)
   }
 
+  const handleToggleMultiSelect = (id: string) => {
+    setSelectedIds(prev => {
+      const next = new Set(prev)
+      if (next.has(id)) {
+        next.delete(id)
+      } else {
+        next.add(id)
+      }
+      return next
+    })
+  }
+
   const handleContinue = () => {
     if (selectedId) {
       setStep('choose-action')
     }
   }
 
+  const handleBulkLink = async () => {
+    if (selectedIds.size === 0) return
+    setIsBulkAdding(true)
+    try {
+      for (const id of selectedIds) {
+        await addAssignmentToChallenge({
+          challenge_id: challengeId,
+          assignment_id: id,
+          sprint_id: sprintId ?? undefined,
+        })
+      }
+      handleClose()
+      window.location.reload()
+    } catch {
+      // errors handled by parent
+    } finally {
+      setIsBulkAdding(false)
+    }
+  }
+
   const handleLink = () => {
     if (selectedId) {
       onSelect(selectedId)
-      // Close dialog - parent's onSelect handler will refresh the page
       handleClose()
     }
   }
@@ -148,6 +182,7 @@ export function AssignmentPicker({
   const handleClose = () => {
     setSearchQuery('')
     setSelectedId(null)
+    setSelectedIds(new Set())
     setTagFilters([])
     setStep('select')
     setVersionLabel('')
@@ -219,18 +254,29 @@ export function AssignmentPicker({
                     const badge = CONTENT_TYPE_BADGES[assignment.content_type] ?? CONTENT_TYPE_BADGES.standard
                     const usageCount = assignment.assignment_usages?.length ?? 0
                     const isSelected = selectedId === assignment.id
+                    const isChecked = selectedIds.has(assignment.id)
 
                     return (
-                      <button
+                      <div
                         key={assignment.id}
-                        type="button"
-                        onClick={() => handleSelect(assignment.id)}
-                        className={`w-full p-3 text-left transition-colors ${
+                        className={`w-full p-3 text-left transition-colors flex items-center gap-2 ${
                           isSelected
                             ? 'bg-[var(--color-primary)] bg-opacity-10'
                             : 'hover:bg-[var(--color-bg-subtle)]'
                         }`}
                       >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleMultiSelect(assignment.id)}
+                          className="h-4 w-4 rounded border-gray-300 text-blue-600 shrink-0"
+                          title="Select for bulk add"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => handleSelect(assignment.id)}
+                          className="flex-1 text-left"
+                        >
                         <div className="flex items-center justify-between">
                           <div className="flex items-center gap-3">
                             <div
@@ -281,6 +327,7 @@ export function AssignmentPicker({
                           </div>
                         </div>
                       </button>
+                      </div>
                     )
                   })}
                 </div>
@@ -309,13 +356,24 @@ export function AssignmentPicker({
           </div>
 
           <DialogFooter>
-            <Button type="button" variant="secondary" onClick={handleClose} disabled={loading}>
+            <Button type="button" variant="secondary" onClick={handleClose} disabled={loading || isBulkAdding}>
               Cancel
             </Button>
+            {selectedIds.size > 0 && (
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={handleBulkLink}
+                disabled={loading || isBulkAdding}
+              >
+                {isBulkAdding ? <Spinner size="sm" className="mr-2" /> : null}
+                Link Selected ({selectedIds.size})
+              </Button>
+            )}
             <Button
               type="button"
               onClick={handleContinue}
-              disabled={!selectedId || loading}
+              disabled={!selectedId || loading || isBulkAdding}
             >
               Continue
             </Button>

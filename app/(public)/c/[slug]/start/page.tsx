@@ -4,6 +4,7 @@ import {
   getPublicAssignmentUsages, 
   getPendingAssignmentUsages,
   getPublicSprints,
+  getIndividualModeData,
 } from '@/lib/actions/public'
 import { getMilestonesForChallenge } from '@/lib/actions/milestones'
 import { AssignmentsGridClient } from './page-client'
@@ -23,11 +24,15 @@ export default async function AssignmentsGridPage({ params }: AssignmentsGridPag
   const { challenge, client } = result.data
   const features = challenge.features || {}
 
-  const [usagesResult, pendingInfo, sprintsResult, milestonesResult] = await Promise.all([
+  // Fetch public data + individual mode data in parallel
+  const isIndividualMode = challenge.mode === 'individual' || challenge.mode === 'hybrid'
+
+  const [usagesResult, pendingInfo, sprintsResult, milestonesResult, individualData] = await Promise.all([
     getPublicAssignmentUsages(challenge.id),
     getPendingAssignmentUsages(challenge.id),
     getPublicSprints(challenge.id),
-    features.milestones ? getMilestonesForChallenge(challenge.id) : Promise.resolve({ success: true, data: [] })
+    features.milestones ? getMilestonesForChallenge(challenge.id) : Promise.resolve({ success: true, data: [] }),
+    isIndividualMode ? getIndividualModeData(challenge.id) : Promise.resolve(null),
   ])
 
   const usages = usagesResult.success ? usagesResult.data : []
@@ -42,6 +47,8 @@ export default async function AssignmentsGridPage({ params }: AssignmentsGridPag
       sprints={sprints}
       milestones={milestones}
       pendingCount={pendingInfo.count}
+      completedIds={individualData?.completedAssignmentIds}
+      sprintProgress={individualData?.sprintProgress}
     />
   )
 }

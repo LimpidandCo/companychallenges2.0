@@ -199,6 +199,56 @@ export async function updateClient(id: string, input: ClientUpdate): Promise<Cli
 }
 
 /**
+ * Archive a client (soft-delete)
+ */
+export async function archiveClient(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createAdminClient()
+
+    const { error } = await supabase
+      .from('clients')
+      .update({ is_archived: true })
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error archiving client:', error)
+      return { success: false, error: error.message }
+    }
+
+    revalidatePath('/admin/clients')
+    return { success: true }
+  } catch (err) {
+    console.error('Unexpected error archiving client:', err)
+    return { success: false, error: 'Failed to archive client' }
+  }
+}
+
+/**
+ * Restore an archived client
+ */
+export async function restoreClient(id: string): Promise<{ success: boolean; error?: string }> {
+  try {
+    const supabase = createAdminClient()
+
+    const { error } = await supabase
+      .from('clients')
+      .update({ is_archived: false })
+      .eq('id', id)
+
+    if (error) {
+      console.error('Error restoring client:', error)
+      return { success: false, error: error.message }
+    }
+
+    revalidatePath('/admin/clients')
+    return { success: true }
+  } catch (err) {
+    console.error('Unexpected error restoring client:', err)
+    return { success: false, error: 'Failed to restore client' }
+  }
+}
+
+/**
  * Delete a client
  */
 export async function deleteClient(id: string): Promise<{ success: boolean; error?: string }> {

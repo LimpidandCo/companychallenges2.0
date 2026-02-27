@@ -51,29 +51,29 @@ export function AssignmentPageClient({
   const [hasAccess, setHasAccess] = useState(initialHasAccess)
   const [isCompleted, setIsCompleted] = useState(false)
   
-  // Check if parent sprint has been unlocked (if so, skip assignment password gate)
+  // Check if parent sprint has been unlocked this session (sessionStorage)
   useEffect(() => {
     if (hasAccess || !requiresPassword) return
     if (!navContext?.sprintId || !navContext?.challenge.id) return
     
     try {
       const key = `cc_unlocked_sprints_${navContext.challenge.id}`
-      const stored = localStorage.getItem(key)
+      const stored = sessionStorage.getItem(key)
       if (stored) {
         const unlockedSprints: string[] = JSON.parse(stored)
         if (unlockedSprints.includes(navContext.sprintId)) {
-          // Sprint was unlocked, so this assignment is accessible
           setHasAccess(true)
         }
       }
     } catch {
-      // localStorage might not be available
+      // sessionStorage might not be available
     }
   }, [hasAccess, requiresPassword, navContext?.sprintId, navContext?.challenge.id])
   const [isMarkingComplete, setIsMarkingComplete] = useState(false)
   const [showConfirmModal, setShowConfirmModal] = useState(false)
   const [showVideoModal, setShowVideoModal] = useState(false)
   const [isExiting, setIsExiting] = useState(false)
+  const [showSprintComplete, setShowSprintComplete] = useState(false)
   const hasTrackedView = useRef(false)
   const hasTrackedMediaPlay = useRef(false)
   const hasStartedProgress = useRef(false)
@@ -211,7 +211,20 @@ export function AssignmentPageClient({
     
     // If signed in (individual mode), also save to database
     if (isSignedIn && navContext.assignmentUsageId) {
-      await completeAssignment(navContext.assignmentUsageId)
+      const result = await completeAssignment(navContext.assignmentUsageId)
+      
+      // Check if a sprint was just completed
+      if (result.success && result.data.sprintCompletion?.sprintCompleted) {
+        setIsCompleted(true)
+        setIsMarkingComplete(false)
+        // Show sprint complete celebration briefly before navigating back
+        setShowSprintComplete(true)
+        setTimeout(() => {
+          setShowSprintComplete(false)
+          navigateBack()
+        }, 2500)
+        return
+      }
     }
     
     setIsCompleted(true)
@@ -243,6 +256,26 @@ export function AssignmentPageClient({
       { mediaType }
     )
     gaMediaPlay(navContext.challenge.id, assignment.id, mediaType)
+  }
+
+  // Sprint Complete Celebration
+  if (showSprintComplete) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 animate-in fade-in">
+        <div className="text-center animate-in zoom-in-50 duration-500">
+          <div 
+            className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full"
+            style={{ backgroundColor: brandColor }}
+          >
+            <svg className="h-10 w-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+          </div>
+          <h2 className="text-3xl font-bold text-white mb-2">Mission Complete!</h2>
+          <p className="text-lg text-white/80">Great work. Moving on...</p>
+        </div>
+      </div>
+    )
   }
 
   // Password gate
@@ -293,9 +326,10 @@ export function AssignmentPageClient({
     )
   }
 
-  const hasInstructions = assignment.instructions_html || assignment.instructions
-  const hasContent = assignment.content_html || assignment.content
-  const hasMedia = assignment.media_url
+  const isQuizOnly = assignment.content_type === 'quiz'
+  const hasInstructions = !isQuizOnly && (assignment.instructions_html || assignment.instructions)
+  const hasContent = !isQuizOnly && (assignment.content_html || assignment.content)
+  const hasMedia = !isQuizOnly && assignment.media_url
   const hasVisual = assignment.visual_url
 
   return (
@@ -609,12 +643,8 @@ export function AssignmentPageClient({
               onLoad={handleMediaPlay}
             />
           ) : isVimeoUrl(assignment.media_url) ? (
-            <iframe
-              src={`${getVimeoEmbedUrl(assignment.media_url)}${getVimeoEmbedUrl(assignment.media_url).includes('?') ? '&' : '?'}autoplay=1&title=0&byline=0&portrait=0`}
-              className="h-full w-full"
-              allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
-              allowFullScreen
-              frameBorder="0"
+            <VimeoEmbed
+              url={assignment.media_url}
               onLoad={handleMediaPlay}
             />
           ) : isLoomUrl(assignment.media_url) ? (
@@ -689,39 +719,48 @@ function getYouTubeThumbnail(url: string): string | null {
 }
 
 function getVimeoEmbedUrl(url: string): string {
-  // Handle various Vimeo URL formats:
-  // - https://vimeo.com/123456789
-  // - https://vimeo.com/123456789?h=abc123
-  // - https://vimeo.com/channels/staffpicks/123456789
-  // - https://player.vimeo.com/video/123456789
   let videoId = ''
   let hashParam = ''
-  
-  // Extract hash parameter if present (needed for private videos)
-  const urlObj = url.includes('?') ? new URL(url) : null
-  if (urlObj) {
+
+  try {
+    const urlObj = new URL(url.includes('://') ? url : `https://${url}`)
     hashParam = urlObj.searchParams.get('h') || ''
+  } catch {
+    // not a valid URL, try regex extraction anyway
   }
-  
-  // Try different patterns
-  const patterns = [
-    /vimeo\.com\/video\/(\d+)/,      // player.vimeo.com/video/123
-    /vimeo\.com\/(\d+)/,              // vimeo.com/123
-    /vimeo\.com\/channels\/[^/]+\/(\d+)/, // vimeo.com/channels/xxx/123
-  ]
-  
-  for (const pattern of patterns) {
-    const match = url.match(pattern)
-    if (match) {
-      videoId = match[1]
-      break
+
+  // Private video with path hash: vimeo.com/123456789/abc123def
+  const privateMatch = url.match(/vimeo\.com\/(\d+)\/([a-zA-Z0-9]+)/)
+  if (privateMatch) {
+    videoId = privateMatch[1]
+    if (!hashParam) hashParam = privateMatch[2]
+  }
+
+  if (!videoId) {
+    const patterns = [
+      /vimeo\.com\/video\/(\d+)/,
+      /vimeo\.com\/channels\/[^/]+\/(\d+)/,
+      /vimeo\.com\/(\d+)/,
+    ]
+    for (const pattern of patterns) {
+      const match = url.match(pattern)
+      if (match) {
+        videoId = match[1]
+        break
+      }
     }
   }
-  
-  let embedUrl = `https://player.vimeo.com/video/${videoId}`
-  if (hashParam) {
-    embedUrl += `?h=${hashParam}`
+
+  if (!videoId) {
+    console.warn('[Vimeo] Could not parse video ID from:', url)
+    return url
   }
+
+  let embedUrl = `https://player.vimeo.com/video/${videoId}`
+  const params = new URLSearchParams()
+  if (hashParam) params.set('h', hashParam)
+  params.set('dnt', '1')
+  embedUrl += `?${params.toString()}`
   return embedUrl
 }
 
@@ -736,6 +775,39 @@ function getMiroEmbedUrl(url: string): string {
     return url.replace('/board/', '/live-embed/')
   }
   return url
+}
+
+function VimeoEmbed({ url, onLoad }: { url: string; onLoad?: () => void }) {
+  const [hasError, setHasError] = useState(false)
+  const embedUrl = getVimeoEmbedUrl(url)
+
+  if (hasError) {
+    return (
+      <div className="flex flex-col items-center justify-center h-full bg-gray-900 text-white p-6">
+        <p className="text-sm text-gray-300 mb-3">Video could not be loaded</p>
+        <a
+          href={url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="px-4 py-2 rounded-lg bg-white/10 hover:bg-white/20 text-sm font-medium transition-colors"
+        >
+          Open on Vimeo &rarr;
+        </a>
+      </div>
+    )
+  }
+
+  return (
+    <iframe
+      src={`${embedUrl}&autoplay=1&title=0&byline=0&portrait=0`}
+      className="h-full w-full"
+      allow="autoplay; fullscreen; picture-in-picture; clipboard-write"
+      allowFullScreen
+      frameBorder="0"
+      onLoad={onLoad}
+      onError={() => setHasError(true)}
+    />
+  )
 }
 
 function formatDate(isoDate: string): string {

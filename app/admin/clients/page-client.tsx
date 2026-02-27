@@ -15,6 +15,7 @@ export function ClientsPageClient({ initialClients, initialError }: ClientsPageC
   const router = useRouter()
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [editingClient, setEditingClient] = useState<Client | null>(null)
+  const [clientFilter, setClientFilter] = useState<'active' | 'archived' | 'all'>('active')
 
   const handleAddClick = () => {
     setEditingClient(null)
@@ -63,14 +64,31 @@ export function ClientsPageClient({ initialClients, initialError }: ClientsPageC
       {initialClients.length > 0 ? (
         <Card>
           <CardHeader>
-            <CardTitle>All Clients</CardTitle>
-            <CardDescription>
-              {initialClients.length} organization{initialClients.length !== 1 ? 's' : ''} registered on the platform.
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle>All Clients</CardTitle>
+                <CardDescription>
+                  {initialClients.length} organization{initialClients.length !== 1 ? 's' : ''} registered on the platform.
+                </CardDescription>
+              </div>
+              <select
+                value={clientFilter}
+                onChange={(e) => setClientFilter(e.target.value as 'active' | 'archived' | 'all')}
+                className="h-8 px-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="active">Active</option>
+                <option value="archived">Archived</option>
+                <option value="all">All</option>
+              </select>
+            </div>
           </CardHeader>
           <CardContent className="p-0">
             <ClientList
-              clients={initialClients}
+              clients={initialClients.filter((c) => {
+                if (clientFilter === 'active') return !c.is_archived
+                if (clientFilter === 'archived') return c.is_archived
+                return true
+              })}
               onEdit={handleEditClick}
               onDelete={handleDelete}
             />

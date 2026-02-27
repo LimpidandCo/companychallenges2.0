@@ -11,6 +11,7 @@ export interface Client {
   id: string
   name: string
   logo_url: string | null
+  is_archived: boolean
   
   // Mode configuration
   mode: 'collective' | 'individual' | 'hybrid'
@@ -74,6 +75,7 @@ export interface Challenge {
   // Mode and features (per-challenge configuration)
   mode: 'collective' | 'individual' | 'hybrid'
   features: ChallengeFeatures
+  sequential_sprints: boolean
   
   // Rich content - new JSON format
   description_json: EditorContent | null // editor JSON content
@@ -411,6 +413,25 @@ export interface MilestoneAchievement {
 }
 
 // =============================================================================
+// Sprint Progress (Individual Mode)
+// =============================================================================
+
+/**
+ * SprintProgress - per-user sprint lock/completion state.
+ * Used for sequential sprint unlocking in individual mode.
+ */
+export interface SprintProgress {
+  id: string
+  participant_id: string
+  sprint_id: string
+  status: 'locked' | 'unlocked' | 'in_progress' | 'completed'
+  unlocked_at: string | null
+  completed_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+// =============================================================================
 // Analytics Entities (Anonymous for Collective Mode)
 // =============================================================================
 
@@ -465,6 +486,10 @@ export interface AssignmentWithUsages extends Assignment {
   micro_quizzes: MicroQuiz[]
 }
 
+export interface SprintWithProgress extends Sprint {
+  progress: SprintProgress | null
+}
+
 export interface ParticipantWithProgress extends Participant {
   enrollments: (ChallengeEnrollment & {
     challenge: Challenge
@@ -501,6 +526,7 @@ export interface ChallengeInsert {
   // Mode and features
   mode?: 'collective' | 'individual' | 'hybrid'
   features?: Partial<ChallengeFeatures>
+  sequential_sprints?: boolean
   
   // Rich content - new JSON format
   description_json?: EditorContent | null
@@ -528,6 +554,7 @@ export interface ChallengeUpdate {
   // Mode and features
   mode?: 'collective' | 'individual' | 'hybrid'
   features?: Partial<ChallengeFeatures>
+  sequential_sprints?: boolean
   
   // Rich content - new JSON format
   description_json?: EditorContent | null

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Button, Spinner } from '@/components/ui'
-import { deleteClient } from '@/lib/actions/clients'
+import { deleteClient, archiveClient, restoreClient } from '@/lib/actions/clients'
 import type { Client } from '@/lib/types/database'
 
 interface ClientListProps {
@@ -13,7 +13,7 @@ interface ClientListProps {
 }
 
 export function ClientList({ clients, onEdit, onDelete }: ClientListProps) {
-  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [actionId, setActionId] = useState<string | null>(null)
   const [deleteError, setDeleteError] = useState<string | null>(null)
 
   const handleDelete = async (e: React.MouseEvent, client: Client) => {
@@ -24,7 +24,7 @@ export function ClientList({ clients, onEdit, onDelete }: ClientListProps) {
       return
     }
 
-    setDeletingId(client.id)
+    setActionId(client.id)
     setDeleteError(null)
 
     try {
@@ -37,7 +37,30 @@ export function ClientList({ clients, onEdit, onDelete }: ClientListProps) {
     } catch {
       setDeleteError('An unexpected error occurred')
     } finally {
-      setDeletingId(null)
+      setActionId(null)
+    }
+  }
+
+  const handleArchiveToggle = async (e: React.MouseEvent, client: Client) => {
+    e.preventDefault()
+    e.stopPropagation()
+
+    setActionId(client.id)
+    setDeleteError(null)
+
+    try {
+      const result = client.is_archived
+        ? await restoreClient(client.id)
+        : await archiveClient(client.id)
+      if (result.success) {
+        onDelete()
+      } else {
+        setDeleteError(result.error ?? 'Failed to update client')
+      }
+    } catch {
+      setDeleteError('An unexpected error occurred')
+    } finally {
+      setActionId(null)
     }
   }
 
@@ -79,8 +102,11 @@ export function ClientList({ clients, onEdit, onDelete }: ClientListProps) {
                 </div>
               )}
               <div className="min-w-0">
-                <p className="font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors">
+                <p className="font-semibold text-gray-900 truncate group-hover:text-blue-600 transition-colors flex items-center gap-2">
                   {client.name}
+                  {client.is_archived && (
+                    <span className="px-1.5 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-700">Archived</span>
+                  )}
                 </p>
                 <p className="text-sm text-gray-500">
                   Created {formatDate(client.created_at)}
@@ -96,11 +122,18 @@ export function ClientList({ clients, onEdit, onDelete }: ClientListProps) {
                 Edit
               </button>
               <button
+                onClick={(e) => handleArchiveToggle(e, client)}
+                disabled={actionId === client.id}
+                className="px-3 py-1.5 text-sm font-medium text-amber-600 hover:text-amber-700 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {actionId === client.id ? <Spinner size="sm" /> : client.is_archived ? 'Restore' : 'Archive'}
+              </button>
+              <button
                 onClick={(e) => handleDelete(e, client)}
-                disabled={deletingId === client.id}
+                disabled={actionId === client.id}
                 className="px-3 py-1.5 text-sm font-medium text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
               >
-                {deletingId === client.id ? <Spinner size="sm" /> : 'Delete'}
+                {actionId === client.id ? <Spinner size="sm" /> : 'Delete'}
               </button>
             </div>
 

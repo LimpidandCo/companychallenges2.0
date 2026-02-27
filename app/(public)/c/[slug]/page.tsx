@@ -3,6 +3,7 @@ import {
   getPublicChallenge, 
   getPublicAssignmentUsages, 
   getPendingAssignmentUsages,
+  getPublicAnnouncements,
 } from '@/lib/actions/public'
 import { ChallengePageClient } from './page-client'
 
@@ -20,20 +21,23 @@ export default async function ChallengePage({ params }: ChallengePageProps) {
 
   const { challenge, client } = result.data
 
-  // Check if there are any assignments
-  const [usagesResult, pendingInfo] = await Promise.all([
+  // Check if there are any assignments + fetch announcements
+  const [usagesResult, pendingInfo, announcementsResult] = await Promise.all([
     getPublicAssignmentUsages(challenge.id),
-    getPendingAssignmentUsages(challenge.id)
+    getPendingAssignmentUsages(challenge.id),
+    getPublicAnnouncements(challenge.id),
   ])
 
   const usages = usagesResult.success ? usagesResult.data : []
   const hasAssignments = usages.length > 0 || pendingInfo.count > 0
+  const announcements = announcementsResult.success ? announcementsResult.data : []
 
   return (
     <ChallengePageClient
       challenge={challenge}
       client={client}
       hasAssignments={hasAssignments}
+      announcements={announcements}
     />
   )
 }

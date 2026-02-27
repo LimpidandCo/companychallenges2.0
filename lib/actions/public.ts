@@ -2,7 +2,8 @@
 
 import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/server'
-import type { Assignment, Challenge, AssignmentUsage } from '@/lib/types/database'
+import { auth } from '@/lib/auth/mock-server-auth'
+import type { Assignment, Challenge, AssignmentUsage, SprintProgress } from '@/lib/types/database'
 
 // Rate limiting store (in production, use Redis)
 const rateLimitStore = new Map<string, { attempts: number; lastAttempt: number }>()
@@ -454,6 +455,118 @@ export async function getPublicAnnouncements(challengeId: string): Promise<Publi
   } catch (err) {
     console.error('Unexpected error fetching public announcements:', err)
     return { success: false, error: 'Failed to fetch announcements' }
+  }
+}
+
+// =============================================================================
+// Individual Mode Data (for authenticated users on public pages)
+// =============================================================================
+
+export interface IndividualModeData {
+  completedAssignmentIds: string[]
+  sprintProgress: SprintProgress[]
+}
+
+/**
+ * Get individual mode data for an authenticated user on a public challenge page.
+ * Returns null if the user is not signed in or not enrolled.
+ */
+export async function getIndividualModeData(
+  challengeId: string
+): Promise<IndividualModeData | null> {
+  try {
+    const { userId } = await auth()
+    if (!userId) return null
+
+    const supabase = createAdminClient()
+
+    // Get participant
+    const { data: participant } = await supabase
+      .from('participants')
+      .select('id')
+      .eq('clerk_user_id', userId)
+      .single()
+
+    if (!participant) return null
+
+    // Check enrollment
+    const { data: enrollment } = await supabase
+      .from('challenge_enrollments')
+      .select('id')
+      .eq('participant_id', participant.id)
+      .eq('challenge_id', challengeId)
+      .single()
+
+    if (!enrollment) return null
+
+    // Get assignment usages for this challenge
+    const { data: usages } = await supabase
+      .from('assignment_usages')
+      .select('id')
+      .eq('challenge_id', challengeId)
+      .eq('is_visible', true)
+
+    const usageIds = usages?.map(u => u.id) ?? []
+
+    // Get completed assignment IDs
+    let completedAssignmentIds: string[] = []
+    if (usageIds.length > 0) {
+      const { data: progressData } = await supabase
+        .from('assignment_progress')
+        .select('assignment_usage_id')
+        .eq('participant_id', participant.id)
+        .in('assignment_usage_id', usageIds)
+        .eq('status', 'completed')
+
+      if (progressData) {
+        // Map usage IDs back to assignment IDs for the client
+        const completedUsageIds = progressData.map(p => p.assignment_usage_id)
+        const { data: completedUsages } = await supabase
+          .from('assignment_usages')
+          .select('assignment_id')
+          .in('id', completedUsageIds)
+
+        completedAssignmentIds = completedUsages?.map(u => u.assignment_id) ?? []
+      }
+    }
+
+    // Get sprint progress
+    const { data: sprints } = await supabase
+      .from('sprints')
+      .select('id')
+      .eq('challenge_id', challengeId)
+
+    let sprintProgress: SprintProgress[] = []
+    if (sprints && sprints.length > 0) {
+      const sprintIds = sprints.map(s => s.id)
+      const { data: progressRows } = await supabase
+        .from('sprint_progress')
+        .select('*')
+        .eq('participant_id', participant.id)
+        .in('sprint_id', sprintIds)
+
+      sprintProgress = (progressRows || []) as SprintProgress[]
+
+      // Lazy init: if enrolled but no sprint_progress rows exist (legacy enrollment),
+      // create them now so sequential locking works going forward
+      if (sprintProgress.length === 0) {
+        const { initializeSprintProgress } = await import('@/lib/actions/participants')
+        await initializeSprintProgress(challengeId, participant.id)
+
+        // Re-fetch after initialization
+        const { data: freshRows } = await supabase
+          .from('sprint_progress')
+          .select('*')
+          .eq('participant_id', participant.id)
+          .in('sprint_id', sprintIds)
+
+        sprintProgress = (freshRows || []) as SprintProgress[]
+      }
+    }
+
+    return { completedAssignmentIds, sprintProgress }
+  } catch {
+    return null
   }
 }
 

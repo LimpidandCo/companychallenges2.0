@@ -37,6 +37,7 @@ import {
   updateAssignmentUsage,
   reorderAssignmentUsages,
 } from '@/lib/actions/assignment-usages'
+import { exportAssignments } from '@/lib/actions/import-export'
 import type {
   ChallengeWithClient,
   AssignmentUsageWithAssignment,
@@ -113,6 +114,8 @@ export function ChallengeDetailClient({
   const [quizEditorUsage, setQuizEditorUsage] = useState<AssignmentUsageWithAssignment | null>(null)
   const [actionId, setActionId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(initialError)
+  const [statusFilter, setStatusFilter] = useState<'active' | 'archived' | 'all'>('active')
+  const [sprintFilter, setSprintFilter] = useState<string>('all')
 
   // Drag-drop sensors
   const sensors = useSensors(
@@ -289,6 +292,38 @@ export function ChallengeDetailClient({
     setIsMilestoneFormOpen(false)
   }
 
+  const [exporting, setExporting] = useState(false)
+  const handleExport = async () => {
+    setExporting(true)
+    setError(null)
+    try {
+      const result = await exportAssignments({ challengeId: challenge.id })
+      if (result.success) {
+        const byteCharacters = atob(result.data)
+        const byteNumbers = new Array(byteCharacters.length)
+        for (let i = 0; i < byteCharacters.length; i++) {
+          byteNumbers[i] = byteCharacters.charCodeAt(i)
+        }
+        const byteArray = new Uint8Array(byteNumbers)
+        const blob = new Blob([byteArray], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        a.href = url
+        a.download = `${challenge.slug}-assignments.xlsx`
+        document.body.appendChild(a)
+        a.click()
+        document.body.removeChild(a)
+        URL.revokeObjectURL(url)
+      } else {
+        setError(result.error)
+      }
+    } catch {
+      setError('Failed to export assignments')
+    } finally {
+      setExporting(false)
+    }
+  }
+
   return (
     <div className="p-6 lg:p-8 max-w-7xl mx-auto">
       {/* Compact Header */}
@@ -332,6 +367,14 @@ export function ChallengeDetailClient({
           </div>
           
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleExport}
+              disabled={exporting}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors disabled:opacity-50"
+            >
+              {exporting ? <Spinner size="sm" /> : <DownloadIcon className="h-4 w-4" />}
+              Export
+            </button>
             <button
               onClick={() => setIsChallengeFormOpen(true)}
               className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium text-gray-700 bg-white border border-gray-300 hover:bg-gray-50 transition-colors"
@@ -507,6 +550,28 @@ export function ChallengeDetailClient({
             <p className="text-sm text-gray-500 mt-0.5">Drag to reorder • Click to edit</p>
           </div>
           <div className="flex items-center gap-2">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'active' | 'archived' | 'all')}
+              className="h-8 px-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            >
+              <option value="active">Active</option>
+              <option value="archived">Archived</option>
+              <option value="all">All</option>
+            </select>
+            {sprints.length > 0 && (
+              <select
+                value={sprintFilter}
+                onChange={(e) => setSprintFilter(e.target.value)}
+                className="h-8 px-2 text-xs rounded-lg border border-gray-200 bg-white text-gray-600 hover:border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+              >
+                <option value="all">All Sprints</option>
+                <option value="none">No Sprint</option>
+                {sprints.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+            )}
             <Button 
               variant="secondary" 
               size="sm"
@@ -528,18 +593,26 @@ export function ChallengeDetailClient({
         </div>
 
         {/* Assignments List */}
-        {usages.length > 0 ? (
+        {(() => {
+          const filteredUsages = usages.filter((u) => {
+            if (statusFilter === 'active' && u.assignment.archived_at) return false
+            if (statusFilter === 'archived' && !u.assignment.archived_at) return false
+            if (sprintFilter === 'none' && u.sprint_id) return false
+            if (sprintFilter !== 'all' && sprintFilter !== 'none' && u.sprint_id !== sprintFilter) return false
+            return true
+          })
+          return filteredUsages.length > 0 ? (
           <DndContext
             sensors={sensors}
             collisionDetection={closestCenter}
             onDragEnd={handleDragEnd}
           >
             <SortableContext
-              items={usages.map((u) => u.id)}
+              items={filteredUsages.map((u) => u.id)}
               strategy={verticalListSortingStrategy}
             >
               <div className="divide-y divide-gray-100">
-                {usages.map((usage, index) => (
+                {filteredUsages.map((usage, index) => (
                   <SortableAssignmentRow
                     key={usage.id}
                     usage={usage}
@@ -572,23 +645,28 @@ export function ChallengeDetailClient({
               <span className="text-3xl">📋</span>
             </div>
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              No assignments yet
+              {usages.length > 0 ? 'No matching assignments' : 'No assignments yet'}
             </h3>
             <p className="text-sm text-gray-500 mb-6 text-center max-w-sm">
-              Create new assignments or pick existing ones from your library.
+              {usages.length > 0
+                ? 'Try adjusting the filters above.'
+                : 'Create new assignments or pick existing ones from your library.'}
             </p>
-            <div className="flex gap-3">
-              <Button variant="secondary" onClick={() => setIsPickerOpen(true)}>
-                <LibraryIcon className="h-4 w-4" />
-                From Library
-              </Button>
-              <Button onClick={() => setIsAssignmentFormOpen(true)}>
-                <PlusIcon className="h-4 w-4" />
-                Create New
-              </Button>
-            </div>
+            {usages.length === 0 && (
+              <div className="flex gap-3">
+                <Button variant="secondary" onClick={() => setIsPickerOpen(true)}>
+                  <LibraryIcon className="h-4 w-4" />
+                  From Library
+                </Button>
+                <Button onClick={() => setIsAssignmentFormOpen(true)}>
+                  <PlusIcon className="h-4 w-4" />
+                  Create New
+                </Button>
+              </div>
+            )}
           </div>
-        )}
+        )
+        })()}
       </div>
 
       {/* Assignment Picker Dialog */}
@@ -1049,6 +1127,14 @@ function FolderIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 12.75V12A2.25 2.25 0 014.5 9.75h15A2.25 2.25 0 0121.75 12v.75m-8.69-6.44l-2.12-2.12a1.5 1.5 0 00-1.061-.44H4.5A2.25 2.25 0 002.25 6v12a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9a2.25 2.25 0 00-2.25-2.25h-5.379a1.5 1.5 0 01-1.06-.44z" />
+    </svg>
+  )
+}
+
+function DownloadIcon({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
     </svg>
   )
 }

@@ -7,7 +7,8 @@ import { InlineRichEditor } from '@/components/ui/inline-rich-editor'
 import { createAssignment, updateAssignment, createAssignmentForChallenge } from '@/lib/actions/assignments'
 import { decodePassword } from '@/lib/utils/password'
 import { uploadFile } from '@/lib/actions/upload'
-import type { Assignment, AssignmentWithUsages, EditorContent } from '@/lib/types/database'
+import { getMicroQuizzesForAssignment } from '@/lib/actions/micro-quizzes'
+import type { Assignment, AssignmentWithUsages, EditorContent, MicroQuiz } from '@/lib/types/database'
 import { cn } from '@/lib/utils/cn'
 
 interface AssignmentFormProps {
@@ -496,14 +497,18 @@ export function AssignmentForm({
                   </div>
                 )}
 
-                {/* Quiz type info */}
+                {/* Quiz type info / inline quiz questions */}
                 {contentType === 'quiz' && (
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-gray-900">Quiz Content</label>
-                    <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 text-sm text-blue-700">
-                      <p className="font-medium mb-1">Quiz Questions</p>
-                      <p className="text-blue-600">After saving, use the &ldquo;Quizzes&rdquo; button in the assignment list to add quiz questions.</p>
-                    </div>
+                    <label className="text-sm font-medium text-gray-900">Quiz Questions</label>
+                    {isEditing && assignment ? (
+                      <InlineQuizPreview assignmentId={assignment.id} />
+                    ) : (
+                      <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 text-sm text-blue-700">
+                        <p className="font-medium mb-1">Quiz Questions</p>
+                        <p className="text-blue-600">After saving, quiz questions can be managed from here or via the challenge assignment list.</p>
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -615,6 +620,68 @@ function WarningIcon({ className }: { className?: string }) {
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
       <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126ZM12 15.75h.007v.008H12v-.008Z" />
     </svg>
+  )
+}
+
+function InlineQuizPreview({ assignmentId }: { assignmentId: string }) {
+  const [quizzes, setQuizzes] = useState<MicroQuiz[]>([])
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    async function load() {
+      setLoading(true)
+      const result = await getMicroQuizzesForAssignment(assignmentId)
+      if (!cancelled && result.success) {
+        setQuizzes(result.data)
+      }
+      if (!cancelled) setLoading(false)
+    }
+    load()
+    return () => { cancelled = true }
+  }, [assignmentId])
+
+  if (loading) {
+    return (
+      <div className="rounded-lg border border-gray-200 p-4 flex items-center justify-center">
+        <Spinner size="sm" />
+        <span className="ml-2 text-sm text-gray-500">Loading questions...</span>
+      </div>
+    )
+  }
+
+  if (quizzes.length === 0) {
+    return (
+      <div className="rounded-lg bg-blue-50 border border-blue-100 p-4 text-sm text-blue-700">
+        <p>No quiz questions yet. Manage them from the challenge assignment list (Quizzes button).</p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-lg border border-gray-200 divide-y divide-gray-100">
+      {quizzes.map((q, i) => (
+        <div key={q.id} className="p-3 text-sm">
+          <p className="font-medium text-gray-900">
+            <span className="text-gray-400 mr-1.5">{i + 1}.</span>
+            {q.question}
+          </p>
+          <span className="text-xs text-gray-400 ml-5">{q.quiz_type}</span>
+          {q.options && q.options.length > 0 && (
+            <ul className="mt-1 ml-5 space-y-0.5">
+              {q.options.map((opt: string, j: number) => (
+                <li key={j} className="text-xs text-gray-500">
+                  {String.fromCharCode(65 + j)}. {opt}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      ))}
+      <div className="p-3 text-xs text-gray-500">
+        {quizzes.length} question{quizzes.length !== 1 ? 's' : ''} — manage from challenge view
+      </div>
+    </div>
   )
 }
 

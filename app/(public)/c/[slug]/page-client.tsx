@@ -8,13 +8,14 @@ import { ChallengeDescriptionRenderer } from '@/components/public/content-render
 import { trackChallengeView } from '@/lib/actions/analytics'
 import { gaChallengeView } from '@/lib/analytics/ga'
 import { useLabels } from '@/lib/hooks/use-labels'
-import type { Challenge, ChallengeLabel } from '@/lib/types/database'
+import type { Challenge, ChallengeLabel, Announcement } from '@/lib/types/database'
 
 interface ChallengePageClientProps {
   challenge: Challenge
   client: { name: string; logo_url?: string }
   hasAssignments: boolean
   labels?: ChallengeLabel[]
+  announcements?: Announcement[]
 }
 
 /**
@@ -30,6 +31,7 @@ export function ChallengePageClient({
   client,
   hasAssignments,
   labels: initialLabels,
+  announcements = [],
 }: ChallengePageClientProps) {
   const hasTrackedView = useRef(false)
   
@@ -138,6 +140,34 @@ export function ChallengePageClient({
             {(challenge.description_html || challenge.description) && (
               <div className="prose prose-lg max-w-none">
                 <ChallengeDescriptionRenderer challenge={challenge} />
+              </div>
+            )}
+
+            {/* Announcements */}
+            {announcements.length > 0 && (
+              <div className="mt-10 space-y-4">
+                {announcements.map((a) => (
+                  <div
+                    key={a.id}
+                    className={`rounded-xl border p-5 ${
+                      a.is_pinned
+                        ? 'border-amber-200 bg-amber-50'
+                        : 'border-gray-200 bg-gray-50'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 mb-2">
+                      {a.is_pinned && <span className="text-sm">📌</span>}
+                      <h3 className="font-semibold text-gray-900">{a.title}</h3>
+                      <span className="text-xs text-gray-400">
+                        {new Date(a.published_at).toLocaleDateString()}
+                      </span>
+                    </div>
+                    <div
+                      className="prose prose-sm max-w-none text-gray-700"
+                      dangerouslySetInnerHTML={{ __html: a.content }}
+                    />
+                  </div>
+                ))}
               </div>
             )}
 
