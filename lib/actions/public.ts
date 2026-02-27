@@ -2,7 +2,7 @@
 
 import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/server'
-import { auth } from '@/lib/auth/mock-server-auth'
+import { getParticipantFromCookie } from '@/lib/actions/participants'
 import type { Assignment, Challenge, AssignmentUsage, SprintProgress } from '@/lib/types/database'
 
 // Rate limiting store (in production, use Redis)
@@ -468,26 +468,17 @@ export interface IndividualModeData {
 }
 
 /**
- * Get individual mode data for an authenticated user on a public challenge page.
- * Returns null if the user is not signed in or not enrolled.
+ * Get individual mode data for an identified participant on a public challenge page.
+ * Returns null if no participant cookie or not enrolled.
  */
 export async function getIndividualModeData(
   challengeId: string
 ): Promise<IndividualModeData | null> {
   try {
-    const { userId } = await auth()
-    if (!userId) return null
+    const participant = await getParticipantFromCookie()
+    if (!participant) return null
 
     const supabase = createAdminClient()
-
-    // Get participant
-    const { data: participant } = await supabase
-      .from('participants')
-      .select('id')
-      .eq('clerk_user_id', userId)
-      .single()
-
-    if (!participant) return null
 
     // Check enrollment
     const { data: enrollment } = await supabase

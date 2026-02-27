@@ -342,12 +342,11 @@ export const DEFAULT_LABELS: Record<string, string> = {
 // =============================================================================
 
 /**
- * Participant - tracks Individual Mode users
- * Clerk handles auth, this stores app-specific data
+ * Participant - tracks Individual Mode users via email identification
  */
 export interface Participant {
   id: string
-  clerk_user_id: string // Clerk's user ID
+  email: string
   display_name: string | null
   avatar_url: string | null
   
@@ -744,7 +743,7 @@ export interface MilestoneUpdate {
 // =============================================================================
 
 export interface ParticipantInsert {
-  clerk_user_id: string
+  email: string
   display_name?: string | null
   avatar_url?: string | null
   show_in_leaderboard?: boolean

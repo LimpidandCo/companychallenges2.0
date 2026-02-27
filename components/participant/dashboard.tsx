@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { useState, useEffect } from 'react'
-import { useUser } from '@/components/providers/clerk-provider'
 import { Spinner } from '@/components/ui'
 import { 
   getParticipantDashboardStats,
@@ -13,7 +12,6 @@ import {
 import type { ParticipantDashboardStats, EnrolledChallengeWithProgress } from '@/lib/types/database'
 
 export function ParticipantDashboard() {
-  const { user } = useUser()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState<ParticipantDashboardStats | null>(null)
   const [enrolledChallenges, setEnrolledChallenges] = useState<EnrolledChallengeWithProgress[]>([])
@@ -74,7 +72,7 @@ export function ParticipantDashboard() {
       {/* Welcome Header */}
       <header className="mb-8">
         <h1 className="text-3xl font-bold text-gray-900">
-          Welcome back{user?.firstName ? `, ${user.firstName}` : ''}! 👋
+          Welcome back!
         </h1>
         <p className="mt-1 text-gray-600">
           Here's your learning progress at a glance.

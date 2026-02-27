@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { useUser } from '@/components/providers/clerk-provider'
+import { hasParticipantCookie } from '@/lib/actions/participants'
 import { PasswordGate } from '@/components/public/password-gate'
 import { SupportModal } from '@/components/public/support-modal'
 import { InstructionsRenderer, AssignmentContentRenderer } from '@/components/public/content-renderer'
@@ -47,10 +47,15 @@ export function AssignmentPageClient({
 }: AssignmentPageClientProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { isSignedIn } = useUser()
+  const [isIdentified, setIsIdentified] = useState(false)
   const [hasAccess, setHasAccess] = useState(initialHasAccess)
   const [isCompleted, setIsCompleted] = useState(false)
   
+  // Check if participant cookie is set
+  useEffect(() => {
+    hasParticipantCookie().then(setIsIdentified)
+  }, [])
+
   // Check if parent sprint has been unlocked this session (sessionStorage)
   useEffect(() => {
     if (hasAccess || !requiresPassword) return
@@ -134,11 +139,11 @@ export function AssignmentPageClient({
   // Start progress tracking for signed-in users
   useEffect(() => {
     if (hasStartedProgress.current) return
-    if (!isSignedIn || !navContext?.assignmentUsageId || !isReleased || (requiresPassword && !hasAccess)) return
+    if (!isIdentified || !navContext?.assignmentUsageId || !isReleased || (requiresPassword && !hasAccess)) return
 
     hasStartedProgress.current = true
     startAssignment(navContext.assignmentUsageId)
-  }, [isSignedIn, navContext?.assignmentUsageId, isReleased, requiresPassword, hasAccess])
+  }, [isIdentified, navContext?.assignmentUsageId, isReleased, requiresPassword, hasAccess])
 
   // Save completion to localStorage
   const saveCompletionToStorage = useCallback((challengeId: string, assignmentId: string) => {
@@ -210,7 +215,7 @@ export function AssignmentPageClient({
     saveCompletionToStorage(navContext.challenge.id, assignment.id)
     
     // If signed in (individual mode), also save to database
-    if (isSignedIn && navContext.assignmentUsageId) {
+    if (isIdentified && navContext.assignmentUsageId) {
       const result = await completeAssignment(navContext.assignmentUsageId)
       
       // Check if a sprint was just completed

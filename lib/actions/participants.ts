@@ -1,10 +1,9 @@
 'use server'
 
-import { auth } from '@/lib/auth/mock-server-auth'
+import { cookies } from 'next/headers'
 import { createAdminClient } from '@/lib/supabase/server'
 import type {
   Participant,
-  ParticipantInsert,
   ParticipantUpdate,
   ChallengeEnrollment,
   AssignmentProgress,
@@ -19,85 +18,106 @@ import type {
 
 type ActionResult<T> = { success: true; data: T } | { success: false; error: string }
 
+const PARTICIPANT_COOKIE = 'participant_id'
+
 // =============================================================================
-// Participant Management
+// Participant Identification (email-based, cookie-backed)
 // =============================================================================
 
 /**
- * Get or create participant for current user
+ * Read participant from the cookie. Returns null if no cookie or not found.
  */
-export async function getOrCreateCurrentParticipant(): Promise<ActionResult<Participant>> {
+export async function getParticipantFromCookie(): Promise<Participant | null> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
-      return { success: false, error: 'Not authenticated' }
-    }
+    const cookieStore = await cookies()
+    const participantId = cookieStore.get(PARTICIPANT_COOKIE)?.value
+    if (!participantId) return null
 
     const supabase = createAdminClient()
-
-    // Try to find existing participant
-    const { data: existing, error: findError } = await supabase
+    const { data } = await supabase
       .from('participants')
       .select('*')
-      .eq('clerk_user_id', userId)
+      .eq('id', participantId)
       .single()
 
-    if (existing) {
-      return { success: true, data: existing }
-    }
-
-    // If not found (and error is "not found"), create new participant
-    if (findError && findError.code !== 'PGRST116') {
-      return { success: false, error: findError.message }
-    }
-
-    // Create new participant
-    const { data: newParticipant, error: createError } = await supabase
-      .from('participants')
-      .insert({
-        clerk_user_id: userId,
-        show_in_leaderboard: true,
-        show_progress_publicly: false,
-      })
-      .select()
-      .single()
-
-    if (createError) {
-      return { success: false, error: createError.message }
-    }
-
-    return { success: true, data: newParticipant }
-  } catch (error) {
-    return { success: false, error: 'Failed to get/create participant' }
+    return data || null
+  } catch {
+    return null
   }
 }
 
 /**
- * Get current participant (without creating)
+ * Look up or create a participant by email, then set the cookie.
  */
-export async function getCurrentParticipant(): Promise<ActionResult<Participant | null>> {
+export async function identifyParticipant(email: string): Promise<ActionResult<Participant>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
-      return { success: false, error: 'Not authenticated' }
+    const normalized = email.toLowerCase().trim()
+    if (!normalized || !normalized.includes('@')) {
+      return { success: false, error: 'Please enter a valid email address.' }
     }
 
     const supabase = createAdminClient()
 
-    const { data, error } = await supabase
+    const { data: existing } = await supabase
       .from('participants')
       .select('*')
-      .eq('clerk_user_id', userId)
+      .eq('email', normalized)
       .single()
 
-    if (error && error.code !== 'PGRST116') {
-      return { success: false, error: error.message }
+    let participant: Participant
+
+    if (existing) {
+      participant = existing
+    } else {
+      const { data: created, error } = await supabase
+        .from('participants')
+        .insert({
+          email: normalized,
+          show_in_leaderboard: true,
+          show_progress_publicly: false,
+        })
+        .select()
+        .single()
+
+      if (error || !created) {
+        return { success: false, error: error?.message || 'Failed to create participant' }
+      }
+      participant = created
     }
 
-    return { success: true, data: data || null }
+    const cookieStore = await cookies()
+    cookieStore.set(PARTICIPANT_COOKIE, participant.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax',
+      maxAge: 60 * 60 * 24 * 365,
+      path: '/',
+    })
+
+    return { success: true, data: participant }
   } catch (error) {
-    return { success: false, error: 'Failed to get participant' }
+    return { success: false, error: 'Failed to identify participant' }
   }
+}
+
+/**
+ * Check if a participant cookie is set (for client-side checks).
+ */
+export async function hasParticipantCookie(): Promise<boolean> {
+  try {
+    const cookieStore = await cookies()
+    return !!cookieStore.get(PARTICIPANT_COOKIE)?.value
+  } catch {
+    return false
+  }
+}
+
+/**
+ * Get current participant (without creating). Reads from cookie.
+ */
+export async function getCurrentParticipant(): Promise<ActionResult<Participant | null>> {
+  const participant = await getParticipantFromCookie()
+  return { success: true, data: participant }
 }
 
 /**
@@ -107,9 +127,9 @@ export async function updateParticipant(
   update: ParticipantUpdate
 ): Promise<ActionResult<Participant>> {
   try {
-    const { userId } = await auth()
-    if (!userId) {
-      return { success: false, error: 'Not authenticated' }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
     const supabase = createAdminClient()
@@ -120,7 +140,7 @@ export async function updateParticipant(
         ...update,
         updated_at: new Date().toISOString(),
       })
-      .eq('clerk_user_id', userId)
+      .eq('id', participant.id)
       .select()
       .single()
 
@@ -138,27 +158,21 @@ export async function updateParticipant(
 // Dashboard Stats
 // =============================================================================
 
-/**
- * Get dashboard stats for current participant
- */
 export async function getParticipantDashboardStats(): Promise<ActionResult<ParticipantDashboardStats>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
-    // Get enrolled challenges count
     const { count: enrolledCount } = await supabase
       .from('challenge_enrollments')
       .select('*', { count: 'exact', head: true })
       .eq('participant_id', participant.id)
       .is('completed_at', null)
 
-    // Get assignment progress counts
     const { data: progressData } = await supabase
       .from('assignment_progress')
       .select('status')
@@ -166,7 +180,6 @@ export async function getParticipantDashboardStats(): Promise<ActionResult<Parti
 
     const completedAssignments = progressData?.filter(p => p.status === 'completed').length ?? 0
 
-    // Get total assignments in enrolled challenges
     const { data: enrollments } = await supabase
       .from('challenge_enrollments')
       .select('challenge_id')
@@ -184,13 +197,11 @@ export async function getParticipantDashboardStats(): Promise<ActionResult<Parti
       totalAssignments = count ?? 0
     }
 
-    // Get achievements count
     const { count: achievementsCount } = await supabase
       .from('milestone_achievements')
       .select('*', { count: 'exact', head: true })
       .eq('participant_id', participant.id)
 
-    // Calculate streak (simplified - just consecutive days with completions)
     const currentStreak = await calculateStreak(participant.id)
 
     return {
@@ -222,12 +233,10 @@ async function calculateStreak(participantId: string): Promise<number> {
 
   if (!completions || completions.length === 0) return 0
 
-  // Get unique dates
   const uniqueDates = [...new Set(
     completions.map(c => new Date(c.completed_at!).toDateString())
   )]
 
-  // Check for streak (consecutive days)
   let streak = 0
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -239,7 +248,6 @@ async function calculateStreak(participantId: string): Promise<number> {
     if (uniqueDates.includes(checkDate.toDateString())) {
       streak++
     } else if (i > 0) {
-      // Allow gap for today if no activity yet
       break
     }
   }
@@ -251,20 +259,15 @@ async function calculateStreak(participantId: string): Promise<number> {
 // Challenge Enrollment
 // =============================================================================
 
-/**
- * Get enrolled challenges with progress
- */
 export async function getEnrolledChallenges(): Promise<ActionResult<EnrolledChallengeWithProgress[]>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
-    // Get enrollments with challenge data
     const { data: enrollments, error } = await supabase
       .from('challenge_enrollments')
       .select(`
@@ -281,17 +284,14 @@ export async function getEnrolledChallenges(): Promise<ActionResult<EnrolledChal
       return { success: false, error: error.message }
     }
 
-    // Calculate progress for each enrollment
     const enrollmentsWithProgress: EnrolledChallengeWithProgress[] = await Promise.all(
       (enrollments || []).map(async (enrollment) => {
-        // Get total assignments in challenge
         const { count: totalCount } = await supabase
           .from('assignment_usages')
           .select('*', { count: 'exact', head: true })
           .eq('challenge_id', enrollment.challenge_id)
           .eq('is_visible', true)
 
-        // Get completed assignments
         const { data: usages } = await supabase
           .from('assignment_usages')
           .select('id')
@@ -329,22 +329,17 @@ export async function getEnrolledChallenges(): Promise<ActionResult<EnrolledChal
   }
 }
 
-/**
- * Enroll in a challenge
- */
 export async function enrollInChallenge(
   challengeId: string
 ): Promise<ActionResult<ChallengeEnrollment>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
-    // Check if already enrolled
     const { data: existing } = await supabase
       .from('challenge_enrollments')
       .select('*')
@@ -356,7 +351,6 @@ export async function enrollInChallenge(
       return { success: true, data: existing }
     }
 
-    // Create enrollment
     const { data, error } = await supabase
       .from('challenge_enrollments')
       .insert({
@@ -371,7 +365,6 @@ export async function enrollInChallenge(
       return { success: false, error: error.message }
     }
 
-    // Initialize sprint progress rows for individual mode
     await initializeSprintProgress(challengeId, participant.id)
 
     return { success: true, data }
@@ -380,20 +373,15 @@ export async function enrollInChallenge(
   }
 }
 
-/**
- * Get available challenges (not enrolled in yet)
- */
 export async function getAvailableChallenges(): Promise<ActionResult<any[]>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
-    // Get IDs of challenges already enrolled in
     const { data: enrollments } = await supabase
       .from('challenge_enrollments')
       .select('challenge_id')
@@ -401,7 +389,6 @@ export async function getAvailableChallenges(): Promise<ActionResult<any[]>> {
 
     const enrolledIds = enrollments?.map(e => e.challenge_id) ?? []
 
-    // Get all non-archived challenges not yet enrolled in
     let query = supabase
       .from('challenges')
       .select(`
@@ -421,7 +408,6 @@ export async function getAvailableChallenges(): Promise<ActionResult<any[]>> {
       return { success: false, error: error.message }
     }
 
-    // Add assignment count for each challenge
     const challengesWithCounts = await Promise.all(
       (data || []).map(async (challenge) => {
         const { count } = await supabase
@@ -443,9 +429,6 @@ export async function getAvailableChallenges(): Promise<ActionResult<any[]>> {
   }
 }
 
-/**
- * Get challenge preview (for enrollment page)
- */
 export async function getChallengePreview(challengeId: string): Promise<ActionResult<{
   challenge: any
   isEnrolled: boolean
@@ -454,15 +437,9 @@ export async function getChallengePreview(challengeId: string): Promise<ActionRe
   estimatedDuration: string
 }>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
-    }
-
-    const participant = participantResult.data
+    const participant = await getParticipantFromCookie()
     const supabase = createAdminClient()
 
-    // Get challenge details
     const { data: challenge, error } = await supabase
       .from('challenges')
       .select(`
@@ -476,30 +453,29 @@ export async function getChallengePreview(challengeId: string): Promise<ActionRe
       return { success: false, error: 'Challenge not found' }
     }
 
-    // Check if enrolled
-    const { data: enrollment } = await supabase
-      .from('challenge_enrollments')
-      .select('id')
-      .eq('participant_id', participant.id)
-      .eq('challenge_id', challengeId)
-      .single()
+    let isEnrolled = false
+    if (participant) {
+      const { data: enrollment } = await supabase
+        .from('challenge_enrollments')
+        .select('id')
+        .eq('participant_id', participant.id)
+        .eq('challenge_id', challengeId)
+        .single()
 
-    const isEnrolled = !!enrollment
+      isEnrolled = !!enrollment
+    }
 
-    // Get assignment count
     const { count: assignmentCount } = await supabase
       .from('assignment_usages')
       .select('*', { count: 'exact', head: true })
       .eq('challenge_id', challengeId)
       .eq('is_visible', true)
 
-    // Get sprint count
     const { count: sprintCount } = await supabase
       .from('sprints')
       .select('*', { count: 'exact', head: true })
       .eq('challenge_id', challengeId)
 
-    // Estimate duration (rough: 10-15 min per assignment)
     const totalAssignments = assignmentCount ?? 0
     const estimatedMinutes = totalAssignments * 12
     let estimatedDuration = ''
@@ -525,17 +501,13 @@ export async function getChallengePreview(challengeId: string): Promise<ActionRe
   }
 }
 
-/**
- * Check if participant is enrolled in a challenge
- */
 export async function isEnrolledInChallenge(challengeId: string): Promise<ActionResult<boolean>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: true, data: false }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
     const { data } = await supabase
@@ -555,22 +527,17 @@ export async function isEnrolledInChallenge(challengeId: string): Promise<Action
 // Assignment Progress
 // =============================================================================
 
-/**
- * Get assignments with progress for a challenge
- */
 export async function getChallengeAssignmentsWithProgress(
   challengeId: string
 ): Promise<ActionResult<AssignmentWithProgress[]>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
-    // Get assignment usages with assignment details
     const { data: usages, error } = await supabase
       .from('assignment_usages')
       .select(`
@@ -586,7 +553,6 @@ export async function getChallengeAssignmentsWithProgress(
       return { success: false, error: error.message }
     }
 
-    // Get progress for each usage
     const usageIds = usages?.map(u => u.id) ?? []
 
     const { data: progressData } = await supabase
@@ -599,7 +565,6 @@ export async function getChallengeAssignmentsWithProgress(
       (progressData || []).map(p => [p.assignment_usage_id, p])
     )
 
-    // Get micro quizzes for assignments
     const assignmentIds = [...new Set(usages?.map(u => u.assignment_id) ?? [])]
 
     const { data: quizzes } = await supabase
@@ -626,22 +591,17 @@ export async function getChallengeAssignmentsWithProgress(
   }
 }
 
-/**
- * Start an assignment
- */
 export async function startAssignment(
   assignmentUsageId: string
 ): Promise<ActionResult<AssignmentProgress>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
-    // Check if already started
     const { data: existing } = await supabase
       .from('assignment_progress')
       .select('*')
@@ -653,7 +613,6 @@ export async function startAssignment(
       return { success: true, data: existing }
     }
 
-    // Create progress record
     const { data, error } = await supabase
       .from('assignment_progress')
       .insert({
@@ -669,7 +628,6 @@ export async function startAssignment(
       return { success: false, error: error.message }
     }
 
-    // Update last assignment in enrollment
     const { data: usage } = await supabase
       .from('assignment_usages')
       .select('challenge_id')
@@ -690,24 +648,18 @@ export async function startAssignment(
   }
 }
 
-/**
- * Complete an assignment.
- * Returns the progress record and sprint completion info (if applicable).
- */
 export async function completeAssignment(
   assignmentUsageId: string,
   quizResponses?: QuizResponse[]
 ): Promise<ActionResult<AssignmentProgress & { sprintCompletion?: SprintCompletionResult }>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
-    // Get or create progress record
     const { data: existing } = await supabase
       .from('assignment_progress')
       .select('*')
@@ -756,10 +708,8 @@ export async function completeAssignment(
       data = created
     }
 
-    // Check for milestone achievements
     await checkMilestoneAchievements(participant.id, assignmentUsageId)
 
-    // Check for sprint completion (if assignment belongs to a sprint)
     let sprintCompletion: SprintCompletionResult | undefined
     const { data: usage } = await supabase
       .from('assignment_usages')
@@ -780,23 +730,18 @@ export async function completeAssignment(
   }
 }
 
-/**
- * Save quiz responses
- */
 export async function saveQuizResponses(
   assignmentUsageId: string,
   responses: QuizResponse[]
 ): Promise<ActionResult<AssignmentProgress>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
-    // Get existing progress
     const { data: existing } = await supabase
       .from('assignment_progress')
       .select('*')
@@ -821,7 +766,6 @@ export async function saveQuizResponses(
       return { success: true, data }
     }
 
-    // Create new progress with responses
     const { data, error } = await supabase
       .from('assignment_progress')
       .insert({
@@ -854,7 +798,6 @@ async function checkMilestoneAchievements(
 ): Promise<void> {
   const supabase = createAdminClient()
 
-  // Get the usage to find the challenge
   const { data: usage } = await supabase
     .from('assignment_usages')
     .select('challenge_id, assignment_id')
@@ -863,7 +806,6 @@ async function checkMilestoneAchievements(
 
   if (!usage) return
 
-  // Get milestones for this challenge
   const { data: milestones } = await supabase
     .from('milestones')
     .select('*')
@@ -871,9 +813,7 @@ async function checkMilestoneAchievements(
 
   if (!milestones) return
 
-  // Check each milestone
   for (const milestone of milestones) {
-    // Skip if already achieved
     const { data: existing } = await supabase
       .from('milestone_achievements')
       .select('id')
@@ -887,13 +827,11 @@ async function checkMilestoneAchievements(
 
     switch (milestone.trigger_type) {
       case 'assignment_complete':
-        // Check if specific assignment is completed
         achieved = usage.assignment_id === milestone.trigger_value ||
                    completedUsageId === milestone.trigger_value
         break
 
       case 'percentage':
-        // Check percentage completion
         const targetPercentage = parseInt(milestone.trigger_value, 10)
         const { count: total } = await supabase
           .from('assignment_usages')
@@ -919,8 +857,6 @@ async function checkMilestoneAchievements(
           achieved = percentage >= targetPercentage
         }
         break
-
-      // Add more trigger types as needed
     }
 
     if (achieved) {
@@ -935,17 +871,13 @@ async function checkMilestoneAchievements(
   }
 }
 
-/**
- * Get achievements for current participant
- */
 export async function getAchievements(): Promise<ActionResult<(MilestoneAchievement & { milestone: any })[]>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
     const { data, error } = await supabase
@@ -983,9 +915,6 @@ export interface LeaderboardEntry {
   lastActivityAt: string | null
 }
 
-/**
- * Get leaderboard for a challenge
- */
 export async function getChallengeLeaderboard(
   challengeId: string
 ): Promise<ActionResult<{
@@ -994,15 +923,9 @@ export async function getChallengeLeaderboard(
   totalParticipants: number
 }>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
-    }
-
-    const currentParticipant = participantResult.data
+    const currentParticipant = await getParticipantFromCookie()
     const supabase = createAdminClient()
 
-    // Get total assignments in challenge
     const { count: totalAssignments } = await supabase
       .from('assignment_usages')
       .select('*', { count: 'exact', head: true })
@@ -1011,7 +934,6 @@ export async function getChallengeLeaderboard(
 
     const total = totalAssignments ?? 0
 
-    // Get all enrollments with participant data (only those who opted into leaderboard)
     const { data: enrollments, error } = await supabase
       .from('challenge_enrollments')
       .select(`
@@ -1032,7 +954,6 @@ export async function getChallengeLeaderboard(
       return { success: false, error: error.message }
     }
 
-    // Get assignment usages for this challenge
     const { data: usages } = await supabase
       .from('assignment_usages')
       .select('id')
@@ -1041,7 +962,6 @@ export async function getChallengeLeaderboard(
 
     const usageIds = usages?.map(u => u.id) ?? []
 
-    // Calculate progress for each participant
     const leaderboardData: {
       participantId: string
       displayName: string
@@ -1055,7 +975,6 @@ export async function getChallengeLeaderboard(
     for (const enrollment of enrollments || []) {
       const participant = enrollment.participant as any
 
-      // Get completed assignments count
       let completedCount = 0
       let lastActivityAt: string | null = null
 
@@ -1081,7 +1000,7 @@ export async function getChallengeLeaderboard(
       leaderboardData.push({
         participantId: enrollment.participant_id,
         displayName: participant.display_name || `Participant ${enrollment.participant_id.slice(0, 6)}`,
-        isCurrentUser: enrollment.participant_id === currentParticipant.id,
+        isCurrentUser: currentParticipant ? enrollment.participant_id === currentParticipant.id : false,
         completedCount,
         progressPercentage,
         completedAt: enrollment.completed_at,
@@ -1089,21 +1008,17 @@ export async function getChallengeLeaderboard(
       })
     }
 
-    // Sort by: 1) completion status, 2) progress percentage, 3) last activity
     leaderboardData.sort((a, b) => {
-      // Completed challenges first (sorted by completion time)
       if (a.completedAt && !b.completedAt) return -1
       if (!a.completedAt && b.completedAt) return 1
       if (a.completedAt && b.completedAt) {
         return new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
       }
 
-      // Then by progress percentage
       if (b.progressPercentage !== a.progressPercentage) {
         return b.progressPercentage - a.progressPercentage
       }
 
-      // Then by last activity (most recent first)
       if (a.lastActivityAt && b.lastActivityAt) {
         return new Date(b.lastActivityAt).getTime() - new Date(a.lastActivityAt).getTime()
       }
@@ -1113,14 +1028,12 @@ export async function getChallengeLeaderboard(
       return 0
     })
 
-    // Add ranks
     const leaderboard: LeaderboardEntry[] = leaderboardData.map((entry, index) => ({
       ...entry,
       rank: index + 1,
       totalCount: total,
     }))
 
-    // Find current user's rank
     const currentUserEntry = leaderboard.find(e => e.isCurrentUser)
     const currentUserRank = currentUserEntry?.rank ?? null
 
@@ -1141,25 +1054,18 @@ export async function getChallengeLeaderboard(
 // Sprint Progress (Individual Mode)
 // =============================================================================
 
-/**
- * Initialize sprint progress rows when a user enrolls in a challenge.
- * If sequential_sprints is true, only the first sprint is unlocked.
- * If false, all sprints are unlocked.
- */
 export async function initializeSprintProgress(
   challengeId: string,
   participantId: string
 ): Promise<void> {
   const supabase = createAdminClient()
 
-  // Get challenge to check sequential_sprints flag
   const { data: challenge } = await supabase
     .from('challenges')
     .select('sequential_sprints')
     .eq('id', challengeId)
     .single()
 
-  // Get all sprints for this challenge, ordered by position
   const { data: sprints } = await supabase
     .from('sprints')
     .select('id, position')
@@ -1183,28 +1089,22 @@ export async function initializeSprintProgress(
     }
   })
 
-  // Upsert to be idempotent (safe to call multiple times)
   await supabase
     .from('sprint_progress')
     .upsert(rows, { onConflict: 'participant_id,sprint_id', ignoreDuplicates: true })
 }
 
-/**
- * Get sprint progress for the current user in a challenge.
- */
 export async function getSprintProgressForChallenge(
   challengeId: string
 ): Promise<ActionResult<SprintProgress[]>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
-    // Get sprint IDs for this challenge
     const { data: sprints } = await supabase
       .from('sprints')
       .select('id')
@@ -1237,24 +1137,18 @@ export interface SprintCompletionResult {
   nextSprintUnlocked: boolean
 }
 
-/**
- * Check if a sprint is fully completed (all assignments done) and if so,
- * mark it complete and unlock the next sprint (when sequential).
- */
 export async function completeSprintIfDone(
   sprintId: string,
   challengeId: string
 ): Promise<ActionResult<SprintCompletionResult>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
-    // Get all assignment_usages in this sprint
     const { data: usages } = await supabase
       .from('assignment_usages')
       .select('id')
@@ -1268,7 +1162,6 @@ export async function completeSprintIfDone(
 
     const usageIds = usages.map(u => u.id)
 
-    // Count completed assignments in this sprint for this user
     const { count: completedCount } = await supabase
       .from('assignment_progress')
       .select('*', { count: 'exact', head: true })
@@ -1279,7 +1172,6 @@ export async function completeSprintIfDone(
     const allDone = (completedCount ?? 0) >= usages.length
 
     if (!allDone) {
-      // Update sprint status to in_progress if not already
       await supabase
         .from('sprint_progress')
         .update({ status: 'in_progress' })
@@ -1290,7 +1182,6 @@ export async function completeSprintIfDone(
       return { success: true, data: { sprintCompleted: false, nextSprintUnlocked: false } }
     }
 
-    // All assignments done - mark sprint as completed
     const now = new Date().toISOString()
     await supabase
       .from('sprint_progress')
@@ -1298,7 +1189,6 @@ export async function completeSprintIfDone(
       .eq('participant_id', participant.id)
       .eq('sprint_id', sprintId)
 
-    // Check if challenge uses sequential sprints
     const { data: challenge } = await supabase
       .from('challenges')
       .select('sequential_sprints')
@@ -1308,7 +1198,6 @@ export async function completeSprintIfDone(
     let nextSprintUnlocked = false
 
     if (challenge?.sequential_sprints) {
-      // Find the current sprint's position
       const { data: currentSprint } = await supabase
         .from('sprints')
         .select('position')
@@ -1316,7 +1205,6 @@ export async function completeSprintIfDone(
         .single()
 
       if (currentSprint) {
-        // Find the next sprint by position (may not exist if this is the last)
         const { data: nextSprint } = await supabase
           .from('sprints')
           .select('id')
@@ -1327,7 +1215,6 @@ export async function completeSprintIfDone(
           .maybeSingle()
 
         if (nextSprint) {
-          // Unlock the next sprint
           const { data: updated } = await supabase
             .from('sprint_progress')
             .update({ status: 'unlocked', unlocked_at: now })
@@ -1352,22 +1239,17 @@ export async function completeSprintIfDone(
 // Recent Activity
 // =============================================================================
 
-/**
- * Get recent activity for participant
- */
 export async function getRecentActivity(
   limit: number = 10
 ): Promise<ActionResult<{ type: string; title: string; timestamp: string }[]>> {
   try {
-    const participantResult = await getOrCreateCurrentParticipant()
-    if (!participantResult.success) {
-      return { success: false, error: participantResult.error }
+    const participant = await getParticipantFromCookie()
+    if (!participant) {
+      return { success: false, error: 'Not identified' }
     }
 
-    const participant = participantResult.data
     const supabase = createAdminClient()
 
-    // Get recent completions with assignment details
     const { data: completions } = await supabase
       .from('assignment_progress')
       .select('completed_at, assignment_usage_id')
@@ -1377,7 +1259,6 @@ export async function getRecentActivity(
       .order('completed_at', { ascending: false })
       .limit(limit)
 
-    // Get assignment usage details for completions
     const usageIds = completions?.map(c => c.assignment_usage_id) ?? []
     let usageMap = new Map<string, string>()
 
@@ -1394,7 +1275,6 @@ export async function getRecentActivity(
       })
     }
 
-    // Get recent achievements
     const { data: achievements } = await supabase
       .from('milestone_achievements')
       .select('achieved_at, milestone:milestones(name)')
@@ -1402,7 +1282,6 @@ export async function getRecentActivity(
       .order('achieved_at', { ascending: false })
       .limit(limit)
 
-    // Combine and sort
     const activities: { type: string; title: string; timestamp: string }[] = []
 
     completions?.forEach(c => {
@@ -1426,7 +1305,6 @@ export async function getRecentActivity(
       }
     })
 
-    // Sort by timestamp
     activities.sort((a, b) =>
       new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )

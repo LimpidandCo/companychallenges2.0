@@ -2,7 +2,6 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { UserButton, useUser } from '@/components/providers/clerk-provider'
 import { cn } from '@/lib/utils'
 
 const navItems = [
@@ -13,7 +12,6 @@ const navItems = [
 
 export function ParticipantNav() {
   const pathname = usePathname()
-  const { user, isLoaded } = useUser()
 
   return (
     <>
@@ -21,7 +19,6 @@ export function ParticipantNav() {
       <nav className="hidden sm:block sticky top-0 z-40 border-b border-gray-200 bg-white/95 backdrop-blur-sm">
         <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
-            {/* Logo */}
             <Link href="/participant" className="flex items-center gap-3">
               <div className="h-9 w-9 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center">
                 <span className="text-white font-bold text-lg">C</span>
@@ -29,7 +26,6 @@ export function ParticipantNav() {
               <span className="font-semibold text-gray-900">My Learning</span>
             </Link>
 
-            {/* Navigation */}
             <div className="flex items-center gap-1">
               {navItems.map((item) => {
                 const isActive = pathname === item.href || 
@@ -53,14 +49,10 @@ export function ParticipantNav() {
               })}
             </div>
 
-            {/* User */}
             <div className="flex items-center gap-4">
-              {isLoaded && user && (
-                <span className="text-sm text-gray-600">
-                  {user.firstName || user.emailAddresses[0]?.emailAddress}
-                </span>
-              )}
-              <UserButton afterSignOutUrl="/" />
+              <Link href="/participant/settings" className="text-sm text-gray-600 hover:text-gray-900">
+                Settings
+              </Link>
             </div>
           </div>
         </div>
@@ -89,10 +81,6 @@ export function ParticipantNav() {
               </Link>
             )
           })}
-          <div className="flex flex-col items-center gap-1 px-4 py-2">
-            <UserButton afterSignOutUrl="/" />
-            <span className="text-xs text-gray-500">Profile</span>
-          </div>
         </div>
       </nav>
     </>
