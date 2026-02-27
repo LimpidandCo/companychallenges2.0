@@ -1,56 +1,13 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-
-// Demo mode controlled by environment variable (matches clerk-provider.tsx)
-const isDemoMode = process.env.NEXT_PUBLIC_DEMO_MODE === 'true'
-
 interface DemoUserButtonProps {
   afterSignOutUrl?: string
 }
 
-function PlaceholderAvatar() {
+export function DemoUserButton({ afterSignOutUrl }: DemoUserButtonProps) {
   return (
     <div className="flex h-9 w-9 items-center justify-center rounded-full bg-[var(--color-accent)] text-sm font-medium text-[var(--color-accent-fg)]">
-      D
+      A
     </div>
-  )
-}
-
-export function DemoUserButton({ afterSignOutUrl }: DemoUserButtonProps) {
-  const [UserButton, setUserButton] = useState<React.ComponentType<any> | null>(null)
-  const [error, setError] = useState(false)
-
-  useEffect(() => {
-    // In demo mode, don't even try to load Clerk
-    if (isDemoMode) {
-      return
-    }
-
-    // Only try to load Clerk if not in demo mode
-    import('@clerk/nextjs')
-      .then((mod) => {
-        setUserButton(() => mod.UserButton)
-      })
-      .catch(() => {
-        setError(true)
-      })
-  }, [])
-
-  // Demo mode or error: show placeholder
-  if (isDemoMode || error || !UserButton) {
-    return <PlaceholderAvatar />
-  }
-
-  // Clerk is available
-  return (
-    <UserButton
-      afterSignOutUrl={afterSignOutUrl}
-      appearance={{
-        elements: {
-          avatarBox: 'h-9 w-9',
-        }
-      }}
-    />
   )
 }
