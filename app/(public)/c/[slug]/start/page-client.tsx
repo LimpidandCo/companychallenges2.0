@@ -343,6 +343,7 @@ export function AssignmentsGridClient({
   return (
     <AuthGate
       challengeId={challenge.id}
+      challengeSlug={challenge.slug}
       challengeMode={challenge.mode || 'collective'}
       challengeTitle={title}
       brandColor={brandColor}
