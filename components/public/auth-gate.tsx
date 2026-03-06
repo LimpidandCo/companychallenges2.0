@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Spinner } from '@/components/ui'
-import { identifyParticipant, hasParticipantCookie, enrollInChallenge, isEnrolledInChallenge } from '@/lib/actions/participants'
+import { identifyParticipant, hasParticipantCookie, enrollInChallenge, isEnrolledInChallenge, logoutParticipant, getParticipantFromCookie } from '@/lib/actions/participants'
 
 interface AuthGateProps {
   challengeId: string
@@ -26,8 +26,8 @@ export function AuthGate({
   inline = false,
 }: AuthGateProps) {
   const router = useRouter()
-  const [status, setStatus] = useState<'loading' | 'needs-email' | 'enrolling' | 'ready'>('loading')
-  const [email, setEmail] = useState('')
+  const [status, setStatus] = useState<'loading' | 'needs-username' | 'enrolling' | 'ready'>('loading')
+  const [username, setUsername] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -41,7 +41,7 @@ export function AuthGate({
     async function check() {
       const hasCookie = await hasParticipantCookie()
       if (!hasCookie) {
-        setStatus('needs-email')
+        setStatus('needs-username')
         return
       }
 
@@ -55,7 +55,7 @@ export function AuthGate({
           setStatus('ready')
         } else {
           setError(result.error)
-          setStatus('needs-email')
+          setStatus('needs-username')
         }
       }
     }
@@ -68,7 +68,7 @@ export function AuthGate({
     setError(null)
     setIsSubmitting(true)
 
-    const result = await identifyParticipant(email)
+    const result = await identifyParticipant(username)
     if (!result.success) {
       setError(result.error)
       setIsSubmitting(false)
@@ -103,9 +103,9 @@ export function AuthGate({
   if (inline) {
     return (
       <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl p-8 text-center">
-        <EmailForm
-          email={email}
-          setEmail={setEmail}
+        <UsernameForm
+          username={username}
+          setUsername={setUsername}
           error={error}
           isSubmitting={isSubmitting}
           onSubmit={handleSubmit}
@@ -120,9 +120,9 @@ export function AuthGate({
 }
 
 /**
- * Standalone email identification form for use on landing pages.
+ * Standalone username identification form for use on landing pages.
  */
-export function EmailIdentificationForm({
+export function UsernameIdentificationForm({
   challengeId,
   challengeSlug,
   challengeTitle,
@@ -134,24 +134,27 @@ export function EmailIdentificationForm({
   brandColor?: string | null
 }) {
   const router = useRouter()
-  const [status, setStatus] = useState<'loading' | 'needs-email' | 'enrolled'>('loading')
-  const [email, setEmail] = useState('')
+  const [status, setStatus] = useState<'loading' | 'needs-username' | 'enrolled'>('loading')
+  const [username, setUsername] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [participantName, setParticipantName] = useState<string | null>(null)
 
   useEffect(() => {
     async function check() {
       const hasCookie = await hasParticipantCookie()
       if (!hasCookie) {
-        setStatus('needs-email')
+        setStatus('needs-username')
         return
       }
 
       const enrollResult = await isEnrolledInChallenge(challengeId)
       if (enrollResult.success && enrollResult.data) {
+        const participant = await getParticipantFromCookie()
+        if (participant) setParticipantName(participant.username || participant.email || null)
         setStatus('enrolled')
       } else {
-        setStatus('needs-email')
+        setStatus('needs-username')
       }
     }
     check()
@@ -162,7 +165,7 @@ export function EmailIdentificationForm({
     setError(null)
     setIsSubmitting(true)
 
-    const result = await identifyParticipant(email)
+    const result = await identifyParticipant(username)
     if (!result.success) {
       setError(result.error)
       setIsSubmitting(false)
@@ -179,6 +182,12 @@ export function EmailIdentificationForm({
     router.push(`/${challengeSlug}/start`)
   }
 
+  const handleLogout = async () => {
+    await logoutParticipant()
+    setParticipantName(null)
+    setStatus('needs-username')
+  }
+
   if (status === 'loading') {
     return (
       <div className="flex items-center justify-center py-8">
@@ -189,24 +198,37 @@ export function EmailIdentificationForm({
 
   if (status === 'enrolled') {
     return (
-      <a
-        href={`/${challengeSlug}/start`}
-        className="inline-flex items-center gap-3 rounded-xl px-8 py-4 text-lg font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
-        style={{ 
-          backgroundColor: brandColor || '#3b82f6',
-          boxShadow: `0 4px 12px -4px ${brandColor || '#3b82f6'}50`
-        }}
-      >
-        Continue Your Progress
-        <ArrowRightIcon className="h-5 w-5" />
-      </a>
+      <div className="flex flex-col items-center gap-4">
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <UserCircleIcon className="h-5 w-5" />
+          <span className="font-medium">{participantName}</span>
+          <span className="text-gray-300">|</span>
+          <button 
+            onClick={handleLogout}
+            className="text-gray-500 hover:text-gray-700 underline underline-offset-2"
+          >
+            ×
+          </button>
+        </div>
+        <a
+          href={`/${challengeSlug}/start`}
+          className="inline-flex items-center gap-3 rounded-xl px-8 py-4 text-lg font-semibold text-white transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg"
+          style={{ 
+            backgroundColor: brandColor || '#3b82f6',
+            boxShadow: `0 4px 12px -4px ${brandColor || '#3b82f6'}50`
+          }}
+        >
+          →
+          <ArrowRightIcon className="h-5 w-5" />
+        </a>
+      </div>
     )
   }
 
   return (
-    <EmailForm
-      email={email}
-      setEmail={setEmail}
+    <UsernameForm
+      username={username}
+      setUsername={setUsername}
       error={error}
       isSubmitting={isSubmitting}
       onSubmit={handleSubmit}
@@ -216,17 +238,20 @@ export function EmailIdentificationForm({
   )
 }
 
-function EmailForm({
-  email,
-  setEmail,
+/** @deprecated Use UsernameIdentificationForm instead */
+export const EmailIdentificationForm = UsernameIdentificationForm
+
+function UsernameForm({
+  username,
+  setUsername,
   error,
   isSubmitting,
   onSubmit,
   brandColor,
   challengeTitle,
 }: {
-  email: string
-  setEmail: (v: string) => void
+  username: string
+  setUsername: (v: string) => void
   error: string | null
   isSubmitting: boolean
   onSubmit: (e: React.FormEvent) => void
@@ -239,16 +264,8 @@ function EmailForm({
         className="w-16 h-16 rounded-2xl mx-auto mb-6 flex items-center justify-center"
         style={{ backgroundColor: brandColor || '#3b82f6' }}
       >
-        <MailIcon className="w-8 h-8 text-white" />
+        <UserCircleIcon className="w-8 h-8 text-white" />
       </div>
-      
-      <h2 className="text-2xl font-bold text-gray-900 mb-2">
-        Get Started
-      </h2>
-      
-      <p className="text-gray-600 mb-6">
-        Enter your email to begin <span className="font-medium">{challengeTitle}</span> and track your progress.
-      </p>
 
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-600 text-sm">
@@ -258,11 +275,12 @@ function EmailForm({
 
       <form onSubmit={onSubmit}>
         <input
-          type="email"
+          type="text"
           required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          placeholder="your@email.com"
+          minLength={2}
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+          placeholder="username"
           className="w-full px-4 py-3 rounded-xl border border-gray-300 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent mb-4"
           disabled={isSubmitting}
           autoFocus
@@ -270,24 +288,20 @@ function EmailForm({
 
         <button
           type="submit"
-          disabled={isSubmitting || !email.trim()}
+          disabled={isSubmitting || username.trim().length < 2}
           className="w-full py-3 px-6 rounded-xl font-medium text-white transition-all hover:opacity-90 disabled:opacity-50"
           style={{ backgroundColor: brandColor || '#3b82f6' }}
         >
           {isSubmitting ? (
             <span className="flex items-center justify-center gap-2">
               <Spinner size="sm" />
-              Starting...
+              ...
             </span>
           ) : (
-            'Start Challenge'
+            '→'
           )}
         </button>
       </form>
-
-      <p className="mt-4 text-sm text-gray-500">
-        Your progress will be saved automatically.
-      </p>
     </>
   )
 }
@@ -300,10 +314,10 @@ function ArrowRightIcon({ className }: { className?: string }) {
   )
 }
 
-function MailIcon({ className }: { className?: string }) {
+function UserCircleIcon({ className }: { className?: string }) {
   return (
     <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75" />
+      <path strokeLinecap="round" strokeLinejoin="round" d="M17.982 18.725A7.488 7.488 0 0 0 12 15.75a7.488 7.488 0 0 0-5.982 2.975m11.963 0a9 9 0 1 0-11.963 0m11.963 0A8.966 8.966 0 0 1 12 21a8.966 8.966 0 0 1-5.982-2.275M15 9.75a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z" />
     </svg>
   )
 }

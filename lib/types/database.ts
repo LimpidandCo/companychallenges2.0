@@ -342,11 +342,13 @@ export const DEFAULT_LABELS: Record<string, string> = {
 // =============================================================================
 
 /**
- * Participant - tracks Individual Mode users via email identification
+ * Participant - tracks Individual Mode users via username identification.
+ * DB column is 'email' until migration 013 renames it to 'username'.
  */
 export interface Participant {
   id: string
-  email: string
+  username: string
+  email?: string
   display_name: string | null
   avatar_url: string | null
   
@@ -743,7 +745,7 @@ export interface MilestoneUpdate {
 // =============================================================================
 
 export interface ParticipantInsert {
-  email: string
+  username: string
   display_name?: string | null
   avatar_url?: string | null
   show_in_leaderboard?: boolean

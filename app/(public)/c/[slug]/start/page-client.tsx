@@ -797,7 +797,7 @@ function SprintCard({
               {isComplete && (
                 <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-0.5 rounded-full">
                   <CheckCircleIcon className="h-3 w-3" />
-                  Complete
+                  ✓
                 </span>
               )}
             </div>
@@ -820,11 +820,11 @@ function SprintCard({
               </p>
             )}
 
-            {/* Sequential lock message */}
+            {/* Sequential lock indicator */}
             {isSequentiallyLocked && (
               <p className="text-xs text-gray-400 mb-3 flex items-center gap-1">
                 <LockIcon className="h-3 w-3" />
-                Complete previous mission to unlock
+                🔒
               </p>
             )}
 
@@ -1006,9 +1006,9 @@ function SprintLandingPage({
   const isInProgress = progress.completed > 0 && !isComplete
   
   const buttonLabel = isComplete 
-    ? 'Review' 
+    ? '↻' 
     : isInProgress 
-    ? 'Continue' 
+    ? '→' 
     : getLabel('start')
 
   return (
@@ -1034,12 +1034,36 @@ function SprintLandingPage({
         <p className="text-lg text-gray-600 mb-6">{sprint.subtitle}</p>
       )}
 
+      {/* Intro Video */}
+      {sprint.intro_video_url && (
+        <div className="mb-8 overflow-hidden rounded-2xl shadow-lg aspect-video">
+          <iframe
+            src={getEmbedUrl(sprint.intro_video_url)}
+            className="w-full h-full"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      )}
+
       {/* Description */}
       {sprint.description_html && (
         <div 
           className="prose prose-lg max-w-none mb-8"
           dangerouslySetInnerHTML={{ __html: sprint.description_html }}
         />
+      )}
+
+      {/* Recap Video */}
+      {sprint.recap_video_url && isComplete && (
+        <div className="mb-8 overflow-hidden rounded-2xl shadow-lg aspect-video">
+          <iframe
+            src={getEmbedUrl(sprint.recap_video_url)}
+            className="w-full h-full"
+            allow="autoplay; fullscreen; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
       )}
 
       {/* Progress + Assignment count */}
@@ -1056,11 +1080,11 @@ function SprintLandingPage({
         </div>
         <div>
           <p className="text-sm font-semibold text-gray-900">
-            {progress.total} {progress.total === 1 ? 'assignment' : 'assignments'}
+            {progress.total} ×
           </p>
           {showProgress && (
             <p className="text-sm text-gray-500">
-              {progress.completed} of {progress.total} completed
+              {progress.completed} / {progress.total}
             </p>
           )}
         </div>
@@ -1480,4 +1504,29 @@ function Spinner({ className }: { className?: string }) {
       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
     </svg>
   )
+}
+
+function getEmbedUrl(url: string): string {
+  if (url.includes('youtube.com/watch')) {
+    const videoId = new URL(url).searchParams.get('v') || ''
+    return `https://www.youtube.com/embed/${videoId}`
+  }
+  if (url.includes('youtu.be/')) {
+    const videoId = url.split('youtu.be/')[1]?.split('?')[0] || ''
+    return `https://www.youtube.com/embed/${videoId}`
+  }
+  if (url.includes('youtube.com/embed/')) {
+    return url
+  }
+  if (url.includes('vimeo.com')) {
+    const parts = url.replace(/\/$/, '').split('/')
+    const videoId = parts.find(p => /^\d+$/.test(p)) || parts[parts.length - 1]
+    let hashParam = ''
+    try {
+      hashParam = new URL(url.includes('://') ? url : `https://${url}`).searchParams.get('h') || ''
+    } catch {}
+    const embedBase = `https://player.vimeo.com/video/${videoId}`
+    return hashParam ? `${embedBase}?h=${hashParam}` : embedBase
+  }
+  return url
 }

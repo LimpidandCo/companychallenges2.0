@@ -21,7 +21,7 @@ type ActionResult<T> = { success: true; data: T } | { success: false; error: str
 const PARTICIPANT_COOKIE = 'participant_id'
 
 // =============================================================================
-// Participant Identification (email-based, cookie-backed)
+// Participant Identification (username-based, cookie-backed)
 // =============================================================================
 
 /**
@@ -47,21 +47,26 @@ export async function getParticipantFromCookie(): Promise<Participant | null> {
 }
 
 /**
- * Look up or create a participant by email, then set the cookie.
+ * Look up or create a participant by username, then set the cookie.
+ * DB column is still named 'email' until migration 013 is applied,
+ * but we treat it as a free-text username field.
  */
-export async function identifyParticipant(email: string): Promise<ActionResult<Participant>> {
+export async function identifyParticipant(username: string): Promise<ActionResult<Participant>> {
   try {
-    const normalized = email.toLowerCase().trim()
-    if (!normalized || !normalized.includes('@')) {
-      return { success: false, error: 'Please enter a valid email address.' }
+    const trimmed = username.trim()
+    if (!trimmed || trimmed.length < 2) {
+      return { success: false, error: 'Please enter a username (at least 2 characters).' }
     }
 
     const supabase = createAdminClient()
 
+    // DB column is 'email' until migration 013 renames it to 'username'
+    const dbColumn = 'email'
+
     const { data: existing } = await supabase
       .from('participants')
       .select('*')
-      .eq('email', normalized)
+      .eq(dbColumn, trimmed)
       .single()
 
     let participant: Participant
@@ -72,7 +77,7 @@ export async function identifyParticipant(email: string): Promise<ActionResult<P
       const { data: created, error } = await supabase
         .from('participants')
         .insert({
-          email: normalized,
+          [dbColumn]: trimmed,
           show_in_leaderboard: true,
           show_progress_publicly: false,
         })
@@ -97,6 +102,19 @@ export async function identifyParticipant(email: string): Promise<ActionResult<P
     return { success: true, data: participant }
   } catch (error) {
     return { success: false, error: 'Failed to identify participant' }
+  }
+}
+
+/**
+ * Clear the participant cookie (log out).
+ */
+export async function logoutParticipant(): Promise<ActionResult<null>> {
+  try {
+    const cookieStore = await cookies()
+    cookieStore.delete(PARTICIPANT_COOKIE)
+    return { success: true, data: null }
+  } catch (error) {
+    return { success: false, error: 'Failed to log out' }
   }
 }
 

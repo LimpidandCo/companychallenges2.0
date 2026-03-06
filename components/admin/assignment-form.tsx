@@ -173,19 +173,9 @@ export function AssignmentForm({
       setError('Public title is required (this is what participants see)')
       return
     }
-    if (!visualUrl.trim()) {
-      setError('Cover image is required')
-      return
-    }
-    
-    const strippedInstructions = instructionsHtml.replace(/<[^>]*>/g, '').trim()
     const strippedContent = contentHtml.replace(/<[^>]*>/g, '').trim()
     
-    if (!strippedInstructions) {
-      setError('Instructions are required')
-      return
-    }
-    if (!strippedContent) {
+    if (contentType !== 'quiz' && !strippedContent) {
       setError('Assignment content is required')
       return
     }
@@ -399,38 +389,41 @@ export function AssignmentForm({
                 </div>
               </div>
 
-              {/* Instructions */}
-              <InlineRichEditor
-                key={`instr-${assignment?.id || 'new'}-${open}`}
-                label="Instructions"
-                value={instructionsHtml}
-                onChange={setInstructionsHtml}
-                placeholder="How to complete this assignment..."
-                hint="Context and guidance for participants (left column on assignment page)"
-                minHeight="120px"
-                required
-                onUploadImage={handleEditorImageUpload}
-              />
+              {/* Instructions (optional) */}
+              {contentType !== 'quiz' && (
+                <InlineRichEditor
+                  key={`instr-${assignment?.id || 'new'}-${open}`}
+                  label="Instructions (optional)"
+                  value={instructionsHtml}
+                  onChange={setInstructionsHtml}
+                  placeholder="How to complete this assignment..."
+                  hint="Context and guidance for participants (left column). Leave empty for a single-column layout."
+                  minHeight="120px"
+                  onUploadImage={handleEditorImageUpload}
+                />
+              )}
 
-              {/* Content */}
-              <InlineRichEditor
-                key={`content-${assignment?.id || 'new'}-${open}`}
-                label="Assignment"
-                value={contentHtml}
-                onChange={setContentHtml}
-                placeholder="The actual task and materials..."
-                hint="The main assignment content (right column on assignment page)"
-                minHeight="120px"
-                required
-                onUploadImage={handleEditorImageUpload}
-              />
+              {/* Content (not shown for quiz type) */}
+              {contentType !== 'quiz' && (
+                <InlineRichEditor
+                  key={`content-${assignment?.id || 'new'}-${open}`}
+                  label="Assignment"
+                  value={contentHtml}
+                  onChange={setContentHtml}
+                  placeholder="The actual task and materials..."
+                  hint="The main assignment content (right column on assignment page)"
+                  minHeight="120px"
+                  required
+                  onUploadImage={handleEditorImageUpload}
+                />
+              )}
 
               {/* Media Section */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {/* Cover Image (Required) */}
+                {/* Cover Image (optional) */}
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-gray-900">
-                    Cover Image <span className="text-red-500">*</span>
+                    Cover Image
                   </label>
                   <div className={cn(
                     "aspect-video rounded-lg border-2 border-dashed flex items-center justify-center overflow-hidden relative",

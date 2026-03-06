@@ -2,13 +2,13 @@
 
 import Link from 'next/link'
 import { useEffect, useRef } from 'react'
-import { EmailIdentificationForm } from '@/components/public/auth-gate'
+import { UsernameIdentificationForm } from '@/components/public/auth-gate'
 import { SupportModal } from '@/components/public/support-modal'
 import { ChallengeDescriptionRenderer } from '@/components/public/content-renderer'
 import { trackChallengeView } from '@/lib/actions/analytics'
 import { gaChallengeView } from '@/lib/analytics/ga'
 import { useLabels } from '@/lib/hooks/use-labels'
-import type { Challenge, ChallengeLabel, Announcement, Sprint } from '@/lib/types/database'
+import type { Challenge, ChallengeLabel, Announcement } from '@/lib/types/database'
 
 interface ChallengePageClientProps {
   challenge: Challenge
@@ -16,7 +16,6 @@ interface ChallengePageClientProps {
   hasAssignments: boolean
   labels?: ChallengeLabel[]
   announcements?: Announcement[]
-  sprints?: Sprint[]
 }
 
 export function ChallengePageClient({
@@ -25,7 +24,6 @@ export function ChallengePageClient({
   hasAssignments,
   labels: initialLabels,
   announcements = [],
-  sprints = [],
 }: ChallengePageClientProps) {
   const hasTrackedView = useRef(false)
   
@@ -41,7 +39,8 @@ export function ChallengePageClient({
     gaChallengeView(challenge.id, challenge.public_title || challenge.internal_name)
   }, [challenge.client_id, challenge.id, challenge.public_title, challenge.internal_name])
 
-  const title = challenge.show_public_title && challenge.public_title
+  const showTitle = challenge.show_public_title !== false
+  const title = showTitle && challenge.public_title
     ? challenge.public_title
     : client.name
 
@@ -101,32 +100,33 @@ export function ChallengePageClient({
       <main className="flex-1 flex flex-col">
         <div className="flex-1 mx-auto w-full max-w-4xl px-4 py-10 sm:px-6 lg:px-8 sm:py-14">
           {/* Title */}
-          <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl tracking-tight mb-4">
-            {title}
-          </h1>
+          {showTitle && (
+            <h1 className="text-3xl font-bold text-gray-900 sm:text-4xl lg:text-5xl tracking-tight mb-4">
+              {title}
+            </h1>
+          )}
 
-          {/* Individual mode badge */}
-          {isIndividualMode && (
-            <div className="flex items-center gap-2 mb-8">
-              <span 
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium text-white"
-                style={{ backgroundColor: brandColor }}
-              >
-                <UserIcon className="h-4 w-4" />
-                Self-paced
-              </span>
-              {sprints.length > 0 && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
-                  <SprintIcon className="h-4 w-4" />
-                  {sprints.length} sprint{sprints.length !== 1 ? 's' : ''}
-                </span>
-              )}
-              {challenge.sequential_sprints && (
-                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-700">
-                  <LockIcon className="h-4 w-4" />
-                  Sequential unlock
-                </span>
-              )}
+          {/* Pinned announcements — prominent position at top */}
+          {announcements.filter(a => a.is_pinned).length > 0 && (
+            <div className="mb-8 space-y-3">
+              {announcements.filter(a => a.is_pinned).map((a) => (
+                <div
+                  key={a.id}
+                  className="rounded-xl border-2 border-amber-300 bg-amber-50 p-5"
+                >
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm">📌</span>
+                    <h3 className="font-semibold text-gray-900">{a.title}</h3>
+                    <span className="text-xs text-gray-400">
+                      {new Date(a.published_at).toLocaleDateString()}
+                    </span>
+                  </div>
+                  <div
+                    className="prose prose-sm max-w-none text-gray-700"
+                    dangerouslySetInnerHTML={{ __html: a.content_html || a.content }}
+                  />
+                </div>
+              ))}
             </div>
           )}
 
@@ -148,41 +148,10 @@ export function ChallengePageClient({
             </div>
           )}
 
-          {/* Sprint overview for individual mode */}
-          {isIndividualMode && sprints.length > 0 && (
-            <div className="mb-10">
-              <h2 className="text-xl font-bold text-gray-900 mb-4">What you'll cover</h2>
-              <div className="space-y-3">
-                {sprints.map((sprint, index) => (
-                  <div 
-                    key={sprint.id}
-                    className="flex items-center gap-4 p-4 rounded-xl border border-gray-200 bg-gray-50"
-                  >
-                    <div 
-                      className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl text-white font-bold"
-                      style={{ backgroundColor: brandColor }}
-                    >
-                      {index + 1}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-900">{sprint.name}</h3>
-                      {sprint.subtitle && (
-                        <p className="text-sm text-gray-600">{sprint.subtitle}</p>
-                      )}
-                    </div>
-                    {index > 0 && challenge.sequential_sprints && (
-                      <LockIcon className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Individual mode: Email form / Continue button */}
+          {/* Individual mode: Username form / Continue button */}
           {isIndividualMode && hasAssignments && (
             <div className="mb-10 rounded-2xl border-2 border-gray-200 bg-gray-50 p-8">
-              <EmailIdentificationForm
+              <UsernameIdentificationForm
                 challengeId={challenge.id}
                 challengeSlug={challenge.slug}
                 challengeTitle={title}
@@ -191,20 +160,15 @@ export function ChallengePageClient({
             </div>
           )}
 
-          {/* Announcements */}
-          {announcements.length > 0 && (
+          {/* Non-pinned announcements */}
+          {announcements.filter(a => !a.is_pinned).length > 0 && (
             <div className="mt-10 space-y-4">
-              {announcements.map((a) => (
+              {announcements.filter(a => !a.is_pinned).map((a) => (
                 <div
                   key={a.id}
-                  className={`rounded-xl border p-5 ${
-                    a.is_pinned
-                      ? 'border-amber-200 bg-amber-50'
-                      : 'border-gray-200 bg-gray-50'
-                  }`}
+                  className="rounded-xl border border-gray-200 bg-gray-50 p-5"
                 >
                   <div className="flex items-center gap-2 mb-2">
-                    {a.is_pinned && <span className="text-sm">📌</span>}
                     <h3 className="font-semibold text-gray-900">{a.title}</h3>
                     <span className="text-xs text-gray-400">
                       {new Date(a.published_at).toLocaleDateString()}
@@ -212,7 +176,7 @@ export function ChallengePageClient({
                   </div>
                   <div
                     className="prose prose-sm max-w-none text-gray-700"
-                    dangerouslySetInnerHTML={{ __html: a.content }}
+                    dangerouslySetInnerHTML={{ __html: a.content_html || a.content }}
                   />
                 </div>
               ))}
@@ -226,9 +190,6 @@ export function ChallengePageClient({
                 <span className="text-3xl">📚</span>
               </div>
               <h3 className="text-lg font-semibold text-gray-900">{getLabel('coming_soon')}</h3>
-              <p className="mt-2 text-gray-600 max-w-sm">
-                Content is being prepared. Check back soon for {getLabel('assignments').toLowerCase()}!
-              </p>
             </div>
           )}
         </div>
@@ -254,26 +215,3 @@ function ArrowRightIcon({ className }: { className?: string }) {
   )
 }
 
-function UserIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 1 1-7.5 0 3.75 3.75 0 0 1 7.5 0ZM4.501 20.118a7.5 7.5 0 0 1 14.998 0A17.933 17.933 0 0 1 12 21.75c-2.676 0-5.216-.584-7.499-1.632Z" />
-    </svg>
-  )
-}
-
-function SprintIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6A2.25 2.25 0 0 1 6 3.75h2.25A2.25 2.25 0 0 1 10.5 6v2.25a2.25 2.25 0 0 1-2.25 2.25H6a2.25 2.25 0 0 1-2.25-2.25V6ZM3.75 15.75A2.25 2.25 0 0 1 6 13.5h2.25a2.25 2.25 0 0 1 2.25 2.25V18a2.25 2.25 0 0 1-2.25 2.25H6A2.25 2.25 0 0 1 3.75 18v-2.25ZM13.5 6a2.25 2.25 0 0 1 2.25-2.25H18A2.25 2.25 0 0 1 20.25 6v2.25A2.25 2.25 0 0 1 18 10.5h-2.25a2.25 2.25 0 0 1-2.25-2.25V6ZM13.5 15.75a2.25 2.25 0 0 1 2.25-2.25H18a2.25 2.25 0 0 1 2.25 2.25V18A2.25 2.25 0 0 1 18 20.25h-2.25A2.25 2.25 0 0 1 13.5 18v-2.25Z" />
-    </svg>
-  )
-}
-
-function LockIcon({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" d="M16.5 10.5V6.75a4.5 4.5 0 1 0-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 0 0 2.25-2.25v-6.75a2.25 2.25 0 0 0-2.25-2.25H6.75a2.25 2.25 0 0 0-2.25 2.25v6.75a2.25 2.25 0 0 0 2.25 2.25Z" />
-    </svg>
-  )
-}

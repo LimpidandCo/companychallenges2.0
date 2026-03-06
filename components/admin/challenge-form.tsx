@@ -63,6 +63,8 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
   const [supportInfo, setSupportInfo] = useState(challenge?.support_info ?? '')
   const [passwordInstructions, setPasswordInstructions] = useState(challenge?.password_instructions ?? '')
   const [showPasswordInstructions, setShowPasswordInstructions] = useState(!!challenge?.password_instructions)
+  const [mode, setMode] = useState<'collective' | 'individual' | 'hybrid'>(challenge?.mode ?? 'collective')
+  const [sequentialSprints, setSequentialSprints] = useState(challenge?.sequential_sprints ?? false)
   const [features, setFeatures] = useState<ChallengeFeatures>(challenge?.features ?? defaultFeatures)
 
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -83,6 +85,8 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
         setSupportInfo(challenge.support_info ?? '')
         setPasswordInstructions(challenge.password_instructions ?? '')
         setShowPasswordInstructions(!!challenge.password_instructions)
+        setMode(challenge.mode ?? 'collective')
+        setSequentialSprints(challenge.sequential_sprints ?? false)
         setFeatures(challenge.features ?? defaultFeatures)
         setError(null)
       } else {
@@ -97,6 +101,8 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
         setSupportInfo('')
         setPasswordInstructions('')
         setShowPasswordInstructions(false)
+        setMode('collective')
+        setSequentialSprints(false)
         setFeatures(defaultFeatures)
         setError(null)
       }
@@ -148,6 +154,8 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
             brand_color: brandColor,
             support_info: supportInfo || null,
             password_instructions: showPasswordInstructions ? passwordInstructions : null,
+            mode,
+            sequential_sprints: sequentialSprints,
             features,
           })
         : await createChallenge({
@@ -161,6 +169,8 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
             brand_color: brandColor,
             support_info: supportInfo || null,
             password_instructions: showPasswordInstructions ? passwordInstructions : null,
+            mode,
+            sequential_sprints: sequentialSprints,
             features,
           })
 
@@ -410,6 +420,48 @@ export function ChallengeForm({ challenge, clientId, clients, open, onClose, onS
                 onChange={(e) => setFolder(e.target.value)}
                 placeholder="e.g. 2026 Programs"
               />
+
+              {/* Challenge Mode */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-gray-900">Challenge Mode</label>
+                <select
+                  value={mode}
+                  onChange={(e) => setMode(e.target.value as 'collective' | 'individual' | 'hybrid')}
+                  className="w-full rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                >
+                  <option value="collective">Collective (anonymous, no login)</option>
+                  <option value="individual">Individual (username login, progress tracking)</option>
+                  <option value="hybrid">Hybrid (optional login)</option>
+                </select>
+                <p className="text-xs text-gray-500">
+                  {mode === 'collective' && 'Participants access content anonymously via public URL.'}
+                  {mode === 'individual' && 'Participants create a username to track progress and unlock sprints.'}
+                  {mode === 'hybrid' && 'Content accessible anonymously, but login enables progress tracking.'}
+                </p>
+              </div>
+
+              {/* Sequential Sprints */}
+              {(mode === 'individual' || mode === 'hybrid') && (
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setSequentialSprints(!sequentialSprints)}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                      sequentialSprints ? 'bg-blue-600' : 'bg-gray-200'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                        sequentialSprints ? 'translate-x-6' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <div>
+                    <span className="text-sm font-medium text-gray-900">Sequential Sprint Unlock</span>
+                    <p className="text-xs text-gray-500">Sprints unlock one by one as participants complete earlier sprints</p>
+                  </div>
+                </div>
+              )}
 
               {/* Features */}
               <div className="space-y-3">
